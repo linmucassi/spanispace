@@ -1,0 +1,7 @@
+{
+  "name": "Spanispace - Bridge the Skill Gap",
+  "description": "A high-end platform bridging the gap between skill building and job hunting, offering vetted roles, expert bootcamps, and career resources for graduates.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
