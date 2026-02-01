@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { TRAININGS } from '../constants';
+import { TRAININGS } from '../data/constants';
 
 const TrainingSection: React.FC = () => {
   return (

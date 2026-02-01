@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { JOBS } from '../constants';
+import { JOBS } from '../data/constants';
 import { VettedStatus } from '../types';
 
 const JobBoard: React.FC = () => {

@@ -8,13 +8,21 @@ import SuccessStories from '../components/SuccessStories';
 export default function Home() {
   return (
     <>
+    <div id='home'>
       <Hero />
+      </div>
       <div id="jobs">
         <JobBoard />
       </div>
-      <TrainingSection />
-      <AcademicPortal />
-      <SuccessStories />
+      <div id="training">
+        <TrainingSection />
+    </div>
+      <div id="academic">
+        <AcademicPortal />
+    </div>
+      <div id="success-stories">
+        <SuccessStories />
+      </div>
     </>
   );
 }

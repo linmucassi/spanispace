@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ACADEMIC_UPDATES } from '../constants';
+import { ACADEMIC_UPDATES } from '../data/constants';
 
 const AcademicPortal: React.FC = () => {
   return (
