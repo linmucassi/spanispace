@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 72" fill="none">
+  <!-- Infinity loop icon -->
+  <path d="M16 36c0-11 7.5-19 17-19 6 0 11 3 14.5 8.5C51 31 55.5 36 62 36c6.5 0 11-5 11-12.5S67.5 11 62 11c-6 0-10.5 5-14 10.5" stroke="#2563EB" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+  <path d="M16 36c0 11 7.5 19 17 19 6 0 11-3 14.5-8.5C51 41 55.5 36 62 36c6.5 0 11 5 11 12.5S67.5 61 62 61c-6 0-10.5-5-14-10.5" stroke="#2563EB" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+  <!-- Spanispace text -->
+  <text x="82" y="46" font-family="Inter, system-ui, -apple-system, sans-serif" font-size="28" font-weight="700" fill="#0f172a" letter-spacing="-0.3">Spanispace</text>
+</svg>

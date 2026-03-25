@@ -16,14 +16,14 @@ export const metadata: Metadata = {
       'Expert-led training, vetted job opportunities, and professional CV curation for fresh graduates and job seekers.',
     siteName: 'Spanispace',
     type: 'website',
-    images: [{ url: '/assets/logo.png', width: 512, height: 512, alt: 'Spanispace Logo' }],
+    images: [{ url: '/assets/logo.svg', width: 300, height: 72, alt: 'Spanispace Logo' }],
   },
   twitter: {
     card: 'summary',
     title: 'Spanispace | Skill-to-Job Bridge',
     description:
       'Expert-led training, vetted job opportunities, and professional CV curation for fresh graduates and job seekers.',
-    images: ['/assets/logo.png'],
+    images: ['/assets/logo.svg'],
   },
 };
 

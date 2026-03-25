@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import LanguageToggle from './LanguageToggle';
@@ -126,15 +125,11 @@ const Navbar: React.FC = () => {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center h-full">
-            <div className="relative h-10 w-32 md:h-12 md:w-40">
-              <Image
-                src="/assets/logo.png"
-                alt="Spanispace Logo"
-                fill
-                priority
-                className="object-contain"
-              />
-            </div>
+            <img
+              src="/assets/logo.svg"
+              alt="Spanispace Logo"
+              className="h-10 w-auto md:h-12"
+            />
           </Link>
 
           {/* Desktop Nav */}
