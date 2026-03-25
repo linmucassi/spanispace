@@ -2,7 +2,18 @@
   "permissions": {
     "allow": [
       "Bash(xargs wc:*)",
-      "Bash(git:*)"
+      "Bash(git:*)",
+      "Bash(claude mcp:*)",
+      "mcp__supabase__list_tables",
+      "mcp__supabase__get_project",
+      "mcp__supabase__execute_sql",
+      "mcp__supabase__apply_migration",
+      "Bash(ls:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx next:*)",
+      "mcp__supabase__list_migrations",
+      "Bash(curl:*)",
+      "Bash(netlify status:*)"
     ]
   }
 }
