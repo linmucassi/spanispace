@@ -126,7 +126,7 @@ const Navbar: React.FC = () => {
           {/* Logo */}
           <Link href="/" className="flex items-center h-full">
             <img
-              src="/assets/logo.svg"
+              src="/assets/logo.jpeg"
               alt="Spanispace Logo"
               className="h-10 w-auto md:h-12"
             />

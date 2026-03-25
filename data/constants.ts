@@ -186,4 +186,4 @@ export const ACADEMIC_UPDATES: UniversityUpdate[] = [
   { institution: 'University of Pretoria', deadline: '2025-01-15', type: 'Standard' },
 ];
 
-export const LOGO_PATH = './assets/logo.svg';
+export const LOGO_PATH = './assets/logo.jpeg';
