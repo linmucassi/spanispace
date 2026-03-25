@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head><title>Forms</title></head>
+<body>
+  <!-- Netlify Forms detection: these hidden forms let Netlify know which forms to expect -->
+  <form name="job-application" data-netlify="true" netlify-honeypot="bot-field" hidden>
+    <input name="bot-field" />
+    <input name="job-id" />
+    <input name="job-title" />
+    <input name="full-name" />
+    <input name="phone" />
+    <input name="whatsapp" />
+    <input name="email" />
+    <input name="location" />
+    <textarea name="about-you"></textarea>
+  </form>
+
+  <form name="job-posting" data-netlify="true" netlify-honeypot="bot-field" hidden>
+    <input name="bot-field" />
+    <input name="company-name" />
+    <input name="phone" />
+    <input name="whatsapp" />
+    <input name="email" />
+    <input name="job-title" />
+    <textarea name="description"></textarea>
+    <input name="location" />
+    <input name="job-type" />
+    <input name="pay" />
+  </form>
+
+  <form name="waitlist" data-netlify="true" netlify-honeypot="bot-field" hidden>
+    <input name="bot-field" />
+    <input name="name" />
+    <input name="email" />
+    <input name="phone" />
+    <input name="type" />
+  </form>
+
+  <form name="newsletter" data-netlify="true" netlify-honeypot="bot-field" hidden>
+    <input name="bot-field" />
+    <input name="email" />
+  </form>
+</body>
+</html>

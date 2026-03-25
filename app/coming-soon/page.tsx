@@ -1,192 +1,140 @@
-// app/coming-soon/page.tsx
 'use client';
 
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import { useState } from 'react';
-
-const formSchema = z.object({
-  name: z.string().min(2, 'Name is required'),
-  email: z.string().email('Please enter a valid email'),
-  phone: z.string().optional(),
-  type: z.enum(['Bootcamp', 'Course', 'Event/Hackathon', 'Other']).refine(
-    (val) => val !== undefined,
-    'Please select what you are interested in'
-  ),
-  consent: z.boolean().refine((val) => val === true, 'You must agree to be contacted'),
-});
-
-type FormData = z.infer<typeof formSchema>;
+import { useTranslation } from '../../lib/i18n/context';
+import { submitNetlifyForm } from '../../lib/netlifyForms';
 
 export default function ComingSoon() {
+  const { t } = useTranslation();
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      type: 'Bootcamp', // optional – can remove if you prefer no default
-    },
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    type: 'Bootcamp',
   });
 
-  const onSubmit = async (data: FormData) => {
-    try {
-      const response = await fetch('YOUR_GOOGLE_APPS_SCRIPT_URL_HERE', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...data,
-          type: data.type || 'Coming Soon Interest',
-        }),
-      });
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
 
-      if (response.ok) {
-        setSubmitted(true);
-        setError('');
-      } else {
-        setError('Something went wrong. Please try again or email us directly.');
-      }
-    } catch (err) {
-      setError('Network error – please check your internet connection.');
-      console.error(err);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    if (!form.name.trim() || !form.email.trim()) {
+      setError(t('apply.required'));
+      return;
+    }
+
+    setSubmitting(true);
+    const ok = await submitNetlifyForm('waitlist', {
+      name: form.name,
+      email: form.email,
+      phone: form.phone,
+      type: form.type,
+    });
+
+    setSubmitting(false);
+    if (ok) {
+      setSubmitted(true);
+    } else {
+      setError(t('apply.error'));
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-blue-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-blue-50 flex items-center justify-center py-12 px-4">
       <div className="max-w-lg w-full bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl p-8 md:p-10 border border-gray-100">
         <div className="text-center mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">
-            Coming Soon
-          </h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">Coming Soon</h1>
           <p className="text-lg text-gray-600">
-            Bootcamps, short courses, events & hackathons launching soon.
+            Bootcamps, short courses, events &amp; hackathons launching soon.
           </p>
-          <p className="text-gray-600 mt-1">
-            Join the reminder list and be the first to know!
-          </p>
+          <p className="text-gray-600 mt-1">Join the reminder list and be the first to know!</p>
         </div>
 
         {submitted ? (
           <div className="text-center py-8">
             <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-              <svg
-                className="w-8 h-8 text-green-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={3}
-                  d="M5 13l4 4L19 7"
-                />
+              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h2 className="text-2xl font-semibold text-gray-800 mb-2">
-              You're on the list!
-            </h2>
+            <h2 className="text-2xl font-semibold text-gray-800 mb-2">You&apos;re on the list!</h2>
             <p className="text-gray-600">
-              We'll send you a notification as soon as registration opens.
+              We&apos;ll send you a notification as soon as registration opens.
             </p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                Full Name
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
               <input
-                id="name"
-                type="text"
-                {...register('name')}
-                className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-3 px-4"
+                name="name"
+                value={form.name}
+                onChange={handleChange}
+                required
                 placeholder="Thabo Mokoena"
+                className="block w-full rounded-xl border border-gray-200 px-4 py-3 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
               />
-              {errors.name && (
-                <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
-              )}
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                Email Address
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
               <input
-                id="email"
+                name="email"
                 type="email"
-                {...register('email')}
-                className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-3 px-4"
+                value={form.email}
+                onChange={handleChange}
+                required
                 placeholder="you@example.com"
+                className="block w-full rounded-xl border border-gray-200 px-4 py-3 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
               />
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
-              )}
             </div>
 
             <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
-                Phone Number (optional)
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Phone (optional)
               </label>
               <input
-                id="phone"
+                name="phone"
                 type="tel"
-                {...register('phone')}
-                className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-3 px-4"
+                value={form.phone}
+                onChange={handleChange}
                 placeholder="+27 82 123 4567"
+                className="block w-full rounded-xl border border-gray-200 px-4 py-3 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
               />
             </div>
 
             <div>
-              <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">
-                I'm interested in
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                I&apos;m interested in
               </label>
               <select
-                id="type"
-                {...register('type')}
-                className="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-3 px-4 bg-white"
+                name="type"
+                value={form.type}
+                onChange={handleChange}
+                className="block w-full rounded-xl border border-gray-200 px-4 py-3 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none bg-white"
               >
                 <option value="Bootcamp">Bootcamp</option>
                 <option value="Course">Short Course</option>
                 <option value="Event/Hackathon">Event / Hackathon</option>
-                <option value="Other">Other (please specify in notes later)</option>
+                <option value="Other">Other</option>
               </select>
-              {errors.type && (
-                <p className="mt-1 text-sm text-red-600">{errors.type.message}</p>
-              )}
             </div>
 
-            <div className="flex items-start">
-              <div className="flex items-center h-5">
-                <input
-                  id="consent"
-                  type="checkbox"
-                  {...register('consent')}
-                  className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                />
-              </div>
-              <label htmlFor="consent" className="ml-3 text-sm text-gray-600">
-                I agree to be contacted by Spanispace via email or phone about updates, bootcamps, courses, events, and to receive an auto-created profile when features launch.
-                <br />
-                <a href="/privacy" className="text-indigo-600 hover:underline">
-                  View our Privacy Policy
-                </a>
-              </label>
-            </div>
-            {errors.consent && (
-              <p className="text-sm text-red-600">{errors.consent.message}</p>
-            )}
-
-            {error && <p className="text-center text-red-600 mt-4">{error}</p>}
+            {error && <p className="text-red-600 text-center text-sm">{error}</p>}
 
             <button
               type="submit"
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-full transition-all shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+              disabled={submitting}
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-full transition-all shadow-md disabled:opacity-50"
             >
-              Join the Reminder List
+              {submitting ? t('apply.submitting') : 'Join the Reminder List'}
             </button>
           </form>
         )}

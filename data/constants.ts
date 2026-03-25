@@ -1,4 +1,3 @@
-import React from 'react';
 import { Job, VettedStatus, Training, UniversityUpdate } from '../types';
 
 export const JOBS: Job[] = [
