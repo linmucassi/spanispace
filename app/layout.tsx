@@ -1,9 +1,6 @@
 import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
-import MobileCTA from '../components/MobileCTA';
 import Providers from './providers';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -34,12 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className="scroll-pt-20">
       <body className={inter.className}>
-        <Providers>
-          <Navbar />
-          <main className="min-h-screen">{children}</main>
-          <Footer />
-          <MobileCTA />
-        </Providers>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

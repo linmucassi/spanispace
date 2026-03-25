@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useTranslation } from '../lib/i18n/context';
+import { useTranslation } from '@/lib/i18n/context';
 
 export default function NotFound() {
   const { t } = useTranslation();

@@ -1,0 +1,467 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { createClient } from '@/lib/supabase/client';
+
+interface ProfileData {
+  full_name: string;
+  phone: string;
+  whatsapp: string;
+  location: string;
+  matric_grad_year: number | null;
+  university: string;
+  skills: string[];
+  portfolio_url: string;
+  cv_url: string;
+}
+
+const emptyProfile: ProfileData = {
+  full_name: '',
+  phone: '',
+  whatsapp: '',
+  location: '',
+  matric_grad_year: null,
+  university: '',
+  skills: [],
+  portfolio_url: '',
+  cv_url: '',
+};
+
+export default function CandidateProfilePage() {
+  const [profile, setProfile] = useState<ProfileData>(emptyProfile);
+  const [email, setEmail] = useState('');
+  const [skillInput, setSkillInput] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [feedback, setFeedback] = useState<{
+    type: 'success' | 'error';
+    message: string;
+  } | null>(null);
+
+  useEffect(() => {
+    async function load() {
+      const supabase = createClient();
+      if (!supabase) {
+        setLoading(false);
+        return;
+      }
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      setEmail(user.email ?? '');
+
+      const { data } = await supabase
+        .from('candidate_profiles')
+        .select(
+          'full_name, phone, whatsapp, location, matric_grad_year, university, skills, portfolio_url, cv_url'
+        )
+        .eq('user_id', user.id)
+        .single();
+
+      if (data) {
+        setProfile({
+          full_name: data.full_name ?? '',
+          phone: data.phone ?? '',
+          whatsapp: data.whatsapp ?? '',
+          location: data.location ?? '',
+          matric_grad_year: data.matric_grad_year ?? null,
+          university: data.university ?? '',
+          skills: data.skills ?? [],
+          portfolio_url: data.portfolio_url ?? '',
+          cv_url: data.cv_url ?? '',
+        });
+      }
+
+      setLoading(false);
+    }
+
+    load();
+  }, []);
+
+  function handleChange(field: keyof ProfileData, value: string | number | null) {
+    setProfile((prev) => ({ ...prev, [field]: value }));
+    setFeedback(null);
+  }
+
+  function addSkills() {
+    if (!skillInput.trim()) return;
+    const newSkills = skillInput
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0 && !profile.skills.includes(s));
+    setProfile((prev) => ({
+      ...prev,
+      skills: [...prev.skills, ...newSkills],
+    }));
+    setSkillInput('');
+  }
+
+  function removeSkill(skill: string) {
+    setProfile((prev) => ({
+      ...prev,
+      skills: prev.skills.filter((s) => s !== skill),
+    }));
+  }
+
+  function handleSkillKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addSkills();
+    }
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    setFeedback(null);
+
+    const supabase = createClient();
+    if (!supabase) {
+      setFeedback({ type: 'error', message: 'Supabase is not configured.' });
+      setSaving(false);
+      return;
+    }
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      setFeedback({ type: 'error', message: 'You must be signed in.' });
+      setSaving(false);
+      return;
+    }
+
+    const payload = {
+      full_name: profile.full_name,
+      phone: profile.phone || null,
+      whatsapp: profile.whatsapp || null,
+      location: profile.location || null,
+      matric_grad_year: profile.matric_grad_year,
+      university: profile.university || null,
+      skills: profile.skills,
+      portfolio_url: profile.portfolio_url || null,
+    };
+
+    const { error } = await supabase
+      .from('candidate_profiles')
+      .update(payload)
+      .eq('user_id', user.id);
+
+    if (error) {
+      setFeedback({
+        type: 'error',
+        message: error.message || 'Failed to save profile.',
+      });
+    } else {
+      setFeedback({ type: 'success', message: 'Profile saved successfully.' });
+    }
+
+    setSaving(false);
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold text-slate-900">My Profile</h1>
+        <div className="bg-white rounded-xl border border-slate-200 p-8 text-center">
+          <p className="text-slate-500">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6 max-w-3xl">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">My Profile</h1>
+        <p className="text-slate-500 mt-1">
+          Keep your profile up to date so employers can find you.
+        </p>
+      </div>
+
+      {feedback && (
+        <div
+          className={`px-4 py-3 rounded-lg text-sm font-medium ${
+            feedback.type === 'success'
+              ? 'bg-green-50 text-green-800 border border-green-200'
+              : 'bg-red-50 text-red-800 border border-red-200'
+          }`}
+        >
+          {feedback.message}
+        </div>
+      )}
+
+      <div className="bg-white rounded-xl border border-slate-200 divide-y divide-slate-200">
+        {/* Personal Information */}
+        <div className="p-6 space-y-5">
+          <h2 className="text-base font-semibold text-slate-900">
+            Personal Information
+          </h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Full Name
+              </label>
+              <input
+                type="text"
+                value={profile.full_name}
+                onChange={(e) => handleChange('full_name', e.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                placeholder="e.g. Thabo Mokoena"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Email
+              </label>
+              <input
+                type="email"
+                value={email}
+                readOnly
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500 cursor-not-allowed"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Phone
+              </label>
+              <input
+                type="tel"
+                value={profile.phone}
+                onChange={(e) => handleChange('phone', e.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                placeholder="e.g. 071 234 5678"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                WhatsApp
+              </label>
+              <input
+                type="tel"
+                value={profile.whatsapp}
+                onChange={(e) => handleChange('whatsapp', e.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                placeholder="e.g. 071 234 5678"
+              />
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Location
+              </label>
+              <input
+                type="text"
+                value={profile.location}
+                onChange={(e) => handleChange('location', e.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                placeholder="e.g. Johannesburg, Gauteng"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Education */}
+        <div className="p-6 space-y-5">
+          <h2 className="text-base font-semibold text-slate-900">Education</h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Matric Graduation Year
+              </label>
+              <input
+                type="number"
+                min={1990}
+                max={2030}
+                value={profile.matric_grad_year ?? ''}
+                onChange={(e) =>
+                  handleChange(
+                    'matric_grad_year',
+                    e.target.value ? Number(e.target.value) : null
+                  )
+                }
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                placeholder="e.g. 2022"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                University / Institution
+              </label>
+              <input
+                type="text"
+                value={profile.university}
+                onChange={(e) => handleChange('university', e.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                placeholder="e.g. University of Cape Town"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Skills */}
+        <div className="p-6 space-y-5">
+          <h2 className="text-base font-semibold text-slate-900">Skills</h2>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Add skills (comma separated)
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={skillInput}
+                onChange={(e) => setSkillInput(e.target.value)}
+                onKeyDown={handleSkillKeyDown}
+                className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                placeholder="e.g. Python, Excel, Data Analysis"
+              />
+              <button
+                type="button"
+                onClick={addSkills}
+                className="px-4 py-2 bg-slate-100 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-200 transition-colors"
+              >
+                Add
+              </button>
+            </div>
+          </div>
+
+          {profile.skills.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {profile.skills.map((skill) => (
+                <span
+                  key={skill}
+                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-sm font-medium"
+                >
+                  {skill}
+                  <button
+                    type="button"
+                    onClick={() => removeSkill(skill)}
+                    className="ml-0.5 text-indigo-400 hover:text-indigo-700 transition-colors"
+                    aria-label={`Remove ${skill}`}
+                  >
+                    &times;
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Portfolio & CV */}
+        <div className="p-6 space-y-5">
+          <h2 className="text-base font-semibold text-slate-900">
+            Portfolio & CV
+          </h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Portfolio URL
+              </label>
+              <input
+                type="url"
+                value={profile.portfolio_url}
+                onChange={(e) => handleChange('portfolio_url', e.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                placeholder="https://yourportfolio.com"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                CV Upload
+              </label>
+              {profile.cv_url && (
+                <div className="mb-2 flex items-center gap-2">
+                  <a
+                    href={profile.cv_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-indigo-600 hover:underline"
+                  >
+                    View current CV
+                  </a>
+                </div>
+              )}
+              <input
+                type="file"
+                accept=".pdf,.doc,.docx"
+                disabled={uploading}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  if (file.size > 5 * 1024 * 1024) {
+                    setFeedback({ type: 'error', message: 'File must be under 5MB.' });
+                    return;
+                  }
+                  setUploading(true);
+                  setFeedback(null);
+                  const supabase = createClient();
+                  if (!supabase) {
+                    setFeedback({ type: 'error', message: 'Upload service not available.' });
+                    setUploading(false);
+                    return;
+                  }
+                  const { data: { user } } = await supabase.auth.getUser();
+                  if (!user) {
+                    setFeedback({ type: 'error', message: 'You must be signed in.' });
+                    setUploading(false);
+                    return;
+                  }
+                  const ext = file.name.split('.').pop();
+                  const path = `${user.id}/cv.${ext}`;
+                  const { error: uploadError } = await supabase.storage
+                    .from('cvs')
+                    .upload(path, file, { upsert: true });
+                  if (uploadError) {
+                    setFeedback({ type: 'error', message: uploadError.message });
+                    setUploading(false);
+                    return;
+                  }
+                  const { data: urlData } = supabase.storage
+                    .from('cvs')
+                    .getPublicUrl(path);
+                  const cvUrl = urlData.publicUrl;
+                  await supabase
+                    .from('candidate_profiles')
+                    .update({ cv_url: cvUrl })
+                    .eq('user_id', user.id);
+                  setProfile((prev) => ({ ...prev, cv_url: cvUrl }));
+                  setFeedback({ type: 'success', message: 'CV uploaded successfully.' });
+                  setUploading(false);
+                }}
+                className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 file:cursor-pointer disabled:opacity-50"
+              />
+              <p className="text-xs text-slate-400 mt-1">PDF, DOC, DOCX. Max 5MB.</p>
+              {uploading && <p className="text-xs text-indigo-600 mt-1">Uploading...</p>}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Save */}
+      <div className="flex justify-end">
+        <button
+          onClick={handleSave}
+          disabled={saving || !profile.full_name.trim()}
+          className="px-6 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {saving ? 'Saving...' : 'Save Profile'}
+        </button>
+      </div>
+    </div>
+  );
+}
