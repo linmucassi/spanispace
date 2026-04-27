@@ -186,6 +186,25 @@ const zu = {
     confirmEmail: 'Hlola i-imeyili yakho ukuze uqinisekise i-akhawunti yakho ngaphambi kokungena.',
     supabaseNotConfigured: 'Isevisi yokuqinisekisa ayihlelwanga. Sicela uxhumane nosizo.',
     roleCheckFailed: 'Asikwazanga ukuhlola i-akhawunti yakho. Sicela uzame futhi.',
+    forgotPasswordTitle: 'Setha kabusha iphasiwedi yakho',
+    forgotPasswordSubtitle:
+      'Faka i-imeyili yakho sizokuthumelela isixhumanisi sokusetha kabusha.',
+    sendResetLink: 'Thumela Isixhumanisi Sokusetha Kabusha',
+    sendingResetLink: 'Iyathumela...',
+    resetEmailSentTitle: 'Hlola i-imeyili yakho',
+    resetEmailSentMessage:
+      'Sikuthumelele isixhumanisi sokusetha kabusha iphasiwedi. Sichofoze ukuze usethe iphasiwedi entsha.',
+    resetPasswordTitle: 'Setha iphasiwedi entsha',
+    resetPasswordSubtitle:
+      'Khetha iphasiwedi eqinile ongakaze uyisebenzise.',
+    newPassword: 'Iphasiwedi Entsha',
+    confirmPassword: 'Qinisekisa Iphasiwedi',
+    updatePassword: 'Buyekeza Iphasiwedi',
+    updatingPassword: 'Iyabuyekeza...',
+    passwordTooShort: 'Iphasiwedi kufanele ibe nezinhlamvu okungenani ezingu-6.',
+    passwordMismatch: 'Amaphasiwedi awafani.',
+    passwordUpdatedTitle: 'Iphasiwedi ibuyekeziwe',
+    passwordUpdatedMessage: 'Siyakuthumela ekungeneni...',
   },
   events: {
     title: 'Imicimbi Ezayo',

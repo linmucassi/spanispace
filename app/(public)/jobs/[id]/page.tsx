@@ -3,8 +3,8 @@
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { JOBS } from '@/data/constants';
-import { VettedStatus } from '@/types';
 import { useTranslation } from '@/lib/i18n/context';
+import JsonLd from '@/components/JsonLd';
 
 export default function JobDetailPage() {
   const params = useParams();
@@ -26,8 +26,52 @@ export default function JobDetailPage() {
 
   const isExpired = new Date(job.expiryDate) < new Date();
 
+  const employmentTypeMap: Record<string, string> = {
+    Remote: 'FULL_TIME',
+    Hybrid: 'FULL_TIME',
+    'On-site': 'FULL_TIME',
+    Learnership: 'INTERN',
+    Internship: 'INTERN',
+    'Hybrid & Remote possible': 'FULL_TIME',
+    'Learnership (Hybrid)': 'INTERN',
+    'Learnership (On-site)': 'INTERN',
+  };
+
+  const jobPostingSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'JobPosting',
+    title: job.role,
+    description: `${job.role} at ${job.company}. ${job.vettedStatus} listing on Spanispace.`,
+    datePosted: new Date().toISOString().split('T')[0],
+    validThrough: job.expiryDate,
+    employmentType: employmentTypeMap[job.type] ?? 'FULL_TIME',
+    hiringOrganization: {
+      '@type': 'Organization',
+      name: job.company,
+      sameAs: 'https://spanispace.com',
+    },
+    jobLocation: {
+      '@type': 'Place',
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: job.location,
+        addressCountry: 'ZA',
+      },
+    },
+    ...(job.type === 'Remote' && {
+      jobLocationType: 'TELECOMMUTE',
+      applicantLocationRequirements: {
+        '@type': 'Country',
+        name: 'South Africa',
+      },
+    }),
+    directApply: true,
+    url: `https://spanispace.com/jobs/${job.id}`,
+  };
+
   return (
     <div className="min-h-screen pt-24 pb-20 px-4">
+      <JsonLd data={jobPostingSchema} />
       <div className="max-w-3xl mx-auto">
         <Link
           href="/jobs"
