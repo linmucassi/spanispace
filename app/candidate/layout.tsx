@@ -1,7 +1,9 @@
 import CandidateSidebar from '@/components/candidate/CandidateSidebar';
+import type { Metadata } from 'next';
 
-export const metadata = {
+export const metadata: Metadata = {
   title: 'Dashboard | Spanispace',
+  robots: { index: false, follow: false },
 };
 
 export default function CandidateLayout({

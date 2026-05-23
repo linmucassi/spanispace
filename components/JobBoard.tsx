@@ -3,16 +3,21 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { JOBS } from '../data/constants';
-import { VettedStatus } from '../types';
+import { VettedStatus, type Job } from '../types';
 import { useTranslation } from '../lib/i18n/context';
 
-const JobBoard: React.FC = () => {
+interface JobBoardProps {
+  initialJobs?: Job[];
+}
+
+const JobBoard: React.FC<JobBoardProps> = ({ initialJobs }) => {
   const [filter, setFilter] = useState('All');
   const { t } = useTranslation();
+  const jobs = initialJobs ?? JOBS;
 
   const now = new Date();
 
-  const filteredJobs = JOBS.filter((job) => {
+  const filteredJobs = jobs.filter((job) => {
     if (filter === 'All') return true;
     return job.type.toLowerCase().includes(filter.toLowerCase());
   });

@@ -4,6 +4,9 @@ import TrainingSection from '@/components/TrainingSection';
 import AcademicPortal from '@/components/AcademicPortal';
 import SuccessStories from '@/components/SuccessStories';
 import JsonLd from '@/components/JsonLd';
+import { fetchPublicJobs } from '@/lib/publicJobs';
+
+export const revalidate = 300;
 
 const organizationSchema = {
   '@context': 'https://schema.org',
@@ -34,7 +37,8 @@ const websiteSchema = {
   },
 };
 
-export default function Home() {
+export default async function Home() {
+  const jobs = await fetchPublicJobs();
   return (
     <>
       <JsonLd data={organizationSchema} />
@@ -43,7 +47,7 @@ export default function Home() {
         <Hero />
       </div>
       <div id="jobs">
-        <JobBoard />
+        <JobBoard initialJobs={jobs} />
       </div>
       <div id="training">
         <TrainingSection />

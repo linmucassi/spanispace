@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import JobBoard from '@/components/JobBoard';
+import { fetchPublicJobs } from '@/lib/publicJobs';
 
 export const metadata: Metadata = {
   title: 'Vetted Jobs in South Africa',
@@ -8,10 +9,13 @@ export const metadata: Metadata = {
   alternates: { canonical: '/jobs' },
 };
 
-export default function JobsPage() {
+export const revalidate = 300;
+
+export default async function JobsPage() {
+  const jobs = await fetchPublicJobs();
   return (
     <div className="pt-20">
-      <JobBoard />
+      <JobBoard initialJobs={jobs} />
     </div>
   );
 }

@@ -1,7 +1,9 @@
 import AdminSidebar from '@/components/admin/AdminSidebar';
+import type { Metadata } from 'next';
 
-export const metadata = {
+export const metadata: Metadata = {
   title: 'Admin | Spanispace',
+  robots: { index: false, follow: false },
 };
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

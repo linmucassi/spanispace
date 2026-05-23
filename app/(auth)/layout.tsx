@@ -1,7 +1,9 @@
 import Link from 'next/link';
+import type { Metadata } from 'next';
 
-export const metadata = {
+export const metadata: Metadata = {
   title: 'Sign In | Spanispace',
+  robots: { index: false, follow: false },
 };
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {

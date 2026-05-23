@@ -13,7 +13,19 @@ export interface Job {
   applyLink: string;
   expiryDate: string;
   vettedStatus: VettedStatus;
-  type: 'Remote' | 'Hybrid' | 'On-site' | 'Learnership' | 'Internship' | 'Hybrid & Remote possible' | 'Learnership (Hybrid)' | 'Learnership (On-site)';
+  type:
+    | 'Remote'
+    | 'Hybrid'
+    | 'On-site'
+    | 'Learnership'
+    | 'Internship'
+    | 'Hybrid & Remote possible'
+    | 'Learnership (Hybrid)'
+    | 'Learnership (On-site)'
+    | 'Contract'
+    | 'Full-time'
+    | 'Part-time'
+    | 'Once-off';
 }
 
 export interface Training {

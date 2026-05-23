@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { JOBS } from '@/data/constants';
+import { fetchPublicJob } from '@/lib/publicJobs';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -8,7 +8,7 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  const job = JOBS.find((j) => j.id === id);
+  const job = await fetchPublicJob(id);
 
   if (!job) {
     return {
@@ -19,7 +19,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   return {
     title: `${job.role} at ${job.company}`,
-    description: `${job.role} (${job.type}) at ${job.company} in ${job.location}. ${job.vettedStatus} listing on Spanispace.`,
+    description:
+      job.description?.slice(0, 160) ||
+      `${job.role} (${job.type}) at ${job.company} in ${job.location}. ${job.vettedStatus} listing on Spanispace.`,
     alternates: { canonical: `/jobs/${job.id}` },
     openGraph: {
       title: `${job.role} at ${job.company}`,
