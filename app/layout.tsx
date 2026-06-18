@@ -70,10 +70,9 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: '/favicon.ico' },
-      { url: '/assets/new-logo.png', type: 'image/png', sizes: '300x72' },
+      { url: '/assets/new-logo.ico', type: 'image/x-icon' },
     ],
-    apple: [{ url: '/assets/new-logo.png' }],
+    apple: [{ url: '/assets/new-logo.ico' }],
   },
   manifest: '/manifest.webmanifest',
   robots: {
