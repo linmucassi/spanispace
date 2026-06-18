@@ -14,7 +14,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <img
             src="/assets/new-logo.png"
             alt="Spanispace"
-            className="h-14 w-auto"
+            className="h-50 w-auto"
           />
         </Link>
       </div>
