@@ -54,7 +54,7 @@ export const metadata: Metadata = {
     alternateLocale: ['zu_ZA'],
     images: [
       {
-        url: '/assets/logo.png',
+        url: '/assets/new-logo.png',
         width: 300,
         height: 72,
         alt: 'Spanispace Logo',
@@ -66,14 +66,14 @@ export const metadata: Metadata = {
     title: 'Spanispace | Skill-to-Job Bridge',
     description:
       'Vetted jobs, expert-led bootcamps, and verified learnerships for South African graduates and job seekers.',
-    images: ['/assets/logo.png'],
+    images: ['/assets/new-logo.png'],
   },
   icons: {
     icon: [
       { url: '/favicon.ico' },
-      { url: '/assets/logo.png', type: 'image/png', sizes: '300x72' },
+      { url: '/assets/new-logo.png', type: 'image/png', sizes: '300x72' },
     ],
-    apple: [{ url: '/assets/logo.png' }],
+    apple: [{ url: '/assets/new-logo.png' }],
   },
   manifest: '/manifest.webmanifest',
   robots: {

@@ -13,7 +13,7 @@ const organizationSchema = {
   '@type': 'Organization',
   name: 'Spanispace',
   url: 'https://spanispace.com',
-  logo: 'https://spanispace.com/assets/logo.png',
+  logo: 'https://spanispace.com/assets/new-logo.png',
   description:
     'Spanispace bridges South African graduates and job seekers with vetted jobs, expert-led bootcamps, and verified learnerships.',
   address: {
