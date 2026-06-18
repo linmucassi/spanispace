@@ -166,16 +166,17 @@ const Navbar: React.FC = () => {
           {/* Actions */}
           <div className="flex items-center space-x-3">
             <LanguageToggle />
-            <Link
-              href="/post-job"
-              className="hidden md:inline-block text-sm font-semibold text-slate-700 hover:text-indigo-600 transition-colors"
-            >
-              {t('nav.postJob')}
-            </Link>
-
             {/* Auth-dependent actions */}
             {user ? (
               <>
+                {userRole === 'company' || userRole === 'admin' && (
+                  <Link
+                    href="/post-job"
+                    className="hidden md:inline-block text-sm font-semibold text-slate-700 hover:text-indigo-600 transition-colors"
+                  >
+                    {t('nav.postJob')}
+                  </Link>
+                )}
                 <Link
                   href={getDashboardHref()}
                   className="hidden md:inline-block text-sm font-semibold text-slate-700 hover:text-indigo-600 transition-colors"
@@ -283,13 +284,15 @@ const Navbar: React.FC = () => {
               );
             })}
             <div className="pt-3 mt-3 border-t border-slate-100 flex flex-col gap-2">
-              <Link
-                href="/post-job"
-                onClick={() => setMobileOpen(false)}
-                className="text-sm font-semibold text-slate-700 hover:text-indigo-600 py-2 px-4"
-              >
-                {t('nav.postJob')}
-              </Link>
+              {user && userRole === 'company' || userRole === 'admin' && (
+                <Link
+                  href="/post-job"
+                  onClick={() => setMobileOpen(false)}
+                  className="text-sm font-semibold text-slate-700 hover:text-indigo-600 py-2 px-4"
+                >
+                  {t('nav.postJob')}
+                </Link>
+              )}
 
               {user ? (
                 <>
