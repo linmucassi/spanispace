@@ -69,13 +69,8 @@ const Footer: React.FC = () => {
     <footer className="bg-slate-900 text-slate-400 py-12 px-4 mb-20 md:mb-0">
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
         <div className="col-span-1 md:col-span-1">
-          <div className="flex items-center space-x-2 mb-6">
-            <div className="bg-indigo-600 w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold">
-              S
-            </div>
-            <span className="text-xl font-extrabold text-white tracking-tight italic">
-              spanispace
-            </span>
+          <div className="mb-6">
+            <img src="/assets/new-logo.png" alt="Spanispace" className="h-10 w-auto brightness-0 invert" />
           </div>
           <p className="text-sm leading-relaxed">{t('footer.tagline')}</p>
         </div>

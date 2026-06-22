@@ -56,14 +56,9 @@ export default function AdminSidebar() {
       >
         {/* Logo */}
         <div className="px-6 py-5 border-b border-slate-800 flex items-center justify-between">
-          <Link href="/admin/dashboard" className="flex items-center gap-2">
-            <div className="bg-indigo-600 w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm">
-              S
-            </div>
-            <div>
-              <span className="font-extrabold tracking-tight text-lg">spanispace</span>
-              <span className="block text-[10px] text-slate-400 uppercase tracking-widest -mt-1">Admin</span>
-            </div>
+          <Link href="/admin/dashboard" className="flex items-center">
+            <img src="/assets/new-logo.png" alt="Spanispace" className="h-10 w-auto" />
+            <span className="block text-[10px] text-slate-400 uppercase tracking-widest ml-2 mt-1">Admin</span>
           </Link>
           <button
             onClick={() => setMobileOpen(false)}
