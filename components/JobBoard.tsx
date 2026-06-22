@@ -6,12 +6,15 @@ import { JOBS } from '../data/constants';
 import { VettedStatus, type Job } from '../types';
 import { useTranslation } from '../lib/i18n/context';
 
+const PAGE_SIZE = 15;
+
 interface JobBoardProps {
   initialJobs?: Job[];
 }
 
 const JobBoard: React.FC<JobBoardProps> = ({ initialJobs }) => {
   const [filter, setFilter] = useState('All');
+  const [page, setPage] = useState(1);
   const { t } = useTranslation();
   const jobs = initialJobs ?? JOBS;
 
@@ -30,6 +33,15 @@ const JobBoard: React.FC<JobBoardProps> = ({ initialJobs }) => {
     return aExpired ? 1 : -1;
   });
 
+  const totalPages = Math.max(1, Math.ceil(sortedJobs.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pagedJobs = sortedJobs.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  const handleFilterChange = (value: string) => {
+    setFilter(value);
+    setPage(1); // reset to first page when filter changes
+  };
+
   return (
     <div className="py-12 px-4 max-w-7xl mx-auto">
       <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
@@ -40,7 +52,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ initialJobs }) => {
         <div className="flex space-x-2">
           <select
             value={filter}
-            onChange={(e) => setFilter(e.target.value)}
+            onChange={(e) => handleFilterChange(e.target.value)}
             className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm"
           >
             <option value="All">{t('jobs.allTypes')}</option>
@@ -78,7 +90,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ initialJobs }) => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {sortedJobs.map((job) => {
+              {pagedJobs.map((job) => {
                 const isExpired = new Date(job.expiryDate) < now;
                 return (
                   <tr
@@ -140,7 +152,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ initialJobs }) => {
                   </tr>
                 );
               })}
-              {sortedJobs.length === 0 && (
+              {pagedJobs.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
                     {t('jobs.noJobs')}
@@ -151,6 +163,34 @@ const JobBoard: React.FC<JobBoardProps> = ({ initialJobs }) => {
           </table>
         </div>
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-6 px-1">
+          <p className="text-sm text-slate-500">
+            Showing {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, sortedJobs.length)} of {sortedJobs.length} jobs
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              ← Prev
+            </button>
+            <span className="text-sm text-slate-500">
+              {currentPage} / {totalPages}
+            </span>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              Next →
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

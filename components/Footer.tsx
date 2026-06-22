@@ -83,19 +83,19 @@ const Footer: React.FC = () => {
           <h4 className="text-white font-bold mb-6">{t('footer.platform')}</h4>
           <ul className="space-y-4 text-sm">
             <li>
-              <a href="#jobs" className="hover:text-white transition-colors">
+              <Link href="/jobs" className="hover:text-white transition-colors">
                 {t('footer.jobBoard')}
-              </a>
+              </Link>
             </li>
             <li>
-              <a href="#training" className="hover:text-white transition-colors">
+              <Link href="/training" className="hover:text-white transition-colors">
                 {t('footer.trainingPortal')}
-              </a>
+              </Link>
             </li>
             <li>
-              <a href="#academic" className="hover:text-white transition-colors">
+              <Link href="/academic" className="hover:text-white transition-colors">
                 {t('footer.academicUpdates')}
-              </a>
+              </Link>
             </li>
             <li>
               <Link href="/events" className="hover:text-white transition-colors">

@@ -15,11 +15,13 @@ type DbJob = {
   description: string;
   requirements: string | null;
   salary_range: string | null;
+  poster_name: string | null;
   company_profiles: { company_name: string } | null;
 };
 
 function mapDbJob(row: DbJob): Job {
-  const companyName = row.company_profiles?.company_name ?? 'Spanispace Partner';
+  const companyName =
+    row.company_profiles?.company_name ?? row.poster_name ?? 'Spanispace Partner';
 
   return {
     id: row.id,
@@ -46,7 +48,7 @@ export async function fetchPublicJobs(): Promise<Job[]> {
     .from('jobs')
     .select(
       `id, title, location, job_type, expiry_date, vetted_status, status,
-       apply_link, description, requirements, salary_range,
+       apply_link, description, requirements, salary_range, poster_name,
        company_profiles ( company_name )`
     )
     .eq('vetted_status', 'verified')

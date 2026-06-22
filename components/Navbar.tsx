@@ -10,7 +10,6 @@ import { createClient } from '../lib/supabase/client';
 type UserRole = 'candidate' | 'company' | 'admin' | null;
 
 const Navbar: React.FC = () => {
-  const [activeRoute, setActiveRoute] = useState('home');
   const [mobileOpen, setMobileOpen] = useState(false);
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const [userRole, setUserRole] = useState<UserRole>(null);
@@ -28,17 +27,6 @@ const Navbar: React.FC = () => {
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // Track hash route for active state
-  useEffect(() => {
-    const handleHash = () => {
-      const hash = window.location.hash.replace('#', '') || 'home';
-      setActiveRoute(hash);
-    };
-    handleHash();
-    window.addEventListener('hashchange', handleHash);
-    return () => window.removeEventListener('hashchange', handleHash);
   }, []);
 
   // Auth state management
@@ -113,9 +101,9 @@ const Navbar: React.FC = () => {
   };
 
   const navItems = [
-    { name: t('nav.jobs'), href: '#jobs' },
-    { name: t('nav.training'), href: '#training' },
-    { name: t('nav.academic'), href: '#academic' },
+    { name: t('nav.jobs'), href: '/jobs' },
+    { name: t('nav.training'), href: '/training' },
+    { name: t('nav.academic'), href: '/academic' },
     { name: 'Events', href: '/events' },
   ];
 
@@ -134,33 +122,15 @@ const Navbar: React.FC = () => {
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center space-x-8">
-            {navItems.map((item) => {
-              const isHash = item.href.startsWith('#');
-              if (isHash) {
-                return (
-                  <a
-                    key={item.href}
-                    href={item.href}
-                    className={`text-sm font-medium transition-colors ${
-                      activeRoute === item.href.replace('#', '')
-                        ? 'text-indigo-600 font-semibold'
-                        : 'text-slate-600 hover:text-indigo-500'
-                    }`}
-                  >
-                    {item.name}
-                  </a>
-                );
-              }
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="text-sm font-medium text-slate-600 hover:text-indigo-500 transition-colors"
-                >
-                  {item.name}
-                </Link>
-              );
-            })}
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="text-sm font-medium text-slate-600 hover:text-indigo-500 transition-colors"
+              >
+                {item.name}
+              </Link>
+            ))}
           </div>
 
           {/* Actions */}
@@ -254,35 +224,16 @@ const Navbar: React.FC = () => {
       {mobileOpen && (
         <div className="md:hidden border-t border-slate-200 bg-white/95 backdrop-blur-md">
           <div className="px-4 py-4 space-y-1">
-            {navItems.map((item) => {
-              const isHash = item.href.startsWith('#');
-              if (isHash) {
-                return (
-                  <a
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setMobileOpen(false)}
-                    className={`block px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
-                      activeRoute === item.href.replace('#', '')
-                        ? 'text-indigo-600 bg-indigo-50 font-semibold'
-                        : 'text-slate-600 hover:bg-slate-50 hover:text-indigo-500'
-                    }`}
-                  >
-                    {item.name}
-                  </a>
-                );
-              }
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setMobileOpen(false)}
-                  className="block px-4 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-indigo-500 transition-colors"
-                >
-                  {item.name}
-                </Link>
-              );
-            })}
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setMobileOpen(false)}
+                className="block px-4 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-indigo-500 transition-colors"
+              >
+                {item.name}
+              </Link>
+            ))}
             <div className="pt-3 mt-3 border-t border-slate-100 flex flex-col gap-2">
               {user && userRole === 'company' || userRole === 'admin' && (
                 <Link

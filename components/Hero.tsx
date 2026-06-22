@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { useTranslation } from '../lib/i18n/context';
 
 const Hero: React.FC = () => {
@@ -23,18 +24,18 @@ const Hero: React.FC = () => {
           {t('hero.subtitle')}
         </p>
         <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
-          <a
-            href="#jobs"
+          <Link
+            href="/jobs"
             className="w-full sm:w-auto px-8 py-4 bg-slate-900 text-white rounded-2xl font-bold shadow-xl hover:bg-slate-800 transition-all text-center"
           >
             {t('hero.browseJobs')}
-          </a>
-          <a
-            href="#training"
+          </Link>
+          <Link
+            href="/training"
             className="w-full sm:w-auto px-8 py-4 bg-white border border-slate-200 text-slate-900 rounded-2xl font-bold shadow-sm hover:border-indigo-300 transition-all text-center"
           >
             {t('hero.joinBootcamp')}
-          </a>
+          </Link>
         </div>
       </div>
     </section>

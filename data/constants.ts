@@ -181,9 +181,76 @@ export const TRAININGS: Training[] = [
 ];
 
 export const ACADEMIC_UPDATES: UniversityUpdate[] = [
-  { institution: 'University of Cape Town', deadline: '2024-12-31', type: 'Late Application' },
-  { institution: 'Wits University', deadline: '2024-11-25', type: 'Learnership' },
-  { institution: 'University of Pretoria', deadline: '2025-01-15', type: 'Standard' },
+  {
+    institution: 'UNISA',
+    deadline: '2026-10-15',
+    type: 'Standard',
+    applyLink: 'https://www.unisa.ac.za/sites/corporate/default/Apply-for-admission',
+    notes: 'Distance learning — second semester and 2027 first semester applications open.',
+  },
+  {
+    institution: 'University of Johannesburg (UJ)',
+    deadline: '2026-09-30',
+    type: 'Standard',
+    applyLink: 'https://www.uj.ac.za/apply/',
+    notes: '2027 undergraduate applications. Check faculty-specific closing dates.',
+  },
+  {
+    institution: 'Tshwane University of Technology (TUT)',
+    deadline: '2026-09-30',
+    type: 'Standard',
+    applyLink: 'https://www.tut.ac.za/prospective-students/how-to-apply',
+    notes: '2027 diploma and degree applications open. Limited spaces per programme.',
+  },
+  {
+    institution: 'Durban University of Technology (DUT)',
+    deadline: '2026-09-30',
+    type: 'Standard',
+    applyLink: 'https://www.dut.ac.za/prospective-students/',
+    notes: '2027 applications open for most undergraduate programmes.',
+  },
+  {
+    institution: 'Cape Peninsula University of Technology (CPUT)',
+    deadline: '2026-08-31',
+    type: 'Standard',
+    applyLink: 'https://www.cput.ac.za/study/apply',
+    notes: '2027 applications — engineering and built environment open early.',
+  },
+  {
+    institution: 'University of Pretoria (UP)',
+    deadline: '2026-08-31',
+    type: 'Standard',
+    applyLink: 'https://www.up.ac.za/apply',
+    notes: '2027 applications. Some faculties close earlier — check per-programme.',
+  },
+  {
+    institution: 'Wits University',
+    deadline: '2026-08-31',
+    type: 'Standard',
+    applyLink: 'https://www.wits.ac.za/apply/',
+    notes: '2027 undergraduate applications open. Commerce and Science fill fast.',
+  },
+  {
+    institution: 'University of Cape Town (UCT)',
+    deadline: '2026-07-31',
+    type: 'Standard',
+    applyLink: 'https://www.uct.ac.za/apply',
+    notes: '2027 applications open. Highly competitive — apply before the deadline.',
+  },
+  {
+    institution: 'SAB Sales & Marketing Learnership 2026',
+    deadline: '2026-08-15',
+    type: 'Learnership',
+    applyLink: 'https://www.studentroom.co.za/south-african-breweries-sab-sales-and-marketing-learnerships-2026/',
+    notes: 'NQF Level 4. Open to matriculants aged 18–35. Stipend included.',
+  },
+  {
+    institution: 'Capitec Bank Learnership 2026',
+    deadline: '2026-09-01',
+    type: 'Learnership',
+    applyLink: 'https://www.capitecbank.co.za/careers/',
+    notes: '12-month banking learnership, R6 500/month stipend. Nationwide.',
+  },
 ];
 
 export const LOGO_PATH = './assets/new-logo.png';
