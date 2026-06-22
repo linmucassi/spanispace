@@ -71,11 +71,8 @@ export default function CandidateSidebar() {
     <>
       {/* Mobile top bar */}
       <div className="md:hidden fixed top-0 left-0 right-0 h-14 bg-slate-900 text-white flex items-center justify-between px-4 z-40">
-        <Link href="/candidate/dashboard" className="flex items-center gap-2">
-          <div className="bg-indigo-600 w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs">
-            S
-          </div>
-          <span className="font-bold tracking-tight">spanispace</span>
+        <Link href="/candidate/dashboard" className="flex items-center">
+          <img src="/assets/new-logo.png" alt="Spanispace" className="h-8 w-auto brightness-0 invert" />
         </Link>
         <button
           onClick={() => setMobileOpen(true)}

@@ -224,6 +224,7 @@ CREATE POLICY "Anyone can register for events" ON event_registrations FOR INSERT
 
 -- Authenticated users read own data
 CREATE POLICY "Users read own profile" ON users FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Candidates insert own profile" ON candidate_profiles FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Candidates read own profile" ON candidate_profiles FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Candidates update own profile" ON candidate_profiles FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Companies read own profile" ON company_profiles FOR SELECT USING (auth.uid() = user_id);

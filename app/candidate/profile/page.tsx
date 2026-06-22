@@ -30,6 +30,7 @@ const emptyProfile: ProfileData = {
 export default function CandidateProfilePage() {
   const [profile, setProfile] = useState<ProfileData>(emptyProfile);
   const [email, setEmail] = useState('');
+  const [userId, setUserId] = useState<string | null>(null);
   const [skillInput, setSkillInput] = useState('');
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -39,51 +40,44 @@ export default function CandidateProfilePage() {
     message: string;
   } | null>(null);
 
-  useEffect(() => {
-    async function load() {
-      const supabase = createClient();
-      if (!supabase) {
-        setLoading(false);
-        return;
-      }
+  async function loadProfile() {
+    const supabase = createClient();
+    if (!supabase) { setLoading(false); return; }
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        setLoading(false);
-        return;
-      }
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setLoading(false); return; }
 
-      setEmail(user.email ?? '');
+    setEmail(user.email ?? '');
+    setUserId(user.id);
 
-      const { data } = await supabase
-        .from('candidate_profiles')
-        .select(
-          'full_name, phone, whatsapp, location, matric_grad_year, university, skills, portfolio_url, cv_url'
-        )
-        .eq('user_id', user.id)
-        .single();
+    const { data, error } = await supabase
+      .from('candidate_profiles')
+      .select(
+        'full_name, phone, whatsapp, location, matric_grad_year, university, skills, portfolio_url, cv_url'
+      )
+      .eq('user_id', user.id)
+      .maybeSingle(); // maybeSingle returns null (not error) when row doesn't exist
 
-      if (data) {
-        setProfile({
-          full_name: data.full_name ?? '',
-          phone: data.phone ?? '',
-          whatsapp: data.whatsapp ?? '',
-          location: data.location ?? '',
-          matric_grad_year: data.matric_grad_year ?? null,
-          university: data.university ?? '',
-          skills: data.skills ?? [],
-          portfolio_url: data.portfolio_url ?? '',
-          cv_url: data.cv_url ?? '',
-        });
-      }
+    if (error) console.error('[profile] load error:', error.message);
 
-      setLoading(false);
+    if (data) {
+      setProfile({
+        full_name: data.full_name ?? '',
+        phone: data.phone ?? '',
+        whatsapp: data.whatsapp ?? '',
+        location: data.location ?? '',
+        matric_grad_year: data.matric_grad_year ?? null,
+        university: data.university ?? '',
+        skills: data.skills ?? [],
+        portfolio_url: data.portfolio_url ?? '',
+        cv_url: data.cv_url ?? '',
+      });
     }
 
-    load();
-  }, []);
+    setLoading(false);
+  }
+
+  useEffect(() => { loadProfile(); }, []);
 
   function handleChange(field: keyof ProfileData, value: string | number | null) {
     setProfile((prev) => ({ ...prev, [field]: value }));
@@ -128,40 +122,41 @@ export default function CandidateProfilePage() {
       return;
     }
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
+    if (!userId) {
       setFeedback({ type: 'error', message: 'You must be signed in.' });
       setSaving(false);
       return;
     }
 
-    const payload = {
-      full_name: profile.full_name,
-      phone: profile.phone || null,
-      whatsapp: profile.whatsapp || null,
-      location: profile.location || null,
-      matric_grad_year: profile.matric_grad_year,
-      university: profile.university || null,
-      skills: profile.skills,
-      portfolio_url: profile.portfolio_url || null,
-    };
-
     const { error } = await supabase
       .from('candidate_profiles')
-      .update(payload)
-      .eq('user_id', user.id);
+      .upsert(
+        {
+          user_id: userId,
+          full_name: profile.full_name,
+          phone: profile.phone || null,
+          whatsapp: profile.whatsapp || null,
+          location: profile.location || null,
+          matric_grad_year: profile.matric_grad_year,
+          university: profile.university || null,
+          skills: profile.skills,
+          portfolio_url: profile.portfolio_url || null,
+        },
+        { onConflict: 'user_id' }
+      );
 
     if (error) {
       setFeedback({
         type: 'error',
-        message: error.message || 'Failed to save profile.',
+        message: `Save failed: ${error.message}`,
       });
-    } else {
-      setFeedback({ type: 'success', message: 'Profile saved successfully.' });
+      setSaving(false);
+      return;
     }
 
+    // Reload from DB to confirm what was actually persisted
+    await loadProfile();
+    setFeedback({ type: 'success', message: 'Profile saved successfully.' });
     setSaving(false);
   }
 
