@@ -1,0 +1,45 @@
+name: Daily Scraper
+
+# Runs every day at 05:30 SAST (03:30 UTC)
+# This is the optimal time — data is fresh when SA users start their day at 08:00
+on:
+  schedule:
+    - cron: '30 3 * * *'
+  workflow_dispatch: # Allow manual trigger from GitHub Actions UI
+
+jobs:
+  scrape:
+    name: Scrape and seed
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run scraper
+        run: npx tsx scripts/run-scraper.ts
+        env:
+          # Required — add these in GitHub repo Settings > Secrets and variables > Actions
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # Optional — enables SA-specific jobs from Adzuna (free key at developer.adzuna.com)
+          ADZUNA_APP_ID: ${{ secrets.ADZUNA_APP_ID }}
+          ADZUNA_API_KEY: ${{ secrets.ADZUNA_API_KEY }}
+          # Optional — enables career event scraping (free key at eventbrite.com/platform/api)
+          EVENTBRITE_API_KEY: ${{ secrets.EVENTBRITE_API_KEY }}
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "Scraper failed on $(date). Check logs above."
+          # Extend here: pipe to Slack/email if needed
