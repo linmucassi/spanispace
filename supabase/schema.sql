@@ -229,46 +229,38 @@ CREATE POLICY "Candidates update own profile" ON candidate_profiles FOR UPDATE U
 CREATE POLICY "Companies read own profile" ON company_profiles FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Companies update own profile" ON company_profiles FOR UPDATE USING (auth.uid() = user_id);
 
--- Admin full access (uses service role key or check role in users table)
-CREATE POLICY "Admin full access users" ON users FOR ALL USING (
-  EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin')
-);
-CREATE POLICY "Admin full access jobs" ON jobs FOR ALL USING (
-  EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin')
-);
-CREATE POLICY "Admin full access applications" ON applications FOR ALL USING (
-  EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin')
-);
-CREATE POLICY "Admin full access trainings" ON trainings FOR ALL USING (
-  EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin')
-);
-CREATE POLICY "Admin full access learnerships" ON learnerships FOR ALL USING (
-  EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin')
-);
-CREATE POLICY "Admin full access late_uni_apps" ON late_uni_apps FOR ALL USING (
-  EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin')
-);
-CREATE POLICY "Admin full access events" ON events FOR ALL USING (
-  EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin')
-);
-CREATE POLICY "Admin full access waitlist" ON waitlist FOR ALL USING (
-  EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin')
-);
-CREATE POLICY "Admin full access newsletter" ON newsletter FOR ALL USING (
-  EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin')
-);
-CREATE POLICY "Admin full access enrollments" ON enrollments FOR ALL USING (
-  EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin')
-);
-CREATE POLICY "Admin full access event_registrations" ON event_registrations FOR ALL USING (
-  EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin')
-);
-CREATE POLICY "Admin full access candidate_profiles" ON candidate_profiles FOR ALL USING (
-  EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin')
-);
-CREATE POLICY "Admin full access company_profiles" ON company_profiles FOR ALL USING (
-  EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role = 'admin')
-);
+-- Admin full access — uses is_admin() to avoid RLS recursion on the users table
+CREATE POLICY "Admin full access users" ON users FOR ALL USING (public.is_admin());
+CREATE POLICY "Admin full access jobs" ON jobs FOR ALL USING (public.is_admin());
+CREATE POLICY "Admin full access applications" ON applications FOR ALL USING (public.is_admin());
+CREATE POLICY "Admin full access trainings" ON trainings FOR ALL USING (public.is_admin());
+CREATE POLICY "Admin full access learnerships" ON learnerships FOR ALL USING (public.is_admin());
+CREATE POLICY "Admin full access late_uni_apps" ON late_uni_apps FOR ALL USING (public.is_admin());
+CREATE POLICY "Admin full access events" ON events FOR ALL USING (public.is_admin());
+CREATE POLICY "Admin full access waitlist" ON waitlist FOR ALL USING (public.is_admin());
+CREATE POLICY "Admin full access newsletter" ON newsletter FOR ALL USING (public.is_admin());
+CREATE POLICY "Admin full access enrollments" ON enrollments FOR ALL USING (public.is_admin());
+CREATE POLICY "Admin full access event_registrations" ON event_registrations FOR ALL USING (public.is_admin());
+CREATE POLICY "Admin full access candidate_profiles" ON candidate_profiles FOR ALL USING (public.is_admin());
+CREATE POLICY "Admin full access company_profiles" ON company_profiles FOR ALL USING (public.is_admin());
+
+-- ============================================================
+-- HELPER: Admin role check (SECURITY DEFINER breaks RLS recursion)
+-- ============================================================
+-- All admin policies reference this function instead of querying users directly.
+-- Without this, every query recurses: jobs policy → SELECT users → users policy → SELECT users → ∞
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.users
+    WHERE id = auth.uid() AND role = 'admin'
+  );
+$$;
 
 -- ============================================================
 -- HELPER: Auto-create user row on signup

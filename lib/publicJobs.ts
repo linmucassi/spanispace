@@ -54,7 +54,12 @@ export async function fetchPublicJobs(): Promise<Job[]> {
     .gte('expiry_date', today)
     .order('created_at', { ascending: false });
 
-  if (error || !data || data.length === 0) {
+  if (error) {
+    console.error('[publicJobs] Supabase error:', error.message, error.details ?? '')
+    return STATIC_JOBS;
+  }
+  if (!data || data.length === 0) {
+    console.warn('[publicJobs] No active+verified jobs in DB — falling back to static data')
     return STATIC_JOBS;
   }
 
