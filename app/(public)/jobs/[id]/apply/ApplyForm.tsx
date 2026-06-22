@@ -1,14 +1,33 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useTranslation } from '@/lib/i18n/context';
 import { submitNetlifyForm } from '@/lib/netlifyForms';
+import { createClient } from '@/lib/supabase/client';
+import type { CandidateDocument } from '@/components/candidate/DocumentLibrary';
+import { FileText, CheckSquare, Square } from 'lucide-react';
 
 type Props = {
   jobId: string;
   jobRole: string;
   jobCompany: string;
+};
+
+const DOC_LABELS: Record<string, string> = {
+  cv: 'CV / Resume',
+  certificate: 'Certificate',
+  cover_letter: 'Cover Letter',
+  motivational_letter: 'Motivational Letter',
+  other: 'Other',
+};
+
+const DOC_COLORS: Record<string, string> = {
+  cv: 'bg-indigo-100 text-indigo-700',
+  certificate: 'bg-emerald-100 text-emerald-700',
+  cover_letter: 'bg-amber-100 text-amber-700',
+  motivational_letter: 'bg-purple-100 text-purple-700',
+  other: 'bg-slate-100 text-slate-600',
 };
 
 export default function ApplyForm({ jobId, jobRole, jobCompany }: Props) {
@@ -26,11 +45,64 @@ export default function ApplyForm({ jobId, jobRole, jobCompany }: Props) {
     aboutYou: '',
   });
 
+  const [docs, setDocs] = useState<CandidateDocument[]>([]);
+  const [selectedDocIds, setSelectedDocIds] = useState<Set<string>>(new Set());
+  const [profileLoaded, setProfileLoaded] = useState(false);
+
+  useEffect(() => {
+    async function loadProfileAndDocs() {
+      const supabase = createClient();
+      if (!supabase) return;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const [profileRes, docsRes] = await Promise.all([
+        supabase
+          .from('candidate_profiles')
+          .select('full_name, phone, whatsapp, location')
+          .eq('user_id', user.id)
+          .maybeSingle(),
+        supabase
+          .from('candidate_documents')
+          .select('id, name, doc_type, file_url, file_size_kb, created_at')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false }),
+      ]);
+
+      setForm((prev) => ({
+        ...prev,
+        email: user.email ?? prev.email,
+        fullName: profileRes.data?.full_name ?? prev.fullName,
+        phone: profileRes.data?.phone ?? prev.phone,
+        whatsapp: profileRes.data?.whatsapp ?? prev.whatsapp,
+        location: profileRes.data?.location ?? prev.location,
+      }));
+
+      const loadedDocs = (docsRes.data as CandidateDocument[]) ?? [];
+      setDocs(loadedDocs);
+
+      // Auto-select the most recent CV
+      const latestCv = loadedDocs.find((d) => d.doc_type === 'cv');
+      if (latestCv) setSelectedDocIds(new Set([latestCv.id]));
+
+      setProfileLoaded(true);
+    }
+    loadProfileAndDocs();
+  }, []);
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
+
+  function toggleDoc(id: string) {
+    setSelectedDocIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,6 +114,12 @@ export default function ApplyForm({ jobId, jobRole, jobCompany }: Props) {
     }
 
     setSubmitting(true);
+
+    const selectedDocs = docs.filter((d) => selectedDocIds.has(d.id));
+    const docsSummary = selectedDocs
+      .map((d) => `${DOC_LABELS[d.doc_type] ?? d.doc_type}: ${d.name} — ${d.file_url}`)
+      .join('\n');
+
     const ok = await submitNetlifyForm('job-application', {
       'job-id': jobId,
       'job-title': jobRole,
@@ -51,6 +129,7 @@ export default function ApplyForm({ jobId, jobRole, jobCompany }: Props) {
       email: form.email,
       location: form.location,
       'about-you': form.aboutYou,
+      ...(docsSummary ? { 'attached-documents': docsSummary } : {}),
     });
 
     setSubmitting(false);
@@ -197,7 +276,66 @@ export default function ApplyForm({ jobId, jobRole, jobCompany }: Props) {
               />
             </div>
 
-            {error && <p className="text-red-600 text-sm text-center">{error}</p>}
+            {/* Document picker — signed-in users only */}
+            {docs.length > 0 && (
+              <div className="border border-slate-200 rounded-xl p-4 space-y-2">
+                <p className="text-sm font-medium text-slate-700">
+                  Attach from your document library
+                </p>
+                {docs.map((doc) => {
+                  const selected = selectedDocIds.has(doc.id);
+                  return (
+                    <button
+                      key={doc.id}
+                      type="button"
+                      onClick={() => toggleDoc(doc.id)}
+                      className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-colors ${
+                        selected
+                          ? 'border-indigo-400 bg-indigo-50'
+                          : 'border-slate-200 bg-white hover:bg-slate-50'
+                      }`}
+                    >
+                      {selected ? (
+                        <CheckSquare className="w-4 h-4 text-indigo-600 shrink-0" />
+                      ) : (
+                        <Square className="w-4 h-4 text-slate-400 shrink-0" />
+                      )}
+                      <FileText className="w-4 h-4 text-slate-400 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-900 truncate">
+                          {doc.name}
+                        </p>
+                        <span
+                          className={`inline-block text-xs font-medium px-2 py-0.5 rounded-full mt-0.5 ${DOC_COLORS[doc.doc_type] ?? 'bg-slate-100 text-slate-600'}`}
+                        >
+                          {DOC_LABELS[doc.doc_type] ?? doc.doc_type}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+                <p className="text-xs text-slate-400 pt-1">
+                  Selected documents are included with your application.{' '}
+                  <Link href="/candidate/profile" className="text-indigo-500 hover:underline">
+                    Manage documents
+                  </Link>
+                </p>
+              </div>
+            )}
+
+            {profileLoaded && docs.length === 0 && (
+              <div className="text-xs text-slate-500 bg-slate-50 rounded-xl px-4 py-3 border border-slate-100">
+                No documents in your library.{' '}
+                <Link href="/candidate/profile" className="text-indigo-500 hover:underline">
+                  Upload your CV and supporting documents
+                </Link>{' '}
+                to attach them here.
+              </div>
+            )}
+
+            {error && (
+              <p className="text-red-600 text-sm text-center">{error}</p>
+            )}
 
             <button
               type="submit"

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import DocumentLibrary from '@/components/candidate/DocumentLibrary';
 
 interface ProfileData {
   full_name: string;
@@ -12,7 +13,6 @@ interface ProfileData {
   university: string;
   skills: string[];
   portfolio_url: string;
-  cv_url: string;
 }
 
 const emptyProfile: ProfileData = {
@@ -24,7 +24,6 @@ const emptyProfile: ProfileData = {
   university: '',
   skills: [],
   portfolio_url: '',
-  cv_url: '',
 };
 
 export default function CandidateProfilePage() {
@@ -34,7 +33,6 @@ export default function CandidateProfilePage() {
   const [skillInput, setSkillInput] = useState('');
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
   const [feedback, setFeedback] = useState<{
     type: 'success' | 'error';
     message: string;
@@ -53,10 +51,10 @@ export default function CandidateProfilePage() {
     const { data, error } = await supabase
       .from('candidate_profiles')
       .select(
-        'full_name, phone, whatsapp, location, matric_grad_year, university, skills, portfolio_url, cv_url'
+        'full_name, phone, whatsapp, location, matric_grad_year, university, skills, portfolio_url'
       )
       .eq('user_id', user.id)
-      .maybeSingle(); // maybeSingle returns null (not error) when row doesn't exist
+      .maybeSingle();
 
     if (error) console.error('[profile] load error:', error.message);
 
@@ -70,7 +68,6 @@ export default function CandidateProfilePage() {
         university: data.university ?? '',
         skills: data.skills ?? [],
         portfolio_url: data.portfolio_url ?? '',
-        cv_url: data.cv_url ?? '',
       });
     }
 
@@ -355,95 +352,34 @@ export default function CandidateProfilePage() {
           )}
         </div>
 
-        {/* Portfolio & CV */}
-        <div className="p-6 space-y-5">
-          <h2 className="text-base font-semibold text-slate-900">
-            Portfolio & CV
-          </h2>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Portfolio URL
-              </label>
-              <input
-                type="url"
-                value={profile.portfolio_url}
-                onChange={(e) => handleChange('portfolio_url', e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                placeholder="https://yourportfolio.com"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                CV Upload
-              </label>
-              {profile.cv_url && (
-                <div className="mb-2 flex items-center gap-2">
-                  <a
-                    href={profile.cv_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-indigo-600 hover:underline"
-                  >
-                    View current CV
-                  </a>
-                </div>
-              )}
-              <input
-                type="file"
-                accept=".pdf,.doc,.docx"
-                disabled={uploading}
-                onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  if (file.size > 5 * 1024 * 1024) {
-                    setFeedback({ type: 'error', message: 'File must be under 5MB.' });
-                    return;
-                  }
-                  setUploading(true);
-                  setFeedback(null);
-                  const supabase = createClient();
-                  if (!supabase) {
-                    setFeedback({ type: 'error', message: 'Upload service not available.' });
-                    setUploading(false);
-                    return;
-                  }
-                  const { data: { user } } = await supabase.auth.getUser();
-                  if (!user) {
-                    setFeedback({ type: 'error', message: 'You must be signed in.' });
-                    setUploading(false);
-                    return;
-                  }
-                  const ext = file.name.split('.').pop();
-                  const path = `${user.id}/cv.${ext}`;
-                  const { error: uploadError } = await supabase.storage
-                    .from('cvs')
-                    .upload(path, file, { upsert: true });
-                  if (uploadError) {
-                    setFeedback({ type: 'error', message: uploadError.message });
-                    setUploading(false);
-                    return;
-                  }
-                  const { data: urlData } = supabase.storage
-                    .from('cvs')
-                    .getPublicUrl(path);
-                  const cvUrl = urlData.publicUrl;
-                  await supabase
-                    .from('candidate_profiles')
-                    .update({ cv_url: cvUrl })
-                    .eq('user_id', user.id);
-                  setProfile((prev) => ({ ...prev, cv_url: cvUrl }));
-                  setFeedback({ type: 'success', message: 'CV uploaded successfully.' });
-                  setUploading(false);
-                }}
-                className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 file:cursor-pointer disabled:opacity-50"
-              />
-              <p className="text-xs text-slate-400 mt-1">PDF, DOC, DOCX. Max 5MB.</p>
-              {uploading && <p className="text-xs text-indigo-600 mt-1">Uploading...</p>}
-            </div>
+        {/* Online Presence */}
+        <div className="p-6 space-y-4">
+          <h2 className="text-base font-semibold text-slate-900">Online Presence</h2>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Portfolio / LinkedIn / GitHub URL
+            </label>
+            <input
+              type="url"
+              value={profile.portfolio_url}
+              onChange={(e) => handleChange('portfolio_url', e.target.value)}
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+              placeholder="https://yourportfolio.com"
+            />
           </div>
+        </div>
+      </div>
+
+      {/* Documents library — saved independently on upload, not part of the Save button */}
+      <div className="bg-white rounded-xl border border-slate-200">
+        <div className="px-6 pt-6 pb-2">
+          <h2 className="text-base font-semibold text-slate-900">My Documents</h2>
+          <p className="text-sm text-slate-500 mt-0.5">
+            Upload your CV, certificates, motivational letters, and more. These are reusable when you apply for jobs.
+          </p>
+        </div>
+        <div className="px-6 pb-6 pt-4">
+          <DocumentLibrary />
         </div>
       </div>
 
