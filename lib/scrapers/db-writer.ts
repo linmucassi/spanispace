@@ -41,6 +41,13 @@ async function getCuratedCompanyId(): Promise<string | null> {
   return (data as { id: string } | null)?.id ?? null
 }
 
+// Reject jobs whose title or poster_name contain non-Latin characters
+// (CJK, Arabic, Cyrillic, etc. from global job boards are not relevant for SA audiences)
+function isLatinJob(job: ScrapedJob): boolean {
+  const nonLatin = /[^ -ɏ\s]/u;
+  return !nonLatin.test(job.title) && !nonLatin.test(job.poster_name ?? '');
+}
+
 export async function writeJobs(jobs: ScrapedJob[]): Promise<{ inserted: number; refreshed: number; errors: string[] }> {
   const supabase = getSupabaseAdmin()
   const companyId = await getCuratedCompanyId()
@@ -48,7 +55,7 @@ export async function writeJobs(jobs: ScrapedJob[]): Promise<{ inserted: number;
   let inserted = 0
   let refreshed = 0
 
-  for (const job of jobs) {
+  for (const job of jobs.filter(isLatinJob)) {
     try {
       const { data: existing } = await supabase
         .from('jobs')

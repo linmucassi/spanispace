@@ -1,11 +1,36 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useTranslation } from '../lib/i18n/context';
+import { createClient } from '../lib/supabase/client';
 
 const CTASection: React.FC = () => {
   const { t } = useTranslation();
+  const [postJobHref, setPostJobHref] = useState<string>('/login');
+
+  useEffect(() => {
+    async function resolvePostJobLink() {
+      const supabase = createClient();
+      if (!supabase) return;
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return; // stays /login
+
+      const { data } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      const role = (data as { role?: string } | null)?.role;
+      if (role === 'company' || role === 'admin') {
+        setPostJobHref('/company/jobs/new');
+      }
+      // candidates and others stay on /login so they see the company sign-up prompt
+    }
+    resolvePostJobLink();
+  }, []);
 
   return (
     <section className="py-20 bg-indigo-50">
@@ -20,7 +45,7 @@ const CTASection: React.FC = () => {
             {t('cta.joinWaitlist')}
           </Link>
           <Link
-            href="/post-job"
+            href={postJobHref}
             className="px-8 py-4 bg-white border border-slate-200 text-slate-900 rounded-2xl font-bold shadow-sm hover:border-indigo-300 transition-all"
           >
             {t('cta.postJob')}

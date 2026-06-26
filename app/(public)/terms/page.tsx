@@ -10,7 +10,7 @@ export default function TermsOfServicePage() {
     <div className="min-h-screen bg-white pt-24 pb-16">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-bold text-slate-900 mb-2">Terms of Service</h1>
-        <p className="text-sm text-slate-500 mb-10">Last updated: 25 March 2026</p>
+        <p className="text-sm text-slate-500 mb-10">Last updated: 26 June 2026</p>
 
         <div className="prose prose-slate max-w-none space-y-8">
           <section>
@@ -165,7 +165,48 @@ export default function TermsOfServicePage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-slate-800 mb-3">12. Changes to Terms</h2>
+            <h2 className="text-xl font-semibold text-slate-800 mb-3">12. AI CV Audit — Accuracy Disclaimer</h2>
+            <p className="text-slate-600 leading-relaxed">
+              The AI-Driven CV Audit feature uses large language model technology to generate
+              automated feedback on CV text submitted by candidates. By using this feature, you
+              acknowledge and agree that:
+            </p>
+            <ul className="list-disc list-inside text-slate-600 space-y-2 ml-2 mt-3">
+              <li>
+                Feedback is generated automatically and may contain inaccuracies, omissions, or
+                opinions that do not reflect current hiring practices in your specific industry.
+              </li>
+              <li>
+                Spanispace does not guarantee that following the AI&apos;s suggestions will result in
+                employment, interviews, or any particular outcome.
+              </li>
+              <li>
+                The AI audit is not a substitute for professional career counselling or human
+                review. We encourage you to seek additional professional guidance for important
+                career decisions.
+              </li>
+              <li>
+                Your CV text is processed by Anthropic&apos;s API. By submitting your CV for analysis,
+                you consent to this processing as described in our Privacy Policy.
+              </li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold text-slate-800 mb-3">13. Third-Party Job Listings</h2>
+            <p className="text-slate-600 leading-relaxed">
+              Some job listings on the Spanispace platform are sourced from third-party job boards
+              via automated data collection. While we filter and review these listings before
+              display, we do not independently verify the accuracy, completeness, or legitimacy of
+              every third-party listing. Spanispace is not responsible for the content of
+              third-party job postings, the conduct of third-party employers, or any outcomes
+              resulting from applications to third-party-sourced positions. You should exercise
+              your own judgment when applying for any position.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold text-slate-800 mb-3">14. Changes to Terms</h2>
             <p className="text-slate-600 leading-relaxed">
               We reserve the right to modify these Terms at any time. We will notify users of
               material changes by posting the updated Terms on the Platform and updating the
@@ -176,7 +217,7 @@ export default function TermsOfServicePage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-slate-800 mb-3">13. Contact Information</h2>
+            <h2 className="text-xl font-semibold text-slate-800 mb-3">15. Contact Information</h2>
             <p className="text-slate-600 leading-relaxed">
               If you have any questions about these Terms of Service, please contact us at:
             </p>

@@ -1,4 +1,5 @@
 import Hero from '@/components/Hero';
+import CVAuditBanner from '@/components/CVAuditBanner';
 import JobBoard from '@/components/JobBoard';
 import TrainingSection from '@/components/TrainingSection';
 import AcademicPortal from '@/components/AcademicPortal';
@@ -103,6 +104,7 @@ export default async function Home() {
       <div id="home">
         <Hero />
       </div>
+      <CVAuditBanner />
       <div id="jobs">
         <JobBoard initialJobs={jobs} />
       </div>

@@ -10,7 +10,7 @@ export default function PrivacyPolicyPage() {
     <div className="min-h-screen bg-white pt-24 pb-16">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <h1 className="text-3xl font-bold text-slate-900 mb-2">Privacy Policy</h1>
-        <p className="text-sm text-slate-500 mb-10">Last updated: 25 March 2026</p>
+        <p className="text-sm text-slate-500 mb-10">Last updated: 26 June 2026</p>
 
         <div className="prose prose-slate max-w-none space-y-8">
           <section>
@@ -186,7 +186,54 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-slate-800 mb-3">10. Changes to This Policy</h2>
+            <h2 className="text-xl font-semibold text-slate-800 mb-3">10. AI CV Audit Feature</h2>
+            <p className="text-slate-600 leading-relaxed mb-3">
+              Spanispace offers an optional AI-Driven CV Audit feature that allows candidates to paste
+              their CV text and receive automated feedback. When you use this feature:
+            </p>
+            <ul className="list-disc list-inside text-slate-600 space-y-2 ml-2">
+              <li>
+                Your CV text is transmitted to Anthropic&apos;s API for processing. Anthropic&apos;s own
+                Privacy Policy governs how they handle this data. We do not store your CV text on our
+                servers beyond the duration of the API request.
+              </li>
+              <li>
+                The audit is provided for guidance purposes only and does not constitute professional
+                career advice, nor does it guarantee any employment outcome.
+              </li>
+              <li>
+                You should not include sensitive personal information such as your national ID number,
+                bank details, or medical history in text submitted for CV analysis.
+              </li>
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold text-slate-800 mb-3">11. Document Storage</h2>
+            <p className="text-slate-600 leading-relaxed">
+              Candidates may upload documents (such as CVs and certificates) to their Spanispace
+              profile through the My Documents section. These files are stored securely using
+              Supabase Storage with access controls that limit visibility to you and authorised
+              Spanispace administrators. Uploaded documents are retained for as long as your account
+              is active and are deleted within 90 days of account closure.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold text-slate-800 mb-3">12. Scraped Job Listings</h2>
+            <p className="text-slate-600 leading-relaxed">
+              Some job listings displayed on Spanispace are sourced automatically from third-party
+              job boards (including RemoteOK, Remotive, and Adzuna) via automated scraping. These
+              listings are curated and filtered before display but originate from external sources.
+              Spanispace does not collect any personal information through this process — we only
+              retrieve publicly available job posting data such as job title, description, location,
+              and application link. We are not responsible for the accuracy or completeness of
+              third-party job listings.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold text-slate-800 mb-3">13. Changes to This Policy</h2>
             <p className="text-slate-600 leading-relaxed">
               We may update this Privacy Policy from time to time to reflect changes in our practices
               or applicable law. We will notify you of any material changes by posting the updated
@@ -196,7 +243,7 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-slate-800 mb-3">11. Contact Information</h2>
+            <h2 className="text-xl font-semibold text-slate-800 mb-3">14. Contact Information</h2>
             <p className="text-slate-600 leading-relaxed">
               If you have any questions about this Privacy Policy or wish to exercise your data
               protection rights, please contact us at:

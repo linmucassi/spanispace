@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -8,17 +9,19 @@ import {
   User,
   FileText,
   BookOpen,
+  Sparkles,
   LogOut,
   Menu,
   X,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
-const navItems = [
+const navItems: { name: string; href: string; icon: React.ElementType; isNew?: boolean }[] = [
   { name: 'Dashboard', href: '/candidate/dashboard', icon: LayoutDashboard },
   { name: 'My Profile', href: '/candidate/profile', icon: User },
   { name: 'Applications', href: '/candidate/applications', icon: FileText },
   { name: 'Enrollments', href: '/candidate/enrollments', icon: BookOpen },
+  { name: 'AI CV Audit', href: '/candidate/cv-audit', icon: Sparkles, isNew: true },
 ];
 
 export default function CandidateSidebar() {
@@ -130,7 +133,12 @@ export default function CandidateSidebar() {
                 }`}
               >
                 <Icon className="w-5 h-5 shrink-0" />
-                {item.name}
+                <span className="flex-1">{item.name}</span>
+                {item.isNew && !isActive && (
+                  <span className="text-[10px] font-bold bg-indigo-500 text-white px-1.5 py-0.5 rounded-full leading-none">
+                    NEW
+                  </span>
+                )}
               </Link>
             );
           })}
