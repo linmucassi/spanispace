@@ -41,5 +41,12 @@ export async function fetchPublicUniApps(): Promise<UniversityUpdate[]> {
     return ACADEMIC_UPDATES
   }
 
-  return (data as DbUniApp[]).map(mapDbUniApp)
+  // DB is authoritative; supplement with any constants entries not yet in DB
+  const dbItems = (data as DbUniApp[]).map(mapDbUniApp)
+  const dbNames = new Set(dbItems.map(u => u.institution.toLowerCase()))
+  const constantsExtras = ACADEMIC_UPDATES.filter(
+    u => !dbNames.has(u.institution.toLowerCase())
+  )
+
+  return [...dbItems, ...constantsExtras]
 }

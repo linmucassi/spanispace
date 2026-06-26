@@ -187,6 +187,7 @@ export const ACADEMIC_UPDATES: UniversityUpdate[] = [
     type: 'Standard',
     applyLink: 'https://www.unisa.ac.za/sites/corporate/default/Apply-for-admission',
     notes: 'Distance learning — second semester and 2027 first semester applications open.',
+    logo: '/assets/logos/unisa.svg',
   },
   {
     institution: 'University of Johannesburg (UJ)',
@@ -194,6 +195,7 @@ export const ACADEMIC_UPDATES: UniversityUpdate[] = [
     type: 'Standard',
     applyLink: 'https://www.uj.ac.za/apply/',
     notes: '2027 undergraduate applications. Check faculty-specific closing dates.',
+    logo: '/assets/logos/uj.svg',
   },
   {
     institution: 'Tshwane University of Technology (TUT)',
@@ -201,6 +203,7 @@ export const ACADEMIC_UPDATES: UniversityUpdate[] = [
     type: 'Standard',
     applyLink: 'https://www.tut.ac.za/prospective-students/how-to-apply',
     notes: '2027 diploma and degree applications open. Limited spaces per programme.',
+    logo: '/assets/logos/tut.png',
   },
   {
     institution: 'Durban University of Technology (DUT)',
@@ -208,6 +211,7 @@ export const ACADEMIC_UPDATES: UniversityUpdate[] = [
     type: 'Standard',
     applyLink: 'https://www.dut.ac.za/prospective-students/',
     notes: '2027 applications open for most undergraduate programmes.',
+    logo: '/assets/logos/dut.jpg',
   },
   {
     institution: 'Cape Peninsula University of Technology (CPUT)',
@@ -215,6 +219,7 @@ export const ACADEMIC_UPDATES: UniversityUpdate[] = [
     type: 'Standard',
     applyLink: 'https://www.cput.ac.za/study/apply',
     notes: '2027 applications — engineering and built environment open early.',
+    logo: '/assets/logos/cput.png',
   },
   {
     institution: 'University of Pretoria (UP)',
@@ -222,6 +227,7 @@ export const ACADEMIC_UPDATES: UniversityUpdate[] = [
     type: 'Standard',
     applyLink: 'https://www.up.ac.za/apply',
     notes: '2027 applications. Some faculties close earlier — check per-programme.',
+    logo: '/assets/logos/up.png',
   },
   {
     institution: 'Wits University',
@@ -229,6 +235,7 @@ export const ACADEMIC_UPDATES: UniversityUpdate[] = [
     type: 'Standard',
     applyLink: 'https://www.wits.ac.za/apply/',
     notes: '2027 undergraduate applications open. Commerce and Science fill fast.',
+    logo: '/assets/logos/wits.png',
   },
   {
     institution: 'University of Cape Town (UCT)',
@@ -236,6 +243,7 @@ export const ACADEMIC_UPDATES: UniversityUpdate[] = [
     type: 'Standard',
     applyLink: 'https://www.uct.ac.za/apply',
     notes: '2027 applications open. Highly competitive — apply before the deadline.',
+    logo: '/assets/logos/uct.svg',
   },
   {
     institution: 'SAB Sales & Marketing Learnership 2026',
@@ -243,6 +251,7 @@ export const ACADEMIC_UPDATES: UniversityUpdate[] = [
     type: 'Learnership',
     applyLink: 'https://www.studentroom.co.za/south-african-breweries-sab-sales-and-marketing-learnerships-2026/',
     notes: 'NQF Level 4. Open to matriculants aged 18–35. Stipend included.',
+    logo: '/assets/logos/sab.jpg',
   },
   {
     institution: 'Capitec Bank Learnership 2026',
@@ -250,6 +259,7 @@ export const ACADEMIC_UPDATES: UniversityUpdate[] = [
     type: 'Learnership',
     applyLink: 'https://www.capitecbank.co.za/careers/',
     notes: '12-month banking learnership, R6 500/month stipend. Nationwide.',
+    logo: '/assets/logos/capitec.svg',
   },
 ];
 

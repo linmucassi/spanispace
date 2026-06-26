@@ -5,6 +5,7 @@ import AcademicPortal from '@/components/AcademicPortal';
 import SuccessStories from '@/components/SuccessStories';
 import JsonLd from '@/components/JsonLd';
 import { fetchPublicJobs } from '@/lib/publicJobs';
+import { fetchPublicUniApps } from '@/lib/publicAcademic';
 
 export const revalidate = 300;
 
@@ -93,7 +94,7 @@ const faqSchema = {
 };
 
 export default async function Home() {
-  const jobs = await fetchPublicJobs();
+  const [jobs, uniApps] = await Promise.all([fetchPublicJobs(), fetchPublicUniApps()]);
   return (
     <>
       <JsonLd data={organizationSchema} />
@@ -109,7 +110,7 @@ export default async function Home() {
         <TrainingSection />
       </div>
       <div id="academic">
-        <AcademicPortal />
+        <AcademicPortal updates={uniApps} />
       </div>
       <div id="success-stories">
         <SuccessStories />

@@ -43,4 +43,5 @@ export interface UniversityUpdate {
   type: 'Late Application' | 'Standard' | 'Learnership';
   applyLink?: string;
   notes?: string;
+  logo?: string;
 }

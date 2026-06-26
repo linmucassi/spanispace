@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { ACADEMIC_UPDATES } from '../data/constants';
 import { useTranslation } from '../lib/i18n/context';
@@ -8,6 +8,30 @@ import type { UniversityUpdate } from '../types';
 
 interface AcademicPortalProps {
   updates?: UniversityUpdate[];
+}
+
+function InstitutionLogo({ logo, name, isPast }: { logo?: string; name: string; isPast: boolean }) {
+  const [failed, setFailed] = useState(false);
+  const initial = name.charAt(0);
+
+  if (logo && !failed) {
+    return (
+      <div className={`w-10 h-10 rounded-full flex-shrink-0 overflow-hidden border ${isPast ? 'border-slate-200 bg-slate-50' : 'border-slate-200 bg-white'}`}>
+        <img
+          src={logo}
+          alt={name}
+          onError={() => setFailed(true)}
+          className="w-full h-full object-contain p-1"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center font-bold text-sm ${isPast ? 'bg-slate-100 text-slate-400' : 'bg-indigo-50 text-indigo-600'}`}>
+      {initial}
+    </div>
+  );
 }
 
 const AcademicPortal: React.FC<AcademicPortalProps> = ({ updates }) => {
@@ -30,11 +54,7 @@ const AcademicPortal: React.FC<AcademicPortalProps> = ({ updates }) => {
               >
                 {/* Header row */}
                 <div className="flex items-start gap-3 mb-3">
-                  <div
-                    className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center font-bold text-sm ${isPast ? 'bg-slate-100 text-slate-400' : 'bg-indigo-50 text-indigo-600'}`}
-                  >
-                    {update.institution.charAt(0)}
-                  </div>
+                  <InstitutionLogo logo={update.logo} name={update.institution} isPast={isPast} />
                   <div className="min-w-0 flex-1">
                     <h4 className="font-bold text-slate-900 leading-snug">{update.institution}</h4>
                     <div className="flex items-center gap-2 flex-wrap mt-0.5">
