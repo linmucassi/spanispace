@@ -240,6 +240,7 @@ CREATE POLICY "Candidates insert own profile" ON candidate_profiles FOR INSERT W
 CREATE POLICY "Candidates manage own documents" ON candidate_documents FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Candidates read own profile" ON candidate_profiles FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Candidates update own profile" ON candidate_profiles FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Companies insert own profile" ON company_profiles FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Companies read own profile" ON company_profiles FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Companies update own profile" ON company_profiles FOR UPDATE USING (auth.uid() = user_id);
 
@@ -284,6 +285,17 @@ RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO public.users (id, email, role)
   VALUES (NEW.id, NEW.email, COALESCE(NEW.raw_user_meta_data->>'role', 'candidate'));
+
+  IF COALESCE(NEW.raw_user_meta_data->>'role', 'candidate') = 'company' THEN
+    INSERT INTO public.company_profiles (user_id, company_name, industry, location)
+    VALUES (
+      NEW.id,
+      COALESCE(NEW.raw_user_meta_data->>'company_name', 'Unnamed Company'),
+      NEW.raw_user_meta_data->>'industry',
+      NEW.raw_user_meta_data->>'location'
+    );
+  END IF;
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

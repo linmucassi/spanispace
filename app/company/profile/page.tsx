@@ -12,6 +12,7 @@ export default function CompanyProfile() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [profile, setProfile] = useState<DbCompanyProfile | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     company_name: '',
@@ -38,11 +39,13 @@ export default function CompanyProfile() {
         return;
       }
 
+      setUserId(user.id);
+
       const { data } = await supabase
         .from('company_profiles')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (data) {
         setProfile(data as DbCompanyProfile);
@@ -52,6 +55,16 @@ export default function CompanyProfile() {
           location: data.location || '',
           website: data.website || '',
           logo_url: data.logo_url || '',
+        });
+      } else {
+        // No company_profiles row yet (e.g. signup didn't provision one) --
+        // fall back to the signup metadata so the form isn't blank.
+        setForm({
+          company_name: (user.user_metadata?.company_name as string) || '',
+          industry: (user.user_metadata?.industry as string) || '',
+          location: (user.user_metadata?.location as string) || '',
+          website: '',
+          logo_url: '',
         });
       }
 
@@ -72,8 +85,8 @@ export default function CompanyProfile() {
     setSuccess(false);
     setSaving(true);
 
-    if (!profile) {
-      setError('Profile not found.');
+    if (!userId) {
+      setError('You must be signed in.');
       setSaving(false);
       return;
     }
@@ -85,16 +98,21 @@ export default function CompanyProfile() {
       return;
     }
 
-    const { error: dbError } = await supabase
+    const { data, error: dbError } = await supabase
       .from('company_profiles')
-      .update({
-        company_name: form.company_name,
-        industry: form.industry || null,
-        location: form.location || null,
-        website: form.website || null,
-        logo_url: form.logo_url || null,
-      })
-      .eq('id', profile.id);
+      .upsert(
+        {
+          user_id: userId,
+          company_name: form.company_name,
+          industry: form.industry || null,
+          location: form.location || null,
+          website: form.website || null,
+          logo_url: form.logo_url || null,
+        },
+        { onConflict: 'user_id' }
+      )
+      .select('*')
+      .single();
 
     setSaving(false);
 
@@ -103,6 +121,7 @@ export default function CompanyProfile() {
       return;
     }
 
+    setProfile(data as DbCompanyProfile);
     setSuccess(true);
   };
 
@@ -110,21 +129,6 @@ export default function CompanyProfile() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
-      </div>
-    );
-  }
-
-  if (!profile) {
-    return (
-      <div className="max-w-2xl">
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-8 text-center">
-          <h2 className="text-xl font-bold text-amber-800 mb-2">
-            Profile Not Found
-          </h2>
-          <p className="text-amber-700 text-sm">
-            Your company profile could not be loaded. Please contact support.
-          </p>
-        </div>
       </div>
     );
   }
@@ -223,30 +227,32 @@ export default function CompanyProfile() {
         </div>
 
         {/* Subscription Tier (read-only) */}
-        <div className="pt-4 border-t border-slate-100">
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            Subscription Tier
-          </label>
-          <div className="flex items-center gap-3">
-            <span className="inline-flex px-3 py-1.5 rounded-lg bg-indigo-50 text-sm font-bold text-indigo-700">
-              {profile.subscription_tier || 'Free'}
-            </span>
-            {profile.subscription_status && (
-              <span
-                className={`inline-flex px-2 py-0.5 rounded-full text-xs font-bold ${
-                  profile.subscription_status === 'active'
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-slate-100 text-slate-600'
-                }`}
-              >
-                {profile.subscription_status}
+        {profile && (
+          <div className="pt-4 border-t border-slate-100">
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Subscription Tier
+            </label>
+            <div className="flex items-center gap-3">
+              <span className="inline-flex px-3 py-1.5 rounded-lg bg-indigo-50 text-sm font-bold text-indigo-700">
+                {profile.subscription_tier || 'Free'}
               </span>
-            )}
+              {profile.subscription_status && (
+                <span
+                  className={`inline-flex px-2 py-0.5 rounded-full text-xs font-bold ${
+                    profile.subscription_status === 'active'
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-slate-100 text-slate-600'
+                  }`}
+                >
+                  {profile.subscription_status}
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-slate-400 mt-1">
+              Contact support to change your subscription plan.
+            </p>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
-            Contact support to change your subscription plan.
-          </p>
-        </div>
+        )}
 
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-3">
