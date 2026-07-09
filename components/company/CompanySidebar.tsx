@@ -10,6 +10,9 @@ import {
   FileText,
   Users,
   Building2,
+  Calendar,
+  GraduationCap,
+  MessageSquare,
   LogOut,
   Menu,
   X,
@@ -20,6 +23,9 @@ const navItems = [
   { name: 'My Jobs', href: '/company/jobs', icon: Briefcase },
   { name: 'Applications', href: '/company/applications', icon: FileText },
   { name: 'Find Candidates', href: '/company/candidates', icon: Users },
+  { name: 'Messages', href: '/company/messages', icon: MessageSquare },
+  { name: 'My Events', href: '/company/events', icon: Calendar },
+  { name: 'My Training', href: '/company/training', icon: GraduationCap },
   { name: 'Company Profile', href: '/company/profile', icon: Building2 },
 ];
 

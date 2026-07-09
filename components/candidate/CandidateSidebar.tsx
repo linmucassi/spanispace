@@ -10,6 +10,7 @@ import {
   FileText,
   BookOpen,
   Sparkles,
+  MessageSquare,
   LogOut,
   Menu,
   X,
@@ -20,6 +21,7 @@ const navItems: { name: string; href: string; icon: React.ElementType; isNew?: b
   { name: 'Dashboard', href: '/candidate/dashboard', icon: LayoutDashboard },
   { name: 'My Profile', href: '/candidate/profile', icon: User },
   { name: 'Applications', href: '/candidate/applications', icon: FileText },
+  { name: 'Messages', href: '/candidate/messages', icon: MessageSquare },
   { name: 'Enrollments', href: '/candidate/enrollments', icon: BookOpen },
   { name: 'AI CV Audit', href: '/candidate/cv-audit', icon: Sparkles, isNew: true },
 ];

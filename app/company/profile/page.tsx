@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { normalizeUrl } from '@/lib/normalizeUrl';
 import type { DbCompanyProfile } from '@/types/database';
 
 export default function CompanyProfile() {
@@ -106,8 +107,8 @@ export default function CompanyProfile() {
           company_name: form.company_name,
           industry: form.industry || null,
           location: form.location || null,
-          website: form.website || null,
-          logo_url: form.logo_url || null,
+          website: form.website ? normalizeUrl(form.website) : null,
+          logo_url: form.logo_url ? normalizeUrl(form.logo_url) : null,
         },
         { onConflict: 'user_id' }
       )
@@ -134,7 +135,7 @@ export default function CompanyProfile() {
   }
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-2xl mx-auto">
       <h1 className="text-2xl font-extrabold text-slate-900 mb-2">
         Company Profile
       </h1>
@@ -194,7 +195,8 @@ export default function CompanyProfile() {
             value={form.website}
             onChange={handleChange}
             placeholder="https://yourcompany.co.za"
-            type="url"
+            type="text"
+            inputMode="url"
             className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
           />
         </div>
@@ -208,7 +210,8 @@ export default function CompanyProfile() {
             value={form.logo_url}
             onChange={handleChange}
             placeholder="https://example.com/logo.png"
-            type="url"
+            type="text"
+            inputMode="url"
             className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
           />
           {form.logo_url && (

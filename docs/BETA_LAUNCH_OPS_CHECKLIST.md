@@ -1,159 +1,79 @@
 # Beta Launch Ops Checklist
 
-**Status:** Ready to execute  
-**Timeline:** ~0.5 days for all blockers  
+**Status:** Live in production — this checklist now tracks post-launch fixes and gaps, not launch blockers
+**Last Updated:** 9 July 2026
 **Owner:** DevOps / Infrastructure
 
 ---
 
-## 🔴 Beta-Launch Blockers (REQUIRED)
+## 🔴 Blocker: Run 6 Migrations Against Production
 
-### 1. Create First Admin Account
+Everything below this line is **code-complete, typechecked, linted, and build-verified** (9 Jul 2026), but none of it is live until these run in the Supabase SQL Editor, in this order:
 
-**Why:** Admin dashboard is unreachable without an admin role.
+1. `supabase/fix-company-profile-creation.sql` — company signup could dead-end at "Profile Not Found" (missing INSERT policy + signup trigger never created the row)
+2. `supabase/fix-applications-pipeline.sql` — adds the `documents` column the fixed apply flow needs
+3. `supabase/fix-company-jobs-rls.sql` — companies had no SELECT/UPDATE policy on their own `jobs` rows
+4. `supabase/add-job-analytics.sql` — job view + application drop-off tracking
+5. `supabase/add-company-events-training.sql` — company-created events & training
+6. `supabase/add-messaging.sql` — candidate ↔ company messaging
 
-**Steps:**
-1. Go to [Supabase Dashboard](https://app.supabase.com) → Your Project → **Authentication** (left sidebar)
-2. Click the **Users** tab
-3. Click **Add user** → **Create new user**
-4. Enter email (e.g. `admin@spanispace.com`) and a password, then click **Create user**
-5. Go to **SQL Editor** (left sidebar)
-6. Run this query to assign the admin role in the `public.users` table:
-   ```sql
-   INSERT INTO public.users (id, email, role)
-   SELECT id, email, 'admin'
-   FROM auth.users
-   WHERE email = 'admin@spanispace.com';
-   ```
-   > If the row already exists (e.g. you signed up through the app), run this instead:
-   ```sql
-   UPDATE public.users SET role = 'admin' WHERE email = 'admin@spanispace.com';
-   ```
-7. Log in at `/login` — you should be redirected to `/admin/dashboard`.
+All six are idempotent (`IF NOT EXISTS` / safe re-run). `supabase/schema.sql` has been updated to match, so a fresh environment provisioned from it doesn't need any of these on top.
 
 ---
 
-### 2. Set Environment Variables
+## What Was Fixed This Session
 
-#### Local development (`.env.local`)
-Create a file called `.env.local` in the project root with:
-```
-NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-api-key-here
-```
-Restart the dev server after creating this file.
+### 1. Job Applications Never Reached the Database
 
-**Where to find these values in Supabase:**
-1. Go to [Supabase Dashboard](https://app.supabase.com) → Your Project
-2. Click **Settings** (bottom of left sidebar) → **Data API**
-3. Under **Project URL** — copy the URL
-4. Under **Project API keys** — copy the key labelled `anon` (this is the public, client-safe key)
+`ApplyForm.tsx` (the public "apply for a job" form) submitted to Netlify Forms only. Nothing wrote to the Supabase `applications` table, so `/company/applications`, `/company/dashboard`, `/company/jobs` (app counts), and `/candidate/applications` were always reading an empty table for real users.
 
-#### Production (Netlify)
-1. Go to [Netlify](https://app.netlify.com) → Your Site
-2. Click **Site configuration** (left sidebar) → **Environment variables**
-3. Click **Add a variable** for each:
-   - `NEXT_PUBLIC_SUPABASE_URL` → your Supabase project URL
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` → your Supabase API key (anon/public)
-4. **Redeploy:** Go to **Deploys** → click **Trigger deploy** → **Deploy site**
+**Fixed:** `ApplyForm.tsx` now inserts into `applications` for real (DB-backed) jobs, with the Netlify Forms submission kept as a best-effort duplicate. Static fallback job listings (no `jobs` row to satisfy the FK) still go through Netlify Forms only, as before.
 
-**Verification:** After redeploy, open `https://spanispace.com`, open browser DevTools console — no Supabase errors should appear.
+### 2. Company Signup Could Dead-End at "Profile Not Found"
 
----
+`company_profiles` had RLS policies for SELECT/UPDATE but no INSERT policy, and the signup trigger never created the row. Every company-portal page redirects to `/company/profile` when the row is missing, and that page could only UPDATE an existing row — a dead end.
 
-### 3. Configure Supabase Auth Redirect URLs
+**Fixed:** `/company/profile` now upserts instead of requiring an existing row; the signup trigger provisions the row; RLS gained the missing INSERT policy.
 
-**Why:** Auth callback flow (password reset, email confirmation) will fail without the correct redirect URL.
+### 3. Companies Couldn't Reliably Manage Their Own Jobs (found during this work)
 
-**Steps:**
-1. Go to [Supabase Dashboard](https://app.supabase.com) → Your Project
-2. Click **Authentication** (left sidebar) → **URL Configuration**
-3. Under **Site URL**, set:
-   ```
-   https://spanispace.com
-   ```
-4. Under **Redirect URLs**, click **Add URL** and add:
-   ```
-   https://spanispace.com/callback
-   ```
-5. Click **Save**
+`jobs` had a public SELECT policy scoped to `status = 'active'` only, an open INSERT policy, and an admin-only ALL policy — but nothing letting the owning company SELECT or UPDATE their own row regardless of status. Effects: closed/draft jobs didn't appear in `/company/jobs`, and both the Close/Reopen button and the Edit Job form silently saved nothing (RLS-filtered zero-row updates don't error).
 
-> For local testing also add: `http://localhost:3000/callback`
+**Fixed:** added company-scoped SELECT/UPDATE policies; `JobActions.tsx` now surfaces an error if an update ever fails instead of assuming success.
+
+### 4–6. The Three Named Company-Portal Gaps — Built
+
+| Feature | What shipped |
+|---|---|
+| Job view / application drop-off analytics | `job_views` + `application_starts` tables, logged from the job detail and apply pages; a views→started→submitted funnel on `/company/dashboard`; per-job columns on `/company/jobs` |
+| Company-created events & training | `/company/events` and `/company/training` (list/new/edit) submit as `vetted_status='pending'`; reviewed via `/admin/trainings` (extended) and new `/admin/events` (didn't exist before — events were previously scraper-only) |
+| Candidate ↔ company messaging | One thread per company↔candidate pair, shared inbox UI (`components/messaging/MessagesInbox.tsx`) on `/company/messages` and `/candidate/messages`, entry points from candidate search and the applications list |
+
+Job posting itself (`/company/jobs`, `/company/jobs/new`) and application review (`/company/applications`) already worked before this session, aside from bug #3 above.
 
 ---
 
-### 4. Configure Supabase Email Templates
+## ✅ Already Resolved Since Original Launch Checklist
 
-**Why:** Auth emails must link back to the correct callback route.
+The original version of this document listed setup blockers for going live. The platform has been live since the original March 2026 launch; those steps are done. Also resolved since then, ahead of the original "Important/Nice to Have" lists below:
 
-**Steps:**
-1. Go to **Authentication** → **Email Templates**
-2. Select the **Reset Password** template
-3. Set the action URL to:
-   ```
-   {{ .SiteURL }}/callback?next=/reset-password
-   ```
-4. Optionally update subject lines and body copy with Spanispace branding:
-   - Subject: `Reset your Spanispace password`
-   - Footer: `Spanispace — Building opportunities for South African youth`
+- Password reset flow (`/forgot-password`, `/reset-password`) — implemented
+- Error boundaries for public/candidate/company/admin sections — implemented
+- Loading skeletons on most dashboard/list routes — implemented
+- Mobile sidebar navigation (candidate/company/admin) — implemented, hamburger drawer on all three
+- Company job editing — implemented (`/company/jobs/[id]/edit`)
+- Candidate multi-document library (CV, certificates, cover/motivational letters) — implemented, beyond original single-CV-upload scope
+- AI-powered CV audit (Claude) — implemented at `/candidate/cv-audit`, not originally scoped
+- Daily job/event auto-refresh (GitHub Actions scraper: RemoteOK, Remotive, Adzuna, Eventbrite → Supabase) — implemented, not originally scoped — this substantially covers the "Data Freshness System" roadmap item for jobs/events (learnerships/late-uni deadlines are still hand-curated)
 
 ---
 
-### 5. DNS & SSL
-
-**Why:** Users need `https://spanispace.com` to resolve.
-
-**Steps:**
-1. Go to your domain registrar (Namecheap, GoDaddy, etc.)
-2. Point DNS to Netlify — easiest option is a CNAME:
-   - **Host:** `@` (or `www`)
-   - **Value:** `spanispace.netlify.app` (your Netlify subdomain)
-3. In Netlify → **Site configuration** → **Domain management** → add your custom domain
-4. SSL is auto-provisioned by Netlify via Let's Encrypt — no action needed
-
-**Verification:** `https://spanispace.com` loads without browser security warnings.
-
----
-
-### 6. Seed Initial Content
-
-**Why:** Homepage and job listings will be empty without data.
-
-**Steps:**
-1. Log in as admin at `https://spanispace.com/login`
-2. Navigate to the admin dashboard and seed at least:
-   - **5–10 jobs** via `/admin/jobs/new`
-   - **2–3 bootcamps** via `/admin/trainings/new`
-   - **2–3 learnerships** via `/admin/learnerships/new`
-   - **2–3 late-uni deadlines** via `/admin/late-uni/new`
-
----
-
-### 7. End-to-End Smoke Test (Production)
-
-**Checklist:**
-- [ ] Candidate signup → registers and lands on `/candidate/dashboard`
-- [ ] Company signup → registers and lands on `/company/dashboard`
-- [ ] Admin dashboard → jobs, trainings, learnerships appear
-- [ ] Post & verify a job (as company) → appears on public job board
-- [ ] Apply for a job (as candidate) → application records in database
-- [ ] Upload CV (candidate profile) → file saves successfully
-- [ ] Forgot password → email arrives, reset link works
-- [ ] isiZulu toggle → homepage and dashboard switch languages
-- [ ] Mobile sidebar → drawer opens/closes on mobile viewport
-
-**How to test:**
-- Use incognito tabs for multiple accounts simultaneously
-- Test on desktop + mobile (Chrome DevTools → device emulation)
-- Check browser console and Netlify deploy logs for errors
-
----
-
-## 🟡 Important But Not Blockers
+## 🟡 Still Outstanding (Important, Not Blocking)
 
 ### 1. Email Notifications (1–2 days)
 - Integrate Resend or SendGrid
-- Trigger emails on application status changes via Supabase Edge Functions
+- Trigger emails on application status changes and new messages via Supabase Edge Functions
+- No provider is wired up yet — checked `package.json` and repo-wide, nothing found
 
 ### 2. Google OAuth (1 day)
 - Configure in Supabase → **Authentication** → **Providers** → **Google**
@@ -163,27 +83,24 @@ Restart the dev server after creating this file.
 - Current logo is wide-format; renders poorly on WhatsApp/Twitter/LinkedIn
 - Requires a square or 1200×630 image — design task
 
-### 4. Move Static Jobs to Supabase (1 day)
-- Once real jobs are seeded, remove the static fallback in `data/constants.ts`
+### 4. Move Static Jobs to Supabase
+- With the daily scraper now populating real jobs, check whether the static fallback in `data/constants.ts` is still needed as a safety net or can be removed
 
 ---
 
-## 📋 Post-Launch (Q3 2026+)
+## 📋 Post-Launch (Q4 2026+)
 
-- Stripe billing integration
-- AI matching with pgvector
-- In-platform messaging
-- Mobile app
+- Stripe billing integration (`company_profiles.subscription_tier`/`subscription_status` columns exist but are unused — no billing logic reads/writes them yet)
+- AI matching with pgvector (builds on the existing Claude CV-audit integration)
 - Skill assessments
-- Analytics dashboards
+- Analytics dashboards beyond the new views/drop-off funnel (time-to-hire, skill gap analysis, exports)
+- Mobile app
 
 ---
 
 ## Summary
 
-**To launch beta:**
-1. ✅ Code is ready
-2. ⏱️ Complete blockers 1–7 (~4 hours total)
-3. 🚀 Go live
-
-**Blockers 1–5** are ~1 hour. **Blockers 6–7** (seeding + smoke test) are ~3 hours.
+**Platform is live.** Current priority order:
+1. 🔴 Run the 6 migrations listed above against production — nothing shipped this session is live until then
+2. 🟡 End-to-end smoke test each: apply for a job as a candidate and confirm it appears in `/company/applications`; sign up as a new company and confirm the dashboard loads without redirect looping; close/reopen and edit a job; post a training/event as a company and approve it as admin; message a candidate from search and reply as that candidate
+3. 🟡 Email notifications, Google OAuth, and the smaller items above as capacity allows

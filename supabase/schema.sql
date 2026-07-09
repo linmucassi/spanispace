@@ -90,6 +90,7 @@ CREATE TABLE applications (
   about_you TEXT,
   cover_letter TEXT,
   cv_url TEXT,
+  documents JSONB DEFAULT '[]'::jsonb,
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'reviewed', 'shortlisted', 'rejected', 'hired')),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -97,6 +98,7 @@ CREATE TABLE applications (
 -- 6. Trainings / Bootcamps
 CREATE TABLE trainings (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  company_id UUID REFERENCES company_profiles(id) ON DELETE SET NULL,
   title TEXT NOT NULL,
   description TEXT,
   category TEXT NOT NULL CHECK (category IN ('Bootcamp', 'Short Course', 'Event')),
@@ -105,6 +107,7 @@ CREATE TABLE trainings (
   format TEXT CHECK (format IN ('online', 'hybrid', 'in-person')),
   skills_covered TEXT[] DEFAULT '{}',
   is_free BOOLEAN DEFAULT TRUE,
+  vetted_status TEXT DEFAULT 'verified' CHECK (vetted_status IN ('pending', 'verified', 'rejected')),
   status TEXT DEFAULT 'active' CHECK (status IN ('active', 'completed', 'cancelled', 'draft')),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -154,6 +157,7 @@ CREATE TABLE late_uni_apps (
 CREATE TABLE events (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   creator_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  company_id UUID REFERENCES company_profiles(id) ON DELETE SET NULL,
   title TEXT NOT NULL,
   description TEXT,
   event_type TEXT CHECK (event_type IN ('webinar', 'workshop', 'hackathon', 'career_fair', 'bootcamp_session', 'networking', 'other')),
@@ -165,6 +169,7 @@ CREATE TABLE events (
   capacity INT,
   is_public BOOLEAN DEFAULT TRUE,
   skills_focus TEXT[] DEFAULT '{}',
+  vetted_status TEXT DEFAULT 'verified' CHECK (vetted_status IN ('pending', 'verified', 'rejected')),
   status TEXT DEFAULT 'draft' CHECK (status IN ('draft', 'published', 'ongoing', 'completed', 'cancelled')),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -182,7 +187,44 @@ CREATE TABLE event_registrations (
   feedback TEXT
 );
 
--- 12. Waitlist
+-- 12. Job Views (analytics: track detail-page views per job)
+CREATE TABLE job_views (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  job_id UUID REFERENCES jobs(id) ON DELETE CASCADE,
+  viewer_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 13. Application Starts (analytics: track apply-form loads, for drop-off vs `applications`)
+CREATE TABLE application_starts (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  job_id UUID REFERENCES jobs(id) ON DELETE CASCADE,
+  viewer_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 14. Message Threads (one thread per company<->candidate pair)
+CREATE TABLE message_threads (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  company_id UUID REFERENCES company_profiles(id) ON DELETE CASCADE NOT NULL,
+  candidate_id UUID REFERENCES candidate_profiles(id) ON DELETE CASCADE NOT NULL,
+  job_id UUID REFERENCES jobs(id) ON DELETE SET NULL,
+  last_message_at TIMESTAMPTZ DEFAULT NOW(),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (company_id, candidate_id)
+);
+
+-- 15. Messages
+CREATE TABLE messages (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  thread_id UUID REFERENCES message_threads(id) ON DELETE CASCADE NOT NULL,
+  sender_id UUID REFERENCES users(id) ON DELETE SET NULL NOT NULL,
+  body TEXT NOT NULL,
+  read_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 16. Waitlist
 CREATE TABLE waitlist (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
@@ -193,7 +235,7 @@ CREATE TABLE waitlist (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 13. Newsletter
+-- 17. Newsletter
 CREATE TABLE newsletter (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
@@ -219,20 +261,97 @@ ALTER TABLE candidate_documents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE company_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE enrollments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE event_registrations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE job_views ENABLE ROW LEVEL SECURITY;
+ALTER TABLE application_starts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE message_threads ENABLE ROW LEVEL SECURITY;
+ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+
+-- ============================================================
+-- HELPER: Admin role check (SECURITY DEFINER breaks RLS recursion)
+-- ============================================================
+-- All admin policies reference this function instead of querying users directly.
+-- Without this, every query recurses: jobs policy → SELECT users → users policy → SELECT users → ∞
+-- Defined before any policy below so a fresh top-to-bottom run doesn't fail
+-- on a forward reference.
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.users
+    WHERE id = auth.uid() AND role = 'admin'
+  );
+$$;
+
+-- ============================================================
+-- HELPER: Messaging participant checks (SECURITY DEFINER breaks RLS recursion)
+-- ============================================================
+CREATE OR REPLACE FUNCTION public.is_thread_party(p_company_id UUID, p_candidate_id UUID)
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.company_profiles cp WHERE cp.id = p_company_id AND cp.user_id = auth.uid()
+  ) OR EXISTS (
+    SELECT 1 FROM public.candidate_profiles cd WHERE cd.id = p_candidate_id AND cd.user_id = auth.uid()
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.is_thread_participant(p_thread_id UUID)
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+  SELECT public.is_thread_party(mt.company_id, mt.candidate_id)
+  FROM public.message_threads mt
+  WHERE mt.id = p_thread_id;
+$$;
 
 -- Public read for active content
 CREATE POLICY "Public read active jobs" ON jobs FOR SELECT USING (status = 'active');
-CREATE POLICY "Public read active trainings" ON trainings FOR SELECT USING (status IN ('active', 'completed'));
+CREATE POLICY "Public read active trainings" ON trainings FOR SELECT USING (status IN ('active', 'completed') AND vetted_status = 'verified');
 CREATE POLICY "Public read learnerships" ON learnerships FOR SELECT USING (true);
 CREATE POLICY "Public read late uni apps" ON late_uni_apps FOR SELECT USING (true);
-CREATE POLICY "Public read published events" ON events FOR SELECT USING (status IN ('published', 'ongoing', 'completed'));
+CREATE POLICY "Public read published events" ON events FOR SELECT USING (status IN ('published', 'ongoing', 'completed') AND vetted_status = 'verified');
 
 -- Public inserts (anyone can apply, submit jobs, join waitlist)
 CREATE POLICY "Anyone can submit jobs" ON jobs FOR INSERT WITH CHECK (true);
+
+-- Companies manage their own jobs (read own regardless of status, update own)
+CREATE POLICY "Companies read own jobs" ON jobs FOR SELECT USING (
+  EXISTS (SELECT 1 FROM company_profiles cp WHERE cp.id = jobs.company_id AND cp.user_id = auth.uid())
+);
+CREATE POLICY "Companies update own jobs" ON jobs FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM company_profiles cp WHERE cp.id = jobs.company_id AND cp.user_id = auth.uid())
+);
 CREATE POLICY "Anyone can apply" ON applications FOR INSERT WITH CHECK (true);
 CREATE POLICY "Anyone can join waitlist" ON waitlist FOR INSERT WITH CHECK (true);
 CREATE POLICY "Anyone can subscribe" ON newsletter FOR INSERT WITH CHECK (true);
 CREATE POLICY "Anyone can register for events" ON event_registrations FOR INSERT WITH CHECK (true);
+CREATE POLICY "Anyone can log a job view" ON job_views FOR INSERT WITH CHECK (true);
+CREATE POLICY "Anyone can log an application start" ON application_starts FOR INSERT WITH CHECK (true);
+
+-- Companies read analytics for their own jobs
+CREATE POLICY "Companies read own job views" ON job_views FOR SELECT USING (
+  EXISTS (
+    SELECT 1 FROM jobs j JOIN company_profiles cp ON cp.id = j.company_id
+    WHERE j.id = job_views.job_id AND cp.user_id = auth.uid()
+  )
+);
+CREATE POLICY "Companies read own application starts" ON application_starts FOR SELECT USING (
+  EXISTS (
+    SELECT 1 FROM jobs j JOIN company_profiles cp ON cp.id = j.company_id
+    WHERE j.id = application_starts.job_id AND cp.user_id = auth.uid()
+  )
+);
 
 -- Authenticated users read own data
 CREATE POLICY "Users read own profile" ON users FOR SELECT USING (auth.uid() = id);
@@ -243,6 +362,46 @@ CREATE POLICY "Candidates update own profile" ON candidate_profiles FOR UPDATE U
 CREATE POLICY "Companies insert own profile" ON company_profiles FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Companies read own profile" ON company_profiles FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Companies update own profile" ON company_profiles FOR UPDATE USING (auth.uid() = user_id);
+
+-- Companies manage their own events & training (submitted as vetted_status='pending', admin reviews)
+CREATE POLICY "Companies insert own trainings" ON trainings FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM company_profiles cp WHERE cp.id = trainings.company_id AND cp.user_id = auth.uid())
+);
+CREATE POLICY "Companies read own trainings" ON trainings FOR SELECT USING (
+  EXISTS (SELECT 1 FROM company_profiles cp WHERE cp.id = trainings.company_id AND cp.user_id = auth.uid())
+);
+CREATE POLICY "Companies update own trainings" ON trainings FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM company_profiles cp WHERE cp.id = trainings.company_id AND cp.user_id = auth.uid())
+);
+CREATE POLICY "Companies insert own events" ON events FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM company_profiles cp WHERE cp.id = events.company_id AND cp.user_id = auth.uid())
+);
+CREATE POLICY "Companies read own events" ON events FOR SELECT USING (
+  EXISTS (SELECT 1 FROM company_profiles cp WHERE cp.id = events.company_id AND cp.user_id = auth.uid())
+);
+CREATE POLICY "Companies update own events" ON events FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM company_profiles cp WHERE cp.id = events.company_id AND cp.user_id = auth.uid())
+);
+
+-- Messaging: only the two participants (the owning company user and candidate user) of a thread can read/write it
+CREATE POLICY "Participants read own threads" ON message_threads FOR SELECT USING (
+  public.is_thread_party(company_id, candidate_id)
+);
+CREATE POLICY "Participants create threads" ON message_threads FOR INSERT WITH CHECK (
+  public.is_thread_party(company_id, candidate_id)
+);
+CREATE POLICY "Participants update own threads" ON message_threads FOR UPDATE USING (
+  public.is_thread_party(company_id, candidate_id)
+);
+CREATE POLICY "Participants read own messages" ON messages FOR SELECT USING (
+  public.is_thread_participant(thread_id)
+);
+CREATE POLICY "Participants send messages" ON messages FOR INSERT WITH CHECK (
+  sender_id = auth.uid() AND public.is_thread_participant(thread_id)
+);
+CREATE POLICY "Participants update own messages" ON messages FOR UPDATE USING (
+  public.is_thread_participant(thread_id)
+);
 
 -- Admin full access — uses is_admin() to avoid RLS recursion on the users table
 CREATE POLICY "Admin full access users" ON users FOR ALL USING (public.is_admin());
@@ -258,24 +417,10 @@ CREATE POLICY "Admin full access enrollments" ON enrollments FOR ALL USING (publ
 CREATE POLICY "Admin full access event_registrations" ON event_registrations FOR ALL USING (public.is_admin());
 CREATE POLICY "Admin full access candidate_profiles" ON candidate_profiles FOR ALL USING (public.is_admin());
 CREATE POLICY "Admin full access company_profiles" ON company_profiles FOR ALL USING (public.is_admin());
-
--- ============================================================
--- HELPER: Admin role check (SECURITY DEFINER breaks RLS recursion)
--- ============================================================
--- All admin policies reference this function instead of querying users directly.
--- Without this, every query recurses: jobs policy → SELECT users → users policy → SELECT users → ∞
-CREATE OR REPLACE FUNCTION public.is_admin()
-RETURNS boolean
-LANGUAGE sql
-SECURITY DEFINER
-STABLE
-SET search_path = public
-AS $$
-  SELECT EXISTS (
-    SELECT 1 FROM public.users
-    WHERE id = auth.uid() AND role = 'admin'
-  );
-$$;
+CREATE POLICY "Admin full access job_views" ON job_views FOR ALL USING (public.is_admin());
+CREATE POLICY "Admin full access application_starts" ON application_starts FOR ALL USING (public.is_admin());
+CREATE POLICY "Admin full access message_threads" ON message_threads FOR ALL USING (public.is_admin());
+CREATE POLICY "Admin full access messages" ON messages FOR ALL USING (public.is_admin());
 
 -- ============================================================
 -- HELPER: Auto-create user row on signup
@@ -317,3 +462,8 @@ CREATE INDEX idx_learnerships_expiry ON learnerships(expiry_date);
 CREATE INDEX idx_late_uni_closing ON late_uni_apps(closing_date);
 CREATE INDEX idx_events_status ON events(status);
 CREATE INDEX idx_events_start ON events(start_date);
+CREATE INDEX idx_job_views_job ON job_views(job_id);
+CREATE INDEX idx_application_starts_job ON application_starts(job_id);
+CREATE INDEX idx_message_threads_company ON message_threads(company_id);
+CREATE INDEX idx_message_threads_candidate ON message_threads(candidate_id);
+CREATE INDEX idx_messages_thread ON messages(thread_id);

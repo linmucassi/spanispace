@@ -2,11 +2,14 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { MessageSquare } from 'lucide-react';
 
 interface Application {
   id: string;
   job_id: string;
+  candidate_id: string | null;
   full_name: string;
   phone: string;
   whatsapp: string | null;
@@ -15,10 +18,19 @@ interface Application {
   about_you: string | null;
   cover_letter: string | null;
   cv_url: string | null;
+  documents: { name: string; doc_type: string; file_url: string }[] | null;
   status: string;
   created_at: string;
   job?: { title: string };
 }
+
+const DOC_LABELS: Record<string, string> = {
+  cv: 'CV / Resume',
+  certificate: 'Certificate',
+  cover_letter: 'Cover Letter',
+  motivational_letter: 'Motivational Letter',
+  other: 'Other',
+};
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
@@ -216,22 +228,43 @@ export default function ApplicationList({
                       </div>
                     )}
 
-                    {app.cv_url && (
+                    {app.documents && app.documents.length > 0 ? (
                       <div className="mb-4">
                         <span className="text-xs font-bold text-slate-400 uppercase">
-                          CV
+                          Documents
                         </span>
-                        <p className="mt-1">
-                          <a
-                            href={app.cv_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm text-indigo-600 font-medium hover:underline"
-                          >
-                            View / Download CV
-                          </a>
-                        </p>
+                        <div className="mt-1 flex flex-wrap gap-2">
+                          {app.documents.map((doc, i) => (
+                            <a
+                              key={i}
+                              href={doc.file_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors"
+                            >
+                              {DOC_LABELS[doc.doc_type] ?? doc.doc_type}: {doc.name}
+                            </a>
+                          ))}
+                        </div>
                       </div>
+                    ) : (
+                      app.cv_url && (
+                        <div className="mb-4">
+                          <span className="text-xs font-bold text-slate-400 uppercase">
+                            CV
+                          </span>
+                          <p className="mt-1">
+                            <a
+                              href={app.cv_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-indigo-600 font-medium hover:underline"
+                            >
+                              View / Download CV
+                            </a>
+                          </p>
+                        </div>
+                      )
                     )}
 
                     {/* Status Actions */}
@@ -271,6 +304,15 @@ export default function ApplicationList({
                         >
                           Reject
                         </button>
+                      )}
+                      {app.candidate_id && (
+                        <Link
+                          href={`/company/messages?candidateId=${app.candidate_id}&jobId=${app.job_id}`}
+                          className="px-3 py-1.5 text-xs font-bold bg-slate-50 text-slate-700 rounded-lg hover:bg-slate-100 transition-colors inline-flex items-center gap-1.5"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          Message
+                        </Link>
                       )}
                     </div>
                   </div>

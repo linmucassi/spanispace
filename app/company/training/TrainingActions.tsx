@@ -5,11 +5,11 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 
-export default function JobActions({
-  jobId,
+export default function TrainingActions({
+  trainingId,
   currentStatus,
 }: {
-  jobId: string;
+  trainingId: string;
   currentStatus: string;
 }) {
   const router = useRouter();
@@ -25,11 +25,11 @@ export default function JobActions({
       return;
     }
 
-    const newStatus = currentStatus === 'active' ? 'closed' : 'active';
+    const newStatus = currentStatus === 'cancelled' ? 'active' : 'cancelled';
     const { error: dbError } = await supabase
-      .from('jobs')
+      .from('trainings')
       .update({ status: newStatus })
-      .eq('id', jobId);
+      .eq('id', trainingId);
 
     setUpdating(false);
     if (dbError) {
@@ -42,22 +42,22 @@ export default function JobActions({
   return (
     <div className="flex items-center gap-2">
       <Link
-        href={`/company/jobs/${jobId}/edit`}
+        href={`/company/training/${trainingId}/edit`}
         className="text-xs font-bold text-indigo-600 hover:underline"
       >
         Edit
       </Link>
-      <button
-        onClick={toggleStatus}
-        disabled={updating}
-        className={`text-xs font-bold hover:underline disabled:opacity-50 ${
-          currentStatus === 'active'
-            ? 'text-amber-600'
-            : 'text-emerald-600'
-        }`}
-      >
-        {currentStatus === 'active' ? 'Close' : 'Reopen'}
-      </button>
+      {currentStatus !== 'completed' && (
+        <button
+          onClick={toggleStatus}
+          disabled={updating}
+          className={`text-xs font-bold hover:underline disabled:opacity-50 ${
+            currentStatus === 'cancelled' ? 'text-emerald-600' : 'text-amber-600'
+          }`}
+        >
+          {currentStatus === 'cancelled' ? 'Reactivate' : 'Cancel'}
+        </button>
+      )}
       {error && <span className="text-xs text-red-600">{error}</span>}
     </div>
   );

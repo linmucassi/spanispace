@@ -19,5 +19,12 @@ export default async function ApplyPage({ params }: Props) {
     redirect(`/jobs/${id}`);
   }
 
-  return <ApplyForm jobId={job.id} jobRole={job.role} jobCompany={job.company} />;
+  return (
+    <ApplyForm
+      jobId={job.id}
+      jobRole={job.role}
+      jobCompany={job.company}
+      jobSource={job.source}
+    />
+  );
 }

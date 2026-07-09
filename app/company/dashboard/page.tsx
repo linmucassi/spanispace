@@ -71,9 +71,11 @@ export default async function CompanyDashboard() {
   let shortlisted = 0;
   let pendingReview = 0;
   let recentApps: any[] = [];
+  let totalViews = 0;
+  let totalStarts = 0;
 
   if (jobIds.length > 0) {
-    const [totalAppsRes, shortlistedRes, pendingRes, recentAppsRes] =
+    const [totalAppsRes, shortlistedRes, pendingRes, recentAppsRes, viewsRes, startsRes] =
       await Promise.all([
         supabase
           .from('applications')
@@ -95,13 +97,26 @@ export default async function CompanyDashboard() {
           .in('job_id', jobIds)
           .order('created_at', { ascending: false })
           .limit(10),
+        supabase
+          .from('job_views')
+          .select('id', { count: 'exact', head: true })
+          .in('job_id', jobIds),
+        supabase
+          .from('application_starts')
+          .select('id', { count: 'exact', head: true })
+          .in('job_id', jobIds),
       ]);
 
     totalApplications = totalAppsRes.count ?? 0;
     shortlisted = shortlistedRes.count ?? 0;
     pendingReview = pendingRes.count ?? 0;
     recentApps = (recentAppsRes.data as any[]) ?? [];
+    totalViews = viewsRes.count ?? 0;
+    totalStarts = startsRes.count ?? 0;
   }
+
+  const completionRate =
+    totalStarts > 0 ? Math.round((totalApplications / totalStarts) * 100) : null;
 
   return (
     <div>
@@ -140,6 +155,33 @@ export default async function CompanyDashboard() {
           value={pendingReview}
           color="text-amber-600"
         />
+      </div>
+
+      {/* Funnel: views -> started -> submitted */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 mb-8">
+        <h2 className="font-bold text-slate-900 mb-4">Job Visits & Drop-Off</h2>
+        <div className="grid grid-cols-3 gap-4 text-center">
+          <div>
+            <p className="text-2xl font-extrabold text-slate-900">{totalViews}</p>
+            <p className="text-xs font-medium text-slate-500 mt-1">Job Views</p>
+          </div>
+          <div>
+            <p className="text-2xl font-extrabold text-slate-900">{totalStarts}</p>
+            <p className="text-xs font-medium text-slate-500 mt-1">Applications Started</p>
+          </div>
+          <div>
+            <p className="text-2xl font-extrabold text-slate-900">
+              {completionRate === null ? '—' : `${completionRate}%`}
+            </p>
+            <p className="text-xs font-medium text-slate-500 mt-1">Completion Rate</p>
+          </div>
+        </div>
+        {totalStarts > totalApplications && (
+          <p className="text-xs text-slate-400 mt-4 text-center">
+            {totalStarts - totalApplications} candidate
+            {totalStarts - totalApplications === 1 ? '' : 's'} started an application but didn&apos;t submit.
+          </p>
+        )}
       </div>
 
       {/* Recent Applications */}

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { normalizeUrl } from '@/lib/normalizeUrl';
 
 export default function AdminNewLateUni() {
   const router = useRouter();
@@ -21,7 +22,7 @@ export default function AdminNewLateUni() {
     const { error: dbError } = await supabase.from('late_uni_apps').insert({
       institution: form.institution, programs: form.programs || null,
       application_type: form.application_type, closing_date: form.closing_date || null,
-      notes: form.notes || null, apply_link: form.apply_link || null, status: 'open',
+      notes: form.notes || null, apply_link: form.apply_link ? normalizeUrl(form.apply_link) : null, status: 'open',
     });
 
     setSaving(false);
@@ -41,7 +42,7 @@ export default function AdminNewLateUni() {
           <div><label className="block text-sm font-medium text-slate-700 mb-1">Closing Date</label><input name="closing_date" type="date" value={form.closing_date} onChange={handleChange} className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 outline-none" /></div>
         </div>
         <div><label className="block text-sm font-medium text-slate-700 mb-1">Notes</label><textarea name="notes" value={form.notes} onChange={handleChange} rows={2} className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 outline-none resize-none" /></div>
-        <div><label className="block text-sm font-medium text-slate-700 mb-1">Apply Link</label><input name="apply_link" value={form.apply_link} onChange={handleChange} type="url" className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 outline-none" /></div>
+        <div><label className="block text-sm font-medium text-slate-700 mb-1">Apply Link</label><input name="apply_link" value={form.apply_link} onChange={handleChange} type="text" inputMode="url" className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 outline-none" /></div>
         {error && <p className="text-red-600 text-sm">{error}</p>}
         <div className="flex gap-3 pt-2">
           <button type="submit" disabled={saving} className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-indigo-700 disabled:opacity-50">{saving ? 'Saving...' : 'Create Entry'}</button>

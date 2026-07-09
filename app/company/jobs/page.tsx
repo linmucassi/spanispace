@@ -62,20 +62,27 @@ export default async function CompanyJobs() {
     .eq('company_id', company.id)
     .order('created_at', { ascending: false });
 
-  // Fetch application counts per job
+  // Fetch application, view, and application-start counts per job
   const jobIds = (jobs ?? []).map((j) => j.id);
-  let appCounts: Record<string, number> = {};
+  const appCounts: Record<string, number> = {};
+  const viewCounts: Record<string, number> = {};
+  const startCounts: Record<string, number> = {};
 
   if (jobIds.length > 0) {
-    const { data: counts } = await supabase
-      .from('applications')
-      .select('job_id')
-      .in('job_id', jobIds);
+    const [appsRes, viewsRes, startsRes] = await Promise.all([
+      supabase.from('applications').select('job_id').in('job_id', jobIds),
+      supabase.from('job_views').select('job_id').in('job_id', jobIds),
+      supabase.from('application_starts').select('job_id').in('job_id', jobIds),
+    ]);
 
-    if (counts) {
-      for (const row of counts) {
-        appCounts[row.job_id] = (appCounts[row.job_id] || 0) + 1;
-      }
+    for (const row of appsRes.data ?? []) {
+      appCounts[row.job_id] = (appCounts[row.job_id] || 0) + 1;
+    }
+    for (const row of viewsRes.data ?? []) {
+      viewCounts[row.job_id] = (viewCounts[row.job_id] || 0) + 1;
+    }
+    for (const row of startsRes.data ?? []) {
+      startCounts[row.job_id] = (startCounts[row.job_id] || 0) + 1;
     }
   }
 
@@ -138,6 +145,8 @@ export default async function CompanyJobs() {
                   <th className="px-6 py-3">Expiry</th>
                   <th className="px-6 py-3">Vetted</th>
                   <th className="px-6 py-3">Status</th>
+                  <th className="px-6 py-3">Views</th>
+                  <th className="px-6 py-3">Started</th>
                   <th className="px-6 py-3">Apps</th>
                   <th className="px-6 py-3">Actions</th>
                 </tr>
@@ -162,6 +171,12 @@ export default async function CompanyJobs() {
                     </td>
                     <td className="px-6 py-4">
                       <StatusBadge status={job.status} />
+                    </td>
+                    <td className="px-6 py-4 text-sm text-slate-500">
+                      {viewCounts[job.id] || 0}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-slate-500">
+                      {startCounts[job.id] || 0}
                     </td>
                     <td className="px-6 py-4 text-sm font-semibold text-slate-700">
                       {appCounts[job.id] || 0}

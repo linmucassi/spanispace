@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, MapPin, CheckCircle, X } from 'lucide-react';
+import Link from 'next/link';
+import { Search, MapPin, CheckCircle, X, MessageSquare } from 'lucide-react';
 
 interface Candidate {
   id: string;
@@ -254,6 +255,13 @@ export default function CandidateSearch({
                 )}
 
               <div className="flex gap-3 pt-2">
+                <Link
+                  href={`/company/messages?candidateId=${selectedCandidate.id}`}
+                  className="inline-flex items-center gap-1.5 text-sm text-indigo-600 font-medium hover:underline"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  Message
+                </Link>
                 {selectedCandidate.portfolio_url && (
                   <a
                     href={selectedCandidate.portfolio_url}

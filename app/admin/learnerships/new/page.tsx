@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { normalizeUrl } from '@/lib/normalizeUrl';
 
 export default function AdminNewLearnership() {
   const router = useRouter();
@@ -21,7 +22,7 @@ export default function AdminNewLearnership() {
     const { error: dbError } = await supabase.from('learnerships').insert({
       title: form.title, provider: form.provider, location: form.location || null,
       stipend: form.stipend || null, duration: form.duration || null,
-      apply_link: form.apply_link || null, expiry_date: form.expiry_date || null, vetted_status: 'verified',
+      apply_link: form.apply_link ? normalizeUrl(form.apply_link) : null, expiry_date: form.expiry_date || null, vetted_status: 'verified',
     });
 
     setSaving(false);
@@ -44,7 +45,7 @@ export default function AdminNewLearnership() {
           <div><label className="block text-sm font-medium text-slate-700 mb-1">Duration</label><input name="duration" value={form.duration} onChange={handleChange} placeholder="e.g. 12 months" className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 outline-none" /></div>
           <div><label className="block text-sm font-medium text-slate-700 mb-1">Expiry Date</label><input name="expiry_date" type="date" value={form.expiry_date} onChange={handleChange} className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 outline-none" /></div>
         </div>
-        <div><label className="block text-sm font-medium text-slate-700 mb-1">Apply Link</label><input name="apply_link" value={form.apply_link} onChange={handleChange} type="url" className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 outline-none" /></div>
+        <div><label className="block text-sm font-medium text-slate-700 mb-1">Apply Link</label><input name="apply_link" value={form.apply_link} onChange={handleChange} type="text" inputMode="url" className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 outline-none" /></div>
         {error && <p className="text-red-600 text-sm">{error}</p>}
         <div className="flex gap-3 pt-2">
           <button type="submit" disabled={saving} className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-indigo-700 disabled:opacity-50">{saving ? 'Saving...' : 'Create Learnership'}</button>

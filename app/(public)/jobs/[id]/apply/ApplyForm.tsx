@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useTranslation } from '@/lib/i18n/context';
 import { submitNetlifyForm } from '@/lib/netlifyForms';
 import { createClient } from '@/lib/supabase/client';
+import { logJobEvent } from '@/lib/jobAnalytics';
 import type { CandidateDocument } from '@/components/candidate/DocumentLibrary';
 import { FileText, CheckSquare, Square } from 'lucide-react';
 
@@ -12,6 +13,7 @@ type Props = {
   jobId: string;
   jobRole: string;
   jobCompany: string;
+  jobSource: 'db' | 'static';
 };
 
 const DOC_LABELS: Record<string, string> = {
@@ -30,8 +32,14 @@ const DOC_COLORS: Record<string, string> = {
   other: 'bg-slate-100 text-slate-600',
 };
 
-export default function ApplyForm({ jobId, jobRole, jobCompany }: Props) {
+export default function ApplyForm({ jobId, jobRole, jobCompany, jobSource }: Props) {
   const { t } = useTranslation();
+
+  useEffect(() => {
+    if (jobSource === 'db') {
+      logJobEvent('application_starts', jobId);
+    }
+  }, [jobId, jobSource]);
 
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -116,11 +124,65 @@ export default function ApplyForm({ jobId, jobRole, jobCompany }: Props) {
     setSubmitting(true);
 
     const selectedDocs = docs.filter((d) => selectedDocIds.has(d.id));
+    const primaryCv = selectedDocs.find((d) => d.doc_type === 'cv');
+
+    // Only real, company-owned listings have a matching row in `jobs` --
+    // static fallback jobs (used when Supabase has no active data) have no
+    // FK target, so those still go through Netlify Forms only, as before.
+    if (jobSource === 'db') {
+      const supabase = createClient();
+      if (!supabase) {
+        setSubmitting(false);
+        setError(t('apply.error'));
+        return;
+      }
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      let candidateId: string | null = null;
+      if (user) {
+        const { data: candidate } = await supabase
+          .from('candidate_profiles')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        candidateId = candidate?.id ?? null;
+      }
+
+      const { error: dbError } = await supabase.from('applications').insert({
+        job_id: jobId,
+        candidate_id: candidateId,
+        full_name: form.fullName,
+        phone: form.phone,
+        whatsapp: form.whatsapp || null,
+        email: form.email || null,
+        location: form.location || null,
+        about_you: form.aboutYou || null,
+        cv_url: primaryCv?.file_url ?? null,
+        documents: selectedDocs.map((d) => ({
+          name: d.name,
+          doc_type: d.doc_type,
+          file_url: d.file_url,
+        })),
+      });
+
+      if (dbError) {
+        setSubmitting(false);
+        setError(dbError.message || t('apply.error'));
+        return;
+      }
+    }
+
+    // For `db` jobs this is a best-effort duplicate notification -- the
+    // Supabase insert above is the source of truth portals read. For
+    // `static` fallback jobs this is the only channel, so its result decides
+    // success.
     const docsSummary = selectedDocs
       .map((d) => `${DOC_LABELS[d.doc_type] ?? d.doc_type}: ${d.name} — ${d.file_url}`)
       .join('\n');
-
-    const ok = await submitNetlifyForm('job-application', {
+    const netlifyOk = await submitNetlifyForm('job-application', {
       'job-id': jobId,
       'job-title': jobRole,
       'full-name': form.fullName,
@@ -133,7 +195,7 @@ export default function ApplyForm({ jobId, jobRole, jobCompany }: Props) {
     });
 
     setSubmitting(false);
-    if (ok) {
+    if (jobSource === 'db' || netlifyOk) {
       setSubmitted(true);
     } else {
       setError(t('apply.error'));

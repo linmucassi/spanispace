@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { normalizeUrl } from '@/lib/normalizeUrl';
 import DocumentLibrary from '@/components/candidate/DocumentLibrary';
 
 interface ProfileData {
@@ -137,7 +138,7 @@ export default function CandidateProfilePage() {
           matric_grad_year: profile.matric_grad_year,
           university: profile.university || null,
           skills: profile.skills,
-          portfolio_url: profile.portfolio_url || null,
+          portfolio_url: profile.portfolio_url ? normalizeUrl(profile.portfolio_url) : null,
         },
         { onConflict: 'user_id' }
       );
@@ -169,7 +170,7 @@ export default function CandidateProfilePage() {
   }
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-6 max-w-3xl mx-auto">
       <div>
         <h1 className="text-2xl font-bold text-slate-900">My Profile</h1>
         <p className="text-slate-500 mt-1">
@@ -360,7 +361,8 @@ export default function CandidateProfilePage() {
               Portfolio / LinkedIn / GitHub URL
             </label>
             <input
-              type="url"
+              type="text"
+              inputMode="url"
               value={profile.portfolio_url}
               onChange={(e) => handleChange('portfolio_url', e.target.value)}
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"

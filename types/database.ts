@@ -31,6 +31,7 @@ export interface DbApplication {
   about_you: string | null;
   cover_letter: string | null;
   cv_url: string | null;
+  documents: { name: string; doc_type: string; file_url: string }[] | null;
   status: 'pending' | 'reviewed' | 'shortlisted' | 'rejected' | 'hired';
   created_at: string;
   job?: DbJob;
@@ -38,6 +39,7 @@ export interface DbApplication {
 
 export interface DbTraining {
   id: string;
+  company_id: string | null;
   title: string;
   description: string | null;
   category: 'Bootcamp' | 'Short Course' | 'Event';
@@ -46,6 +48,7 @@ export interface DbTraining {
   format: 'online' | 'hybrid' | 'in-person' | null;
   skills_covered: string[];
   is_free: boolean;
+  vetted_status: 'pending' | 'verified' | 'rejected';
   status: 'active' | 'completed' | 'cancelled' | 'draft';
   created_at: string;
   updated_at: string;
@@ -81,6 +84,7 @@ export interface DbLateUniApp {
 export interface DbEvent {
   id: string;
   creator_id: string | null;
+  company_id: string | null;
   title: string;
   description: string | null;
   event_type: string | null;
@@ -92,6 +96,7 @@ export interface DbEvent {
   capacity: number | null;
   is_public: boolean;
   skills_focus: string[];
+  vetted_status: 'pending' | 'verified' | 'rejected';
   status: 'draft' | 'published' | 'ongoing' | 'completed' | 'cancelled';
   created_at: string;
   updated_at: string;
@@ -142,6 +147,24 @@ export interface DbCandidateProfile {
   profile_score: number | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface DbMessageThread {
+  id: string;
+  company_id: string;
+  candidate_id: string;
+  job_id: string | null;
+  last_message_at: string;
+  created_at: string;
+}
+
+export interface DbMessage {
+  id: string;
+  thread_id: string;
+  sender_id: string;
+  body: string;
+  read_at: string | null;
+  created_at: string;
 }
 
 export interface AdminStats {

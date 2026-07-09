@@ -1,12 +1,22 @@
 'use client';
 
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { useTranslation } from '@/lib/i18n/context';
 import type { PublicJobDetail } from '@/lib/publicJobs';
+import { logJobEvent } from '@/lib/jobAnalytics';
 
 export default function JobDetailView({ job }: { job: PublicJobDetail }) {
   const { t } = useTranslation();
   const isExpired = new Date(job.expiryDate) < new Date();
+
+  useEffect(() => {
+    // Only real, company-owned listings can be tracked (static fallback
+    // jobs have no matching row in the `jobs` table).
+    if (job.source === 'db') {
+      logJobEvent('job_views', job.id);
+    }
+  }, [job.id, job.source]);
 
   return (
     <div className="min-h-screen pt-24 pb-20 px-4">
