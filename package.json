@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "scrape": "tsx scripts/run-scraper.ts"
+    "scrape": "tsx scripts/run-scraper.ts",
+    "auto-apply-match": "tsx scripts/run-auto-apply-matcher.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.106.0",

@@ -1,14 +1,14 @@
 # Beta Launch Ops Checklist
 
 **Status:** Live in production — this checklist now tracks post-launch fixes and gaps, not launch blockers
-**Last Updated:** 9 July 2026
+**Last Updated:** 10 July 2026
 **Owner:** DevOps / Infrastructure
 
 ---
 
-## 🔴 Blocker: Run 6 Migrations Against Production
+## 🔴 Blocker: Run 7 Migrations Against Production
 
-Everything below this line is **code-complete, typechecked, linted, and build-verified** (9 Jul 2026), but none of it is live until these run in the Supabase SQL Editor, in this order:
+Everything below this line is **code-complete, typechecked, linted, and build-verified**, but none of it is live until these run in the Supabase SQL Editor, in this order:
 
 1. `supabase/fix-company-profile-creation.sql` — company signup could dead-end at "Profile Not Found" (missing INSERT policy + signup trigger never created the row)
 2. `supabase/fix-applications-pipeline.sql` — adds the `documents` column the fixed apply flow needs
@@ -16,8 +16,22 @@ Everything below this line is **code-complete, typechecked, linted, and build-ve
 4. `supabase/add-job-analytics.sql` — job view + application drop-off tracking
 5. `supabase/add-company-events-training.sql` — company-created events & training
 6. `supabase/add-messaging.sql` — candidate ↔ company messaging
+7. `supabase/add-auto-apply.sql` — candidate auto-apply preferences + match queue (10 Jul 2026)
 
-All six are idempotent (`IF NOT EXISTS` / safe re-run). `supabase/schema.sql` has been updated to match, so a fresh environment provisioned from it doesn't need any of these on top.
+All seven are idempotent (`IF NOT EXISTS` / safe re-run). `supabase/schema.sql` has been updated to match, so a fresh environment provisioned from it doesn't need any of these on top.
+
+---
+
+## 🟢 10 July 2026 — Bug Fixes & New Feature
+
+**Bugs fixed (no migration needed, pure app-code):**
+- Company profile "details wouldn't save" / "keeps saying enter url and doesn't continue" — same root cause: the Website and Logo URL fields used `type="url"`, and a scheme-less value (e.g. `linkedin.com/company/x` instead of `https://linkedin.com/company/x`) triggers the browser's native validation, which silently blocks the whole form's `onSubmit` before any of our code runs. Same bug existed in the admin Learnerships and Late-Uni-Apps "Apply Link" fields. Fixed by switching all four to `type="text"` + a `normalizeUrl()` helper (`lib/normalizeUrl.ts`) that auto-prepends `https://` on save instead of blocking the form.
+- Profile editor not centered on wider-than-mobile screens — both `/candidate/profile` and `/company/profile` had a `max-w-*` wrapper with no `mx-auto`, so the form sat flush against the sidebar instead of centering in the remaining space. Fixed on both.
+
+**New feature — Candidate Auto-Apply** (`/candidate/auto-apply`):
+- Free opt-in for now (no billing — `company_profiles.subscription_tier` pattern exists but Stripe still isn't built; this uses a simple `enabled` flag that a real paywall can gate later without reworking the feature)
+- Candidate sets: fields/expertise, work type(s), preferred locations, excluded companies — pre-filled from their profile skills on first setup
+- **Review queue, not fully autonomous**: a daily server-side matcher (`scripts/run-auto-apply-matcher.ts`, added as a step in the existing `daily-scraper.yml` cron) finds newly-qualifying jobs and stages them in `application_matches`. Nothing reaches the `applications` table until the candidate clicks "Apply" on a specific match — same insert path as the manual apply flow, reusing their saved profile + CV/documents.
 
 ---
 

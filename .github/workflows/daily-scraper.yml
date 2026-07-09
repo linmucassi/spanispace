@@ -38,6 +38,12 @@ jobs:
           # Optional — enables career event scraping (free key at eventbrite.com/platform/api)
           EVENTBRITE_API_KEY: ${{ secrets.EVENTBRITE_API_KEY }}
 
+      - name: Run auto-apply matcher
+        run: npx tsx scripts/run-auto-apply-matcher.ts
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
       - name: Notify on failure
         if: failure()
         run: |

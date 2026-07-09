@@ -224,7 +224,30 @@ CREATE TABLE messages (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 16. Waitlist
+-- 16. Candidate Auto-Apply Preferences (one row per candidate; enabled = opted in)
+CREATE TABLE candidate_automation_preferences (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  candidate_id UUID REFERENCES candidate_profiles(id) ON DELETE CASCADE UNIQUE NOT NULL,
+  enabled BOOLEAN DEFAULT TRUE,
+  fields_of_interest TEXT[] DEFAULT '{}',
+  excluded_companies TEXT[] DEFAULT '{}',
+  work_types TEXT[] DEFAULT '{}',
+  preferred_locations TEXT[] DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 17. Auto-Apply Match Queue (candidate reviews and one-click confirms each match)
+CREATE TABLE application_matches (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  candidate_id UUID REFERENCES candidate_profiles(id) ON DELETE CASCADE NOT NULL,
+  job_id UUID REFERENCES jobs(id) ON DELETE CASCADE NOT NULL,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'applied', 'dismissed')),
+  matched_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (candidate_id, job_id)
+);
+
+-- 18. Waitlist
 CREATE TABLE waitlist (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
@@ -235,7 +258,7 @@ CREATE TABLE waitlist (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 17. Newsletter
+-- 19. Newsletter
 CREATE TABLE newsletter (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
@@ -265,6 +288,8 @@ ALTER TABLE job_views ENABLE ROW LEVEL SECURITY;
 ALTER TABLE application_starts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE message_threads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE candidate_automation_preferences ENABLE ROW LEVEL SECURITY;
+ALTER TABLE application_matches ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================
 -- HELPER: Admin role check (SECURITY DEFINER breaks RLS recursion)
@@ -363,6 +388,25 @@ CREATE POLICY "Companies insert own profile" ON company_profiles FOR INSERT WITH
 CREATE POLICY "Companies read own profile" ON company_profiles FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Companies update own profile" ON company_profiles FOR UPDATE USING (auth.uid() = user_id);
 
+-- Candidates manage their own auto-apply preferences and review their match queue.
+-- Matches are inserted only by the server-side matcher script (service role,
+-- bypasses RLS) -- no client INSERT policy on application_matches by design.
+CREATE POLICY "Candidates insert own automation prefs" ON candidate_automation_preferences FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM candidate_profiles cd WHERE cd.id = candidate_automation_preferences.candidate_id AND cd.user_id = auth.uid())
+);
+CREATE POLICY "Candidates read own automation prefs" ON candidate_automation_preferences FOR SELECT USING (
+  EXISTS (SELECT 1 FROM candidate_profiles cd WHERE cd.id = candidate_automation_preferences.candidate_id AND cd.user_id = auth.uid())
+);
+CREATE POLICY "Candidates update own automation prefs" ON candidate_automation_preferences FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM candidate_profiles cd WHERE cd.id = candidate_automation_preferences.candidate_id AND cd.user_id = auth.uid())
+);
+CREATE POLICY "Candidates read own application matches" ON application_matches FOR SELECT USING (
+  EXISTS (SELECT 1 FROM candidate_profiles cd WHERE cd.id = application_matches.candidate_id AND cd.user_id = auth.uid())
+);
+CREATE POLICY "Candidates update own application matches" ON application_matches FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM candidate_profiles cd WHERE cd.id = application_matches.candidate_id AND cd.user_id = auth.uid())
+);
+
 -- Companies manage their own events & training (submitted as vetted_status='pending', admin reviews)
 CREATE POLICY "Companies insert own trainings" ON trainings FOR INSERT WITH CHECK (
   EXISTS (SELECT 1 FROM company_profiles cp WHERE cp.id = trainings.company_id AND cp.user_id = auth.uid())
@@ -421,6 +465,8 @@ CREATE POLICY "Admin full access job_views" ON job_views FOR ALL USING (public.i
 CREATE POLICY "Admin full access application_starts" ON application_starts FOR ALL USING (public.is_admin());
 CREATE POLICY "Admin full access message_threads" ON message_threads FOR ALL USING (public.is_admin());
 CREATE POLICY "Admin full access messages" ON messages FOR ALL USING (public.is_admin());
+CREATE POLICY "Admin full access candidate_automation_preferences" ON candidate_automation_preferences FOR ALL USING (public.is_admin());
+CREATE POLICY "Admin full access application_matches" ON application_matches FOR ALL USING (public.is_admin());
 
 -- ============================================================
 -- HELPER: Auto-create user row on signup
@@ -467,3 +513,5 @@ CREATE INDEX idx_application_starts_job ON application_starts(job_id);
 CREATE INDEX idx_message_threads_company ON message_threads(company_id);
 CREATE INDEX idx_message_threads_candidate ON message_threads(candidate_id);
 CREATE INDEX idx_messages_thread ON messages(thread_id);
+CREATE INDEX idx_automation_prefs_enabled ON candidate_automation_preferences(enabled);
+CREATE INDEX idx_application_matches_candidate ON application_matches(candidate_id, status);

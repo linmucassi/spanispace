@@ -167,6 +167,26 @@ export interface DbMessage {
   created_at: string;
 }
 
+export interface DbAutomationPreferences {
+  id: string;
+  candidate_id: string;
+  enabled: boolean;
+  fields_of_interest: string[];
+  excluded_companies: string[];
+  work_types: string[];
+  preferred_locations: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DbApplicationMatch {
+  id: string;
+  candidate_id: string;
+  job_id: string;
+  status: 'pending' | 'applied' | 'dismissed';
+  matched_at: string;
+}
+
 export interface AdminStats {
   totalJobs: number;
   activeJobs: number;

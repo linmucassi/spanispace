@@ -3,32 +3,8 @@
 // Deduplication: checks apply_link before inserting; refreshes expiry if already present.
 // Cleanup: deletes records that expired more than 90 days ago.
 
-import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import { getSupabaseAdmin } from '../supabase/admin'
 import type { ScrapedJob, ScrapedEvent } from './types'
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AdminClient = SupabaseClient<any>
-
-let _admin: AdminClient | null = null
-
-function getSupabaseAdmin(): AdminClient {
-  if (_admin) return _admin
-
-  const url = (process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? '')
-    .replace(/\/rest\/v1\/?$/, '')
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-  if (!url || !key) {
-    throw new Error(
-      'Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY. ' +
-      'Add them to your environment. Get the service role key from ' +
-      'Supabase Dashboard > Settings > API.'
-    )
-  }
-
-  _admin = createClient(url, key, { auth: { persistSession: false } })
-  return _admin
-}
 
 async function getCuratedCompanyId(): Promise<string | null> {
   const supabase = getSupabaseAdmin()
