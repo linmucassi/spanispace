@@ -54,7 +54,7 @@ export default async function CompanyJobs() {
     .eq('user_id', user.id)
     .single();
 
-  if (!company) redirect('/');
+  if (!company) redirect('/company/profile');
 
   const { data: jobs } = await supabase
     .from('jobs')

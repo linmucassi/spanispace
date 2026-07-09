@@ -55,7 +55,7 @@ export default async function CompanyDashboard() {
     .eq('user_id', user.id)
     .single();
 
-  if (!company) redirect('/');
+  if (!company) redirect('/company/profile');
 
   // Get all job IDs for this company first
   const { data: companyJobs } = await supabase

@@ -17,7 +17,7 @@ export default async function CompanyApplications() {
     .eq('user_id', user.id)
     .single();
 
-  if (!company) redirect('/');
+  if (!company) redirect('/company/profile');
 
   // Get job IDs for this company
   const { data: companyJobs } = await supabase

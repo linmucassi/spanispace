@@ -17,7 +17,7 @@ export default async function CompanyCandidates() {
     .eq('user_id', user.id)
     .single();
 
-  if (!company) redirect('/');
+  if (!company) redirect('/company/profile');
 
   // Fetch all candidate profiles
   const { data: candidates } = await supabase
