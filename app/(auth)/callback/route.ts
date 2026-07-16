@@ -5,7 +5,13 @@ import { NextResponse, type NextRequest } from 'next/server';
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const code = searchParams.get('code');
-  const next = searchParams.get('next') ?? '/';
+
+  // Only allow same-origin relative paths as the post-login redirect target.
+  // A value like "https://evil.com" or "//evil.com" would otherwise be an open redirect.
+  const rawNext = searchParams.get('next') ?? '/';
+  const next = rawNext.startsWith('/') && !rawNext.startsWith('//') && !rawNext.startsWith('/\\')
+    ? rawNext
+    : '/';
 
   if (!code) {
     return NextResponse.redirect(new URL('/login', origin));

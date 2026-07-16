@@ -116,7 +116,7 @@ const Navbar: React.FC = () => {
             <img
               src="/assets/new-logo.png"
               alt="Spanispace Logo"
-              className="h-14 w-auto md:h-40 transition-transform hover:scale-105"
+              className="h-10 w-auto md:h-12 transition-transform hover:scale-105"
             />
           </Link>
 
@@ -139,7 +139,7 @@ const Navbar: React.FC = () => {
             {/* Auth-dependent actions */}
             {user ? (
               <>
-                {userRole === 'company' || userRole === 'admin' && (
+                {(userRole === 'company' || userRole === 'admin') && (
                   <Link
                     href="/post-job"
                     className="hidden md:inline-block text-sm font-semibold text-slate-700 hover:text-indigo-600 transition-colors"
@@ -235,7 +235,7 @@ const Navbar: React.FC = () => {
               </Link>
             ))}
             <div className="pt-3 mt-3 border-t border-slate-100 flex flex-col gap-2">
-              {user && userRole === 'company' || userRole === 'admin' && (
+              {user && (userRole === 'company' || userRole === 'admin') && (
                 <Link
                   href="/post-job"
                   onClick={() => setMobileOpen(false)}
