@@ -2,6 +2,7 @@ const zu = {
   nav: {
     jobs: 'Imisebenzi',
     training: 'Ukuqeqeshwa',
+    academy: 'I-Academy',
     academic: 'Ezemfundo',
     successStories: 'Izindaba Zempumelelo',
     login: 'Ngena',

@@ -2,6 +2,7 @@ const en = {
   nav: {
     jobs: 'Jobs',
     training: 'Training',
+    academy: 'Academy',
     academic: 'Academic',
     successStories: 'Success Stories',
     login: 'Login',

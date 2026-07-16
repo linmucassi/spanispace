@@ -103,6 +103,7 @@ const Navbar: React.FC = () => {
   const navItems = [
     { name: t('nav.jobs'), href: '/jobs' },
     { name: t('nav.training'), href: '/training' },
+    { name: t('nav.academy'), href: '/academy' },
     { name: t('nav.academic'), href: '/academic' },
     { name: 'Events', href: '/events' },
   ];
