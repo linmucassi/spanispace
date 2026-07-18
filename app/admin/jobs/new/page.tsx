@@ -94,7 +94,8 @@ export default function AdminNewJob() {
             <label className="block text-sm font-medium text-slate-700 mb-1">Job Type</label>
             <select name="job_type" value={form.job_type} onChange={handleChange}
               className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none">
-              <option>Full-time</option><option>Part-time</option><option>Contract</option>
+              <option>Full-time</option><option>Part-time</option><option>Piece Job</option>
+              <option>Temporary</option><option>Contract</option>
               <option>Remote</option><option>Hybrid</option><option>On-site</option>
               <option>Learnership</option><option>Internship</option><option>Once-off</option>
             </select>

@@ -67,7 +67,7 @@ export default function ApplyForm({ jobId, jobRole, jobCompany, jobSource }: Pro
       const [profileRes, docsRes] = await Promise.all([
         supabase
           .from('candidate_profiles')
-          .select('full_name, phone, whatsapp, location')
+          .select('*')
           .eq('user_id', user.id)
           .maybeSingle(),
         supabase
@@ -84,6 +84,9 @@ export default function ApplyForm({ jobId, jobRole, jobCompany, jobSource }: Pro
         phone: profileRes.data?.phone ?? prev.phone,
         whatsapp: profileRes.data?.whatsapp ?? prev.whatsapp,
         location: profileRes.data?.location ?? prev.location,
+        // The professional profile built from informal work experience is
+        // exactly what "tell us about yourself" is asking for
+        aboutYou: prev.aboutYou || (profileRes.data?.professional_summary ?? ''),
       }));
 
       const loadedDocs = (docsRes.data as CandidateDocument[]) ?? [];

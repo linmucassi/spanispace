@@ -220,6 +220,8 @@ export default function PostJobPage() {
               >
                 <option value="Full-time">{t('postJob.fullTime')}</option>
                 <option value="Part-time">{t('postJob.partTime')}</option>
+                <option value="Piece Job">{t('postJob.pieceJob')}</option>
+                <option value="Temporary">{t('postJob.temporary')}</option>
                 <option value="Contract">{t('postJob.contract')}</option>
                 <option value="Once-off">{t('postJob.onceOff')}</option>
               </select>

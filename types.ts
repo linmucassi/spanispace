@@ -13,6 +13,7 @@ export interface Job {
   applyLink: string;
   expiryDate: string;
   vettedStatus: VettedStatus;
+  duration?: string; // e.g. '3 months', 'Weekends' — how long the work lasts
   type:
     | 'Remote'
     | 'Hybrid'
@@ -25,7 +26,9 @@ export interface Job {
     | 'Contract'
     | 'Full-time'
     | 'Part-time'
-    | 'Once-off';
+    | 'Once-off'
+    | 'Piece Job'
+    | 'Temporary';
 }
 
 export interface Training {

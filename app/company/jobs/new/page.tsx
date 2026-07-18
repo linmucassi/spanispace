@@ -7,6 +7,8 @@ import { createClient } from '@/lib/supabase/client';
 const JOB_TYPES = [
   'Full-time',
   'Part-time',
+  'Piece Job',
+  'Temporary',
   'Contract',
   'Remote',
   'Hybrid',

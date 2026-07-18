@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { JOBS } from '../data/constants';
 import { VettedStatus, type Job } from '../types';
+import { isSouthAfricanJob } from '../lib/jobLocation';
 import { useTranslation } from '../lib/i18n/context';
 
 const PAGE_SIZE = 15;
@@ -14,6 +15,7 @@ interface JobBoardProps {
 
 const JobBoard: React.FC<JobBoardProps> = ({ initialJobs }) => {
   const [filter, setFilter] = useState('All');
+  const [locationFilter, setLocationFilter] = useState('All');
   const [page, setPage] = useState(1);
   const { t } = useTranslation();
   const jobs = initialJobs ?? JOBS;
@@ -21,6 +23,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ initialJobs }) => {
   const now = new Date();
 
   const filteredJobs = jobs.filter((job) => {
+    if (locationFilter === 'ZA' && !isSouthAfricanJob(job.location)) return false;
     if (filter === 'All') return true;
     return job.type.toLowerCase().includes(filter.toLowerCase());
   });
@@ -42,6 +45,11 @@ const JobBoard: React.FC<JobBoardProps> = ({ initialJobs }) => {
     setPage(1); // reset to first page when filter changes
   };
 
+  const handleLocationFilterChange = (value: string) => {
+    setLocationFilter(value);
+    setPage(1);
+  };
+
   return (
     <div className="py-12 px-4 max-w-7xl mx-auto">
       <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
@@ -49,13 +57,26 @@ const JobBoard: React.FC<JobBoardProps> = ({ initialJobs }) => {
           <h2 className="text-3xl font-bold text-slate-900">{t('jobs.title')}</h2>
           <p className="text-slate-500 mt-2">{t('jobs.subtitle')}</p>
         </div>
-        <div className="flex space-x-2">
+        <div className="flex flex-wrap gap-2">
+          <select
+            value={locationFilter}
+            onChange={(e) => handleLocationFilterChange(e.target.value)}
+            className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm"
+          >
+            <option value="All">{t('jobs.allLocations')}</option>
+            <option value="ZA">{t('jobs.southAfricaOnly')}</option>
+          </select>
           <select
             value={filter}
             onChange={(e) => handleFilterChange(e.target.value)}
             className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm"
           >
             <option value="All">{t('jobs.allTypes')}</option>
+            <option value="Full-time">{t('jobs.fullTime')}</option>
+            <option value="Part-time">{t('jobs.partTime')}</option>
+            <option value="Piece Job">{t('jobs.pieceJob')}</option>
+            <option value="Temporary">{t('jobs.temporary')}</option>
+            <option value="Contract">{t('jobs.contract')}</option>
             <option value="Remote">{t('jobs.remote')}</option>
             <option value="Hybrid">{t('jobs.hybrid')}</option>
             <option value="On-site">{t('jobs.onSite')}</option>
@@ -102,7 +123,10 @@ const JobBoard: React.FC<JobBoardProps> = ({ initialJobs }) => {
                         <span className="block text-sm font-bold text-slate-900 hover:text-indigo-600 transition-colors">
                           {job.role}
                         </span>
-                        <span className="text-xs text-indigo-500 font-medium">{job.type}</span>
+                        <span className="text-xs text-indigo-500 font-medium">
+                          {job.type}
+                          {job.duration ? ` · ${job.duration}` : ''}
+                        </span>
                       </Link>
                     </td>
                     <td className="px-6 py-5 text-sm text-slate-600">{job.company}</td>

@@ -24,6 +24,40 @@ function isLatinJob(job: ScrapedJob): boolean {
   return !nonLatin.test(job.title) && !nonLatin.test(job.poster_name ?? '');
 }
 
+// If supabase/add-informal-jobs.sql has not been run yet, the jobs table
+// rejects the new job_type values and has no duration column. Downgrade and
+// retry instead of losing the job.
+const JOB_TYPE_FALLBACK: Record<string, string> = {
+  'Piece Job': 'Part-time',
+  'Temporary': 'Contract',
+}
+
+async function insertJobWithFallback(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  row: Record<string, unknown>
+): Promise<string | null> {
+  let attempt = { ...row }
+  for (let i = 0; i < 3; i++) {
+    const { error } = await supabase.from('jobs').insert(attempt)
+    if (!error) return null
+
+    const msg = error.message ?? ''
+    const fallbackType = JOB_TYPE_FALLBACK[String(attempt.job_type)]
+    if (msg.includes('job_type') && fallbackType) {
+      attempt = { ...attempt, job_type: fallbackType }
+      continue
+    }
+    if ('duration' in attempt && (error.code === 'PGRST204' || msg.includes('duration'))) {
+      const rest = { ...attempt }
+      delete rest.duration
+      attempt = rest
+      continue
+    }
+    return msg
+  }
+  return 'insert retries exhausted'
+}
+
 export async function writeJobs(jobs: ScrapedJob[]): Promise<{ inserted: number; refreshed: number; errors: string[] }> {
   const supabase = getSupabaseAdmin()
   const companyId = await getCuratedCompanyId()
@@ -49,13 +83,14 @@ export async function writeJobs(jobs: ScrapedJob[]): Promise<{ inserted: number;
           .eq('id', existingId)
         refreshed++
       } else {
-        const { error } = await supabase.from('jobs').insert({
+        const insertError = await insertJobWithFallback(supabase, {
           company_id: companyId ?? null,
           title: job.title,
           description: job.description,
           requirements: job.requirements,
           location: job.location,
           job_type: job.job_type,
+          ...(job.duration ? { duration: job.duration } : {}),
           salary_range: job.salary_range || null,
           apply_link: job.apply_link,
           expiry_date: job.expiry_date,
@@ -63,8 +98,8 @@ export async function writeJobs(jobs: ScrapedJob[]): Promise<{ inserted: number;
           poster_name: job.poster_name,
           status: 'active',
         })
-        if (error) {
-          errors.push(`[jobs] ${job.title}: ${error.message}`)
+        if (insertError) {
+          errors.push(`[jobs] ${job.title}: ${insertError}`)
         } else {
           inserted++
         }

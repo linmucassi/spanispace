@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { normalizeUrl } from '@/lib/normalizeUrl';
 import DocumentLibrary from '@/components/candidate/DocumentLibrary';
+import WorkExperience, { type WorkExperienceEntry } from '@/components/candidate/WorkExperience';
+import { Sparkles } from 'lucide-react';
 
 interface ProfileData {
   full_name: string;
@@ -14,6 +16,7 @@ interface ProfileData {
   university: string;
   skills: string[];
   portfolio_url: string;
+  professional_summary: string;
 }
 
 const emptyProfile: ProfileData = {
@@ -25,6 +28,7 @@ const emptyProfile: ProfileData = {
   university: '',
   skills: [],
   portfolio_url: '',
+  professional_summary: '',
 };
 
 export default function CandidateProfilePage() {
@@ -38,6 +42,9 @@ export default function CandidateProfilePage() {
     type: 'success' | 'error';
     message: string;
   } | null>(null);
+  const [workEntries, setWorkEntries] = useState<WorkExperienceEntry[]>([]);
+  const [building, setBuilding] = useState(false);
+  const [buildError, setBuildError] = useState('');
 
   async function loadProfile() {
     const supabase = createClient();
@@ -49,11 +56,11 @@ export default function CandidateProfilePage() {
     setEmail(user.email ?? '');
     setUserId(user.id);
 
+    // select('*') keeps this page working whether or not the
+    // add-informal-jobs.sql migration (professional_summary) has run yet
     const { data, error } = await supabase
       .from('candidate_profiles')
-      .select(
-        'full_name, phone, whatsapp, location, matric_grad_year, university, skills, portfolio_url'
-      )
+      .select('*')
       .eq('user_id', user.id)
       .maybeSingle();
 
@@ -69,6 +76,7 @@ export default function CandidateProfilePage() {
         university: data.university ?? '',
         skills: data.skills ?? [],
         portfolio_url: data.portfolio_url ?? '',
+        professional_summary: data.professional_summary ?? '',
       });
     }
 
@@ -126,22 +134,32 @@ export default function CandidateProfilePage() {
       return;
     }
 
-    const { error } = await supabase
+    const baseRow = {
+      user_id: userId,
+      full_name: profile.full_name,
+      phone: profile.phone || null,
+      whatsapp: profile.whatsapp || null,
+      location: profile.location || null,
+      matric_grad_year: profile.matric_grad_year,
+      university: profile.university || null,
+      skills: profile.skills,
+      portfolio_url: profile.portfolio_url ? normalizeUrl(profile.portfolio_url) : null,
+    };
+
+    let { error } = await supabase
       .from('candidate_profiles')
       .upsert(
-        {
-          user_id: userId,
-          full_name: profile.full_name,
-          phone: profile.phone || null,
-          whatsapp: profile.whatsapp || null,
-          location: profile.location || null,
-          matric_grad_year: profile.matric_grad_year,
-          university: profile.university || null,
-          skills: profile.skills,
-          portfolio_url: profile.portfolio_url ? normalizeUrl(profile.portfolio_url) : null,
-        },
+        { ...baseRow, professional_summary: profile.professional_summary || null },
         { onConflict: 'user_id' }
       );
+
+    // If the professional_summary column does not exist yet (migration not
+    // run), save the rest of the profile instead of failing outright.
+    if (error && (error.code === 'PGRST204' || error.message?.includes('professional_summary'))) {
+      ({ error } = await supabase
+        .from('candidate_profiles')
+        .upsert(baseRow, { onConflict: 'user_id' }));
+    }
 
     if (error) {
       setFeedback({
@@ -156,6 +174,33 @@ export default function CandidateProfilePage() {
     await loadProfile();
     setFeedback({ type: 'success', message: 'Profile saved successfully.' });
     setSaving(false);
+  }
+
+  async function handleBuildSummary() {
+    setBuilding(true);
+    setBuildError('');
+    try {
+      const res = await fetch('/api/profile-summary', { method: 'POST' });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.summary) {
+        setBuildError(data?.error ?? 'Could not build your profile. Please try again.');
+        return;
+      }
+      const skills = Array.isArray(data.keySkills) ? data.keySkills.join(', ') : '';
+      const text = [data.headline, '', data.summary, skills ? `\nKey skills: ${skills}` : '']
+        .filter((part) => part !== '')
+        .join('\n')
+        .trim();
+      setProfile((prev) => ({ ...prev, professional_summary: text }));
+      setFeedback({
+        type: 'success',
+        message: 'Professional profile built. Read it, make it yours, then press Save Profile.',
+      });
+    } catch {
+      setBuildError('Could not build your profile. Please try again.');
+    } finally {
+      setBuilding(false);
+    }
   }
 
   if (loading) {
@@ -368,6 +413,60 @@ export default function CandidateProfilePage() {
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
               placeholder="https://yourportfolio.com"
             />
+          </div>
+        </div>
+      </div>
+
+      {/* Work Experience — the raw material of the professional profile */}
+      <div className="bg-white rounded-xl border border-slate-200">
+        <div className="px-6 pt-6 pb-2">
+          <h2 className="text-base font-semibold text-slate-900">
+            Work Experience, Every Job Counts
+          </h2>
+          <p className="text-sm text-slate-500 mt-0.5">
+            Piece jobs, weekend work, informal work and hustles belong here.
+            This is what Spanispace turns into your professional profile.
+          </p>
+        </div>
+        <div className="px-6 pb-6 pt-4">
+          <WorkExperience onChanged={setWorkEntries} />
+        </div>
+      </div>
+
+      {/* Professional Profile — informal work, presented professionally */}
+      <div className="bg-white rounded-xl border border-slate-200">
+        <div className="px-6 pt-6 pb-2">
+          <h2 className="text-base font-semibold text-slate-900">Your Professional Profile</h2>
+          <p className="text-sm text-slate-500 mt-0.5">
+            One press turns your work history into a professional summary
+            employers take seriously. Edit it until it sounds like you, then
+            save. It is yours to use in applications and your CV.
+          </p>
+        </div>
+        <div className="px-6 pb-6 pt-4 space-y-3">
+          <textarea
+            value={profile.professional_summary}
+            onChange={(e) => handleChange('professional_summary', e.target.value)}
+            rows={7}
+            placeholder="Add your work experience above, then press the button and we will write this for you. You can also write it yourself."
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+          />
+          {buildError && <p className="text-red-600 text-sm">{buildError}</p>}
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <p className="text-xs text-slate-400">
+              {workEntries.length === 0
+                ? 'Add at least one work experience above to use the builder.'
+                : `Built from your ${workEntries.length} work experience ${workEntries.length === 1 ? 'entry' : 'entries'}.`}
+            </p>
+            <button
+              type="button"
+              onClick={handleBuildSummary}
+              disabled={building || workEntries.length === 0}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Sparkles className="w-4 h-4" />
+              {building ? 'Building your profile...' : 'Build My Professional Profile'}
+            </button>
           </div>
         </div>
       </div>
