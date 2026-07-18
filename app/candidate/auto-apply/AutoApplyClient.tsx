@@ -35,6 +35,8 @@ const WORK_TYPES = [
   'Internship',
   'Learnership',
   'Once-off',
+  'Piece Job',
+  'Temporary',
 ];
 
 function TagInput({

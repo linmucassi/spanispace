@@ -1,7 +1,10 @@
 -- ============================================================
 -- Informal work as a first-class citizen (July 2026)
 -- Run this in the Supabase SQL Editor BEFORE merging the
--- feature/sa-first-jobs-informal-work branch. Idempotent, safe to re-run.
+-- feature/sa-first-jobs-informal-work branch. Idempotent, safe to
+-- re-run: the schema changes re-apply cleanly and the seed block runs
+-- exactly once per database (tracked in seed_history), so deleted or
+-- closed seed listings never come back.
 --
 -- What it does:
 --   1. Adds 'Piece Job' and 'Temporary' to the jobs.job_type CHECK
@@ -9,7 +12,8 @@
 --   3. Adds candidate_profiles.professional_summary
 --   4. Creates work_experiences — informal and piece job work history
 --      that candidates turn into a professional profile
---   5. Seeds curated everyday South African job listings with no
+--   5. Indexes jobs.apply_link (the scraper's dedupe key)
+--   6. Seeds curated everyday South African job listings with no
 --      external apply link, so applications land in the applications
 --      table and candidates actually get seen
 -- ============================================================
@@ -58,11 +62,27 @@ DROP POLICY IF EXISTS "Candidates manage own work experiences" ON work_experienc
 CREATE POLICY "Candidates manage own work experiences" ON work_experiences
   FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
--- 5. Seed curated everyday jobs. These are starter listings owned by the
+-- 5. The scraper dedupes on apply_link every run — keep that lookup fast
+--    as the table grows.
+CREATE INDEX IF NOT EXISTS idx_jobs_apply_link ON jobs(apply_link);
+
+-- 6. Seed curated everyday jobs. These are starter listings owned by the
 --    Spanispace Curated company (or unowned if it does not exist yet).
 --    They have NO apply_link, so candidates apply inside Spanispace and
---    their applications are visible in the admin portal. Replace or close
---    them as real employers start posting.
+--    their applications are visible in the admin portal. Close or delete
+--    them as real employers start posting — the seed_history marker
+--    guarantees they are inserted exactly once per database, so a re-run
+--    of this file never resurrects a listing an admin removed.
+CREATE TABLE IF NOT EXISTS seed_history (
+  key TEXT PRIMARY KEY,
+  applied_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+WITH marker AS (
+  INSERT INTO seed_history (key) VALUES ('informal-jobs-2026-07')
+  ON CONFLICT (key) DO NOTHING
+  RETURNING key
+)
 INSERT INTO jobs (
   company_id, title, description, requirements, location, job_type,
   duration, salary_range, apply_link, expiry_date, vetted_status,
@@ -136,7 +156,4 @@ FROM (VALUES
    'Alexandra, Johannesburg', 'Part-time', NULL, 'R2,800/month',
    'Community Spaza')
 ) AS v(title, description, requirements, location, job_type, duration, salary_range, poster_name)
-WHERE NOT EXISTS (
-  SELECT 1 FROM jobs j
-  WHERE j.title = v.title AND j.poster_name = v.poster_name
-);
+WHERE EXISTS (SELECT 1 FROM marker);

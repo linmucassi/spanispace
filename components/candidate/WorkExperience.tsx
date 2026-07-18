@@ -119,10 +119,9 @@ export default function WorkExperience({
       location: form.location.trim() || null,
       duration_text: form.duration_text.trim() || null,
       duties: form.duties.trim() || null,
-      skills_gained: form.skills_gained
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean),
+      skills_gained: Array.from(
+        new Set(form.skills_gained.split(',').map((s) => s.trim()).filter(Boolean))
+      ),
       reference_name: form.reference_name.trim() || null,
       reference_phone: form.reference_phone.trim() || null,
     });
@@ -191,9 +190,9 @@ export default function WorkExperience({
             )}
             {entry.skills_gained.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mt-2">
-                {entry.skills_gained.map((skill) => (
+                {entry.skills_gained.map((skill, i) => (
                   <span
-                    key={skill}
+                    key={`${skill}-${i}`}
                     className="inline-block px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-xs font-medium"
                   >
                     {skill}

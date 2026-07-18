@@ -14,6 +14,7 @@ export default function AdminNewJob() {
     requirements: '',
     location: '',
     job_type: 'Full-time',
+    duration: '',
     salary_range: '',
     expiry_date: '',
     vetted_status: 'verified',
@@ -37,19 +38,29 @@ export default function AdminNewJob() {
       return;
     }
 
-    const { error: dbError } = await supabase.from('jobs').insert({
+    const payload: Record<string, unknown> = {
       title: form.title,
       description: form.description,
       requirements: form.requirements || null,
       location: form.location,
       job_type: form.job_type,
+      ...(form.duration.trim() ? { duration: form.duration.trim() } : {}),
       salary_range: form.salary_range || null,
       expiry_date: form.expiry_date,
       vetted_status: form.vetted_status,
       poster_name: form.poster_name || null,
       poster_email: form.poster_email || null,
       status: 'active',
-    });
+    };
+
+    let { error: dbError } = await supabase.from('jobs').insert(payload);
+
+    // Retry without duration if the column does not exist yet
+    if (dbError && 'duration' in payload && (dbError.code === 'PGRST204' || dbError.message?.includes('duration'))) {
+      const rest = { ...payload };
+      delete rest.duration;
+      ({ error: dbError } = await supabase.from('jobs').insert(rest));
+    }
 
     setSaving(false);
     if (dbError) {
@@ -106,6 +117,11 @@ export default function AdminNewJob() {
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Salary Range</label>
             <input name="salary_range" value={form.salary_range} onChange={handleChange} placeholder="e.g. R8,000 - R12,000/month"
+              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Duration (optional)</label>
+            <input name="duration" value={form.duration} onChange={handleChange} placeholder="e.g. 3 months, Weekends"
               className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none" />
           </div>
           <div>

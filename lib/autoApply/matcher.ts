@@ -11,6 +11,22 @@ type MatcherResult = {
   errors: string[];
 };
 
+function fetchJobsPage(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  today: string,
+  from: number,
+  pageSize: number
+) {
+  return supabase
+    .from('jobs')
+    .select('id, title, description, job_type, poster_name, company_profiles(company_name)')
+    .eq('status', 'active')
+    .eq('vetted_status', 'verified')
+    .gte('expiry_date', today)
+    .order('created_at', { ascending: false })
+    .range(from, from + pageSize - 1);
+}
+
 export async function runAutoApplyMatcher(): Promise<MatcherResult> {
   const supabase = getSupabaseAdmin();
   const errors: string[] = [];
@@ -31,18 +47,20 @@ export async function runAutoApplyMatcher(): Promise<MatcherResult> {
   }
 
   const today = new Date().toISOString().split('T')[0];
-  const { data: jobs, error: jobsError } = await supabase
-    .from('jobs')
-    .select('id, title, description, job_type, poster_name, company_profiles(company_name)')
-    .eq('status', 'active')
-    .eq('vetted_status', 'verified')
-    .gte('expiry_date', today);
-
-  if (jobsError) {
-    return { candidatesProcessed: 0, matchesCreated: 0, errors: [jobsError.message] };
+  // Paged with .range() — PostgREST caps a single response at 1000 rows and
+  // the scraper now fills the table well past that.
+  const PAGE = 1000;
+  const jobList: NonNullable<
+    Awaited<ReturnType<typeof fetchJobsPage>>['data']
+  > = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data: jobs, error: jobsError } = await fetchJobsPage(supabase, today, from, PAGE);
+    if (jobsError) {
+      return { candidatesProcessed: 0, matchesCreated: 0, errors: [jobsError.message] };
+    }
+    jobList.push(...(jobs ?? []));
+    if (!jobs || jobs.length < PAGE) break;
   }
-
-  const jobList = jobs ?? [];
 
   for (const prefs of prefsList) {
     const candidateId = prefs.candidate_id as string;

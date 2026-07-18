@@ -77,10 +77,13 @@ export async function POST() {
 
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+  // max_tokens is shared between adaptive thinking and the answer, so leave
+  // generous headroom or the JSON can truncate mid-object.
   const stream = await client.messages.stream({
     model: 'claude-opus-4-8',
-    max_tokens: 1000,
+    max_tokens: 4000,
     thinking: { type: 'adaptive' },
+    output_config: { effort: 'low' },
     messages: [
       {
         role: 'user',
@@ -109,6 +112,12 @@ ${experienceLines}`,
   });
 
   const message = await stream.finalMessage();
+  if (message.stop_reason === 'max_tokens') {
+    return NextResponse.json(
+      { error: 'The profile builder ran out of space. Please try again.' },
+      { status: 502 },
+    );
+  }
   const textBlock = message.content.find((b) => b.type === 'text');
   const raw = textBlock?.type === 'text' ? textBlock.text.trim() : '';
 

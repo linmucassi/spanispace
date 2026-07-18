@@ -155,7 +155,9 @@ export default function CandidateProfilePage() {
 
     // If the professional_summary column does not exist yet (migration not
     // run), save the rest of the profile instead of failing outright.
+    let summaryDegraded = false;
     if (error && (error.code === 'PGRST204' || error.message?.includes('professional_summary'))) {
+      summaryDegraded = true;
       ({ error } = await supabase
         .from('candidate_profiles')
         .upsert(baseRow, { onConflict: 'user_id' }));
@@ -170,9 +172,21 @@ export default function CandidateProfilePage() {
       return;
     }
 
-    // Reload from DB to confirm what was actually persisted
+    // Reload from DB to confirm what was actually persisted. When the summary
+    // could not be stored, keep the user's text on screen and say so honestly
+    // instead of silently wiping it and claiming success.
+    const summaryText = profile.professional_summary;
     await loadProfile();
-    setFeedback({ type: 'success', message: 'Profile saved successfully.' });
+    if (summaryDegraded) {
+      setProfile((prev) => ({ ...prev, professional_summary: summaryText }));
+      setFeedback({
+        type: 'error',
+        message:
+          'Profile saved, but your professional summary could not be stored yet because the database update has not run. Your text is still below, copy it somewhere safe and save again once the update is live.',
+      });
+    } else {
+      setFeedback({ type: 'success', message: 'Profile saved successfully.' });
+    }
     setSaving(false);
   }
 
@@ -187,9 +201,9 @@ export default function CandidateProfilePage() {
         return;
       }
       const skills = Array.isArray(data.keySkills) ? data.keySkills.join(', ') : '';
-      const text = [data.headline, '', data.summary, skills ? `\nKey skills: ${skills}` : '']
-        .filter((part) => part !== '')
-        .join('\n')
+      const text = [data.headline, data.summary, skills ? `Key skills: ${skills}` : '']
+        .filter((part) => typeof part === 'string' && part.trim() !== '')
+        .join('\n\n')
         .trim();
       setProfile((prev) => ({ ...prev, professional_summary: text }));
       setFeedback({
