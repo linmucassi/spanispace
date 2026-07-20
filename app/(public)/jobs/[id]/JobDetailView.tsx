@@ -65,7 +65,10 @@ export default function JobDetailView({ job }: { job: PublicJobDetail }) {
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
                 {t('jobDetail.jobType')}
               </p>
-              <p className="font-bold text-slate-900">{job.type}</p>
+              <p className="font-bold text-slate-900">
+                {job.type}
+                {job.duration ? ` · ${job.duration}` : ''}
+              </p>
             </div>
             <div className="bg-slate-50 rounded-2xl p-4">
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">

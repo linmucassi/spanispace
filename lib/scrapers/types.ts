@@ -1,4 +1,6 @@
 // Valid job_type values must match the CHECK constraint in schema.sql
+// ('Piece Job' and 'Temporary' require supabase/add-informal-jobs.sql —
+// db-writer downgrades them gracefully if the migration has not run yet)
 export type JobType =
   | 'Remote'
   | 'Hybrid'
@@ -9,6 +11,8 @@ export type JobType =
   | 'Full-time'
   | 'Part-time'
   | 'Once-off'
+  | 'Piece Job'
+  | 'Temporary'
 
 export type EventType =
   | 'webinar'
@@ -27,6 +31,7 @@ export interface ScrapedJob {
   requirements: string
   location: string
   job_type: JobType
+  duration?: string // e.g. '3 months', 'Seasonal' — informal work is often fixed-length
   salary_range: string
   apply_link: string
   expiry_date: string // ISO date YYYY-MM-DD

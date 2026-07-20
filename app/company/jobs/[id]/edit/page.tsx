@@ -8,6 +8,8 @@ import { createClient } from '@/lib/supabase/client';
 const JOB_TYPES = [
   'Full-time',
   'Part-time',
+  'Piece Job',
+  'Temporary',
   'Contract',
   'Remote',
   'Hybrid',
@@ -23,6 +25,7 @@ type JobForm = {
   requirements: string;
   location: string;
   job_type: string;
+  duration: string;
   salary_range: string;
   expiry_date: string;
 };
@@ -44,6 +47,7 @@ export default function CompanyEditJob() {
     requirements: '',
     location: '',
     job_type: 'Full-time',
+    duration: '',
     salary_range: '',
     expiry_date: '',
   });
@@ -98,6 +102,7 @@ export default function CompanyEditJob() {
         requirements: job.requirements ?? '',
         location: job.location ?? '',
         job_type: job.job_type ?? 'Full-time',
+        duration: job.duration ?? '',
         salary_range: job.salary_range ?? '',
         expiry_date: job.expiry_date ?? '',
       });
@@ -127,18 +132,25 @@ export default function CompanyEditJob() {
       return;
     }
 
-    const { error: dbError } = await supabase
-      .from('jobs')
-      .update({
-        title: form.title,
-        description: form.description,
-        requirements: form.requirements || null,
-        location: form.location,
-        job_type: form.job_type,
-        salary_range: form.salary_range || null,
-        expiry_date: form.expiry_date,
-      })
-      .eq('id', jobId);
+    const payload: Record<string, unknown> = {
+      title: form.title,
+      description: form.description,
+      requirements: form.requirements || null,
+      location: form.location,
+      job_type: form.job_type,
+      ...(form.duration.trim() ? { duration: form.duration.trim() } : {}),
+      salary_range: form.salary_range || null,
+      expiry_date: form.expiry_date,
+    };
+
+    let { error: dbError } = await supabase.from('jobs').update(payload).eq('id', jobId);
+
+    // Retry without duration if the column does not exist yet
+    if (dbError && 'duration' in payload && (dbError.code === 'PGRST204' || dbError.message?.includes('duration'))) {
+      const rest = { ...payload };
+      delete rest.duration;
+      ({ error: dbError } = await supabase.from('jobs').update(rest).eq('id', jobId));
+    }
 
     setSaving(false);
 
@@ -310,6 +322,18 @@ export default function CompanyEditJob() {
               name="salary_range"
               value={form.salary_range}
               onChange={handleChange}
+              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Duration (optional)
+            </label>
+            <input
+              name="duration"
+              value={form.duration}
+              onChange={handleChange}
+              placeholder="e.g. 3 months, Weekends"
               className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
             />
           </div>

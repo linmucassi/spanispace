@@ -34,6 +34,17 @@ async function main() {
       console.log(`  [${r.source}] ${parts || 'skipped'}`)
       if (r.errors.length) r.errors.forEach((e) => console.error(`    ✗ ${e}`))
     }
+
+    // A source that errored AND produced nothing is a silent outage (bad API
+    // key, sustained throttling) — fail the run so CI alerts instead of
+    // reporting a quiet green zero.
+    const silentOutage = results.some(
+      (r) => r.errors.length > 0 && r.jobsFound === 0 && r.eventsFound === 0
+    )
+    if (silentOutage) {
+      console.error('[scraper] One or more sources failed completely — failing the run.')
+      process.exit(1)
+    }
   } catch (err) {
     console.error('[scraper] Fatal error:', err)
     process.exit(1)

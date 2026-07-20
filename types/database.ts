@@ -6,6 +6,7 @@ export interface DbJob {
   requirements: string | null;
   location: string;
   job_type: string;
+  duration?: string | null;
   salary_range: string | null;
   apply_link: string | null;
   expiry_date: string;
@@ -143,8 +144,27 @@ export interface DbCandidateProfile {
   skills: string[];
   portfolio_url: string | null;
   cv_url: string | null;
+  professional_summary?: string | null;
   verified: boolean;
   profile_score: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Informal, piece job and formal work history — the raw material Spanispace
+// turns into a professional profile. Added by add-informal-jobs.sql.
+export interface DbWorkExperience {
+  id: string;
+  user_id: string;
+  job_title: string;
+  employer: string | null;
+  work_type: 'formal' | 'informal' | 'piece_job' | 'part_time' | 'volunteer' | 'self_employed';
+  location: string | null;
+  duration_text: string | null;
+  duties: string | null;
+  skills_gained: string[];
+  reference_name: string | null;
+  reference_phone: string | null;
   created_at: string;
   updated_at: string;
 }
