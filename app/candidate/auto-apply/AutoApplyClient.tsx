@@ -217,25 +217,33 @@ export default function AutoApplyClient({
       return;
     }
 
-    const primaryCv = documents.find((d) => d.doc_type === 'cv');
+    // Same endpoint the public apply form uses, so an application made from
+    // the match queue gets the confirmation email and the duplicate guard too.
+    // A raw insert here would silently skip both.
+    let status = 0;
+    try {
+      const response = await fetch('/api/applications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobId: match.jobId,
+          fullName: candidateInfo.full_name,
+          phone: candidateInfo.phone,
+          whatsapp: candidateInfo.whatsapp,
+          email: candidateInfo.email,
+          location: candidateInfo.location,
+          documentIds: documents.map((d) => d.id),
+        }),
+      });
+      status = response.status;
+    } catch {
+      status = 0;
+    }
 
-    const { error: applyError } = await supabase.from('applications').insert({
-      job_id: match.jobId,
-      candidate_id: candidateId,
-      full_name: candidateInfo.full_name,
-      phone: candidateInfo.phone,
-      whatsapp: candidateInfo.whatsapp || null,
-      email: candidateInfo.email || null,
-      location: candidateInfo.location || null,
-      cv_url: primaryCv?.file_url ?? null,
-      documents: documents.map((d) => ({
-        name: d.name,
-        doc_type: d.doc_type,
-        file_url: d.file_url,
-      })),
-    });
-
-    if (!applyError) {
+    // 409 means the candidate already applied for this job through the public
+    // form. The application stands, so the match still has to be marked
+    // applied, otherwise it sits in the queue as pending forever.
+    if (status === 201 || status === 409) {
       await supabase
         .from('application_matches')
         .update({ status: 'applied' })

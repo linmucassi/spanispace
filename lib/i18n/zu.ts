@@ -100,6 +100,9 @@ const zu = {
     expiresOn: 'Iphela ngo',
     backToJobs: 'Buyela Emisebenzini',
     expired: 'Lolu hlu seluphelelwe yisikhathi.',
+    alreadyApplied: 'Usufakile isicelo kulo msebenzi',
+    appliedOn: 'Ufake isicelo ngo',
+    viewMyApplications: 'Buka izicelo zami',
   },
   apply: {
     title: 'Faka Isicelo Salesi Sikhundla',
@@ -108,6 +111,7 @@ const zu = {
     phone: 'Inombolo Yocingo',
     whatsapp: 'Inombolo ye-WhatsApp (uma ihlukile)',
     email: 'I-imeyili (ayiphoqelekile)',
+    emailHint: 'Faka i-imeyili yakho bese sikuthumelela isiqinisekiso sokuthi lesi sicelo sifikile.',
     yourLocation: 'Indawo Yakho / Idolobha',
     aboutYou: 'Sitshele ngawe',
     aboutYouPlaceholder:
@@ -117,10 +121,20 @@ const zu = {
     successTitle: 'Isicelo Sithunyeliwe!',
     successMessage:
       'Siyabonga ngokufaka isicelo. Inkampani izokuxhumana nawe uma ukhethiwe.',
+    successEmailed:
+      'Sikuthumelele i-imeyili yesiqinisekiso. Inkampani izokuxhumana nawe uma ukhethiwe.',
     backToJob: 'Buyela Emsebenzini',
     error: 'Kukhona okungahambanga kahle. Sicela uzame futhi.',
     required: 'Lesi sigaba siyadingeka',
     invalidPhone: 'Sicela ufake inombolo yocingo evumelekile',
+    alreadyAppliedTitle: 'Usuvele wafaka isicelo',
+    alreadyAppliedMessage:
+      'Isicelo sakho salo msebenzi sesifikile, akudingeki usithumele futhi.',
+    appliedOn: 'Ufake isicelo ngo',
+    viewMyApplications: 'Buka izicelo zami',
+    signInPrompt:
+      'Ngena ngaphambi kokufaka isicelo bese lesi sicelo sigcinwa kudeshibhodi yakho, ukuze usibone kamuva futhi ungafaki isicelo kabili ngephutha.',
+    signIn: 'Ngena',
   },
   postJob: {
     title: 'Faka Umsebenzi',

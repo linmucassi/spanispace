@@ -49,8 +49,9 @@ export default async function CandidateApplicationsPage() {
     .from('candidate_profiles')
     .select('id')
     .eq('user_id', user.id)
-    .single();
+    .maybeSingle();
 
+  let loadFailed = false;
   let applications: {
     id: string;
     status: string;
@@ -64,13 +65,20 @@ export default async function CandidateApplicationsPage() {
   }[] = [];
 
   if (profile?.id) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('applications')
       .select(
         'id, status, created_at, job:jobs(id, title, location, poster_name)'
       )
       .eq('candidate_id', profile.id)
       .order('created_at', { ascending: false });
+
+    // Never let a failed read render as "you have not applied to anything".
+    // That is exactly how the missing RLS SELECT policy stayed hidden.
+    if (error) {
+      console.error('[candidate/applications] could not load applications:', error.message);
+      loadFailed = true;
+    }
 
     applications = (data ?? []).map((a) => ({
       ...a,
@@ -88,7 +96,14 @@ export default async function CandidateApplicationsPage() {
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200">
-        {applications.length === 0 ? (
+        {loadFailed ? (
+          <div className="p-8 text-center">
+            <p className="text-slate-500">
+              We could not load your applications just now. Please refresh the page,
+              and if it keeps happening let us know.
+            </p>
+          </div>
+        ) : applications.length === 0 ? (
           <div className="p-8 text-center">
             <p className="text-slate-500">
               You have not submitted any applications yet.

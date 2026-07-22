@@ -340,6 +340,28 @@ AS $$
   WHERE mt.id = p_thread_id;
 $$;
 
+-- ============================================================
+-- HELPER: Did this candidate apply to this job? (SECURITY DEFINER breaks RLS recursion)
+-- ============================================================
+-- Lets a candidate read the job behind their own application after it closes.
+-- Must be SECURITY DEFINER: the company policies on `applications` reach it
+-- through `jobs`, so a plain EXISTS here would make the two tables evaluate
+-- each other's policies forever.
+CREATE OR REPLACE FUNCTION public.has_applied_to_job(p_job_id UUID)
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.applications a
+    JOIN public.candidate_profiles cd ON cd.id = a.candidate_id
+    WHERE a.job_id = p_job_id AND cd.user_id = auth.uid()
+  );
+$$;
+
 -- Public read for active content
 CREATE POLICY "Public read active jobs" ON jobs FOR SELECT USING (status = 'active');
 CREATE POLICY "Public read active trainings" ON trainings FOR SELECT USING (status IN ('active', 'completed') AND vetted_status = 'verified');
@@ -357,7 +379,27 @@ CREATE POLICY "Companies read own jobs" ON jobs FOR SELECT USING (
 CREATE POLICY "Companies update own jobs" ON jobs FOR UPDATE USING (
   EXISTS (SELECT 1 FROM company_profiles cp WHERE cp.id = jobs.company_id AND cp.user_id = auth.uid())
 );
+-- A candidate must still be able to read a job they applied to once it closes,
+-- otherwise the embedded job on /candidate/applications comes back NULL.
+CREATE POLICY "Candidates read jobs they applied to" ON jobs FOR SELECT USING (
+  public.has_applied_to_job(id)
+);
 CREATE POLICY "Anyone can apply" ON applications FOR INSERT WITH CHECK (true);
+CREATE POLICY "Candidates read own applications" ON applications FOR SELECT USING (
+  EXISTS (SELECT 1 FROM candidate_profiles cd WHERE cd.id = applications.candidate_id AND cd.user_id = auth.uid())
+);
+CREATE POLICY "Companies read own job applications" ON applications FOR SELECT USING (
+  EXISTS (
+    SELECT 1 FROM jobs j JOIN company_profiles cp ON cp.id = j.company_id
+    WHERE j.id = applications.job_id AND cp.user_id = auth.uid()
+  )
+);
+CREATE POLICY "Companies update own job applications" ON applications FOR UPDATE USING (
+  EXISTS (
+    SELECT 1 FROM jobs j JOIN company_profiles cp ON cp.id = j.company_id
+    WHERE j.id = applications.job_id AND cp.user_id = auth.uid()
+  )
+);
 CREATE POLICY "Anyone can join waitlist" ON waitlist FOR INSERT WITH CHECK (true);
 CREATE POLICY "Anyone can subscribe" ON newsletter FOR INSERT WITH CHECK (true);
 CREATE POLICY "Anyone can register for events" ON event_registrations FOR INSERT WITH CHECK (true);
@@ -473,16 +515,29 @@ CREATE POLICY "Admin full access application_matches" ON application_matches FOR
 -- ============================================================
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
+DECLARE
+  v_role TEXT := COALESCE(NEW.raw_user_meta_data->>'role', 'candidate');
 BEGIN
   INSERT INTO public.users (id, email, role)
-  VALUES (NEW.id, NEW.email, COALESCE(NEW.raw_user_meta_data->>'role', 'candidate'));
+  VALUES (NEW.id, NEW.email, v_role);
 
-  IF COALESCE(NEW.raw_user_meta_data->>'role', 'candidate') = 'company' THEN
+  IF v_role = 'company' THEN
     INSERT INTO public.company_profiles (user_id, company_name, industry, location)
     VALUES (
       NEW.id,
       COALESCE(NEW.raw_user_meta_data->>'company_name', 'Unnamed Company'),
       NEW.raw_user_meta_data->>'industry',
+      NEW.raw_user_meta_data->>'location'
+    );
+  ELSIF v_role = 'candidate' THEN
+    -- Without this a candidate has no profile row until they find and save
+    -- /candidate/profile, so every application they make is written with
+    -- candidate_id NULL and never appears on their dashboard.
+    INSERT INTO public.candidate_profiles (user_id, full_name, phone, location)
+    VALUES (
+      NEW.id,
+      COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data->>'full_name'), ''), split_part(NEW.email, '@', 1)),
+      NEW.raw_user_meta_data->>'phone',
       NEW.raw_user_meta_data->>'location'
     );
   END IF;
@@ -503,6 +558,13 @@ CREATE INDEX idx_jobs_expiry ON jobs(expiry_date);
 CREATE INDEX idx_jobs_vetted ON jobs(vetted_status);
 CREATE INDEX idx_applications_job ON applications(job_id);
 CREATE INDEX idx_applications_status ON applications(status);
+CREATE INDEX idx_applications_candidate ON applications(candidate_id);
+-- One application per candidate per job. Partial, because candidate_id is
+-- nullable by design: the apply page is public and a signed-out visitor
+-- inserts NULL, and ON DELETE SET NULL nulls it on surviving rows.
+CREATE UNIQUE INDEX idx_applications_candidate_job_unique
+  ON applications (candidate_id, job_id)
+  WHERE candidate_id IS NOT NULL;
 CREATE INDEX idx_trainings_status ON trainings(status);
 CREATE INDEX idx_learnerships_expiry ON learnerships(expiry_date);
 CREATE INDEX idx_late_uni_closing ON late_uni_apps(closing_date);

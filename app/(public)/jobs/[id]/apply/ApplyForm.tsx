@@ -6,8 +6,9 @@ import { useTranslation } from '@/lib/i18n/context';
 import { submitNetlifyForm } from '@/lib/netlifyForms';
 import { createClient } from '@/lib/supabase/client';
 import { logJobEvent } from '@/lib/jobAnalytics';
+import { fetchMyApplicationForJob, formatAppliedDate } from '@/lib/applications';
 import type { CandidateDocument } from '@/components/candidate/DocumentLibrary';
-import { FileText, CheckSquare, Square } from 'lucide-react';
+import { FileText, CheckSquare, Square, CheckCircle2 } from 'lucide-react';
 
 type Props = {
   jobId: string;
@@ -44,6 +45,9 @@ export default function ApplyForm({ jobId, jobRole, jobCompany, jobSource }: Pro
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [emailSent, setEmailSent] = useState(false);
+  const [appliedAt, setAppliedAt] = useState<string | null>(null);
+  const [isSignedIn, setIsSignedIn] = useState(false);
   const [form, setForm] = useState({
     fullName: '',
     phone: '',
@@ -60,9 +64,23 @@ export default function ApplyForm({ jobId, jobRole, jobCompany, jobSource }: Pro
   useEffect(() => {
     async function loadProfileAndDocs() {
       const supabase = createClient();
-      if (!supabase) return;
+      if (!supabase) {
+        setProfileLoaded(true);
+        return;
+      }
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        // Signed out is a loaded state too, the form still renders and the
+        // sign in prompt depends on knowing this.
+        setProfileLoaded(true);
+        return;
+      }
+      setIsSignedIn(true);
+
+      if (jobSource === 'db') {
+        const mine = await fetchMyApplicationForJob(jobId);
+        if (mine.appliedAt) setAppliedAt(mine.appliedAt);
+      }
 
       const [profileRes, docsRes] = await Promise.all([
         supabase
@@ -99,7 +117,7 @@ export default function ApplyForm({ jobId, jobRole, jobCompany, jobSource }: Pro
       setProfileLoaded(true);
     }
     loadProfileAndDocs();
-  }, []);
+  }, [jobId, jobSource]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -127,55 +145,56 @@ export default function ApplyForm({ jobId, jobRole, jobCompany, jobSource }: Pro
     setSubmitting(true);
 
     const selectedDocs = docs.filter((d) => selectedDocIds.has(d.id));
-    const primaryCv = selectedDocs.find((d) => d.doc_type === 'cv');
 
     // Only real, company-owned listings have a matching row in `jobs` --
     // static fallback jobs (used when Supabase has no active data) have no
     // FK target, so those still go through Netlify Forms only, as before.
+    //
+    // The insert moved server side so the confirmation email can be sent by
+    // something holding the API key, the candidate profile can be provisioned
+    // before the row is written, and a duplicate comes back as a duplicate
+    // rather than as a raw Postgres error.
     if (jobSource === 'db') {
-      const supabase = createClient();
-      if (!supabase) {
+      let response: Response;
+      try {
+        response = await fetch('/api/applications', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            // The job title and company are deliberately not sent. The route
+            // reads them back from the database, so nothing a caller types can
+            // reach an email signed by spanispace.com.
+            jobId,
+            fullName: form.fullName,
+            phone: form.phone,
+            whatsapp: form.whatsapp,
+            email: form.email,
+            location: form.location,
+            aboutYou: form.aboutYou,
+            documentIds: selectedDocs.map((d) => d.id),
+          }),
+        });
+      } catch {
         setSubmitting(false);
         setError(t('apply.error'));
         return;
       }
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const result = await response.json().catch(() => null);
 
-      let candidateId: string | null = null;
-      if (user) {
-        const { data: candidate } = await supabase
-          .from('candidate_profiles')
-          .select('id')
-          .eq('user_id', user.id)
-          .maybeSingle();
-        candidateId = candidate?.id ?? null;
-      }
-
-      const { error: dbError } = await supabase.from('applications').insert({
-        job_id: jobId,
-        candidate_id: candidateId,
-        full_name: form.fullName,
-        phone: form.phone,
-        whatsapp: form.whatsapp || null,
-        email: form.email || null,
-        location: form.location || null,
-        about_you: form.aboutYou || null,
-        cv_url: primaryCv?.file_url ?? null,
-        documents: selectedDocs.map((d) => ({
-          name: d.name,
-          doc_type: d.doc_type,
-          file_url: d.file_url,
-        })),
-      });
-
-      if (dbError) {
+      if (response.status === 409) {
         setSubmitting(false);
-        setError(dbError.message || t('apply.error'));
+        setAppliedAt(result?.appliedAt ?? new Date().toISOString());
         return;
       }
+
+      if (!response.ok) {
+        setSubmitting(false);
+        setError(result?.error ?? t('apply.error'));
+        return;
+      }
+
+      setEmailSent(Boolean(result?.emailSent));
     }
 
     // For `db` jobs this is a best-effort duplicate notification -- the
@@ -205,6 +224,42 @@ export default function ApplyForm({ jobId, jobRole, jobCompany, jobSource }: Pro
     }
   };
 
+  // Already applied, whether we knew that on arrival or only found out when
+  // the server rejected a second attempt. Shown instead of the form, so there
+  // is no way to send the same application twice.
+  if (appliedAt) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="max-w-md w-full text-center">
+          <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-6">
+            <CheckCircle2 className="w-8 h-8 text-green-600" />
+          </div>
+          <h1 className="text-3xl font-bold text-slate-900 mb-3">
+            {t('apply.alreadyAppliedTitle')}
+          </h1>
+          <p className="text-slate-600 mb-2">{t('apply.alreadyAppliedMessage')}</p>
+          <p className="text-sm text-slate-500 mb-8">
+            {t('apply.appliedOn')} {formatAppliedDate(appliedAt)}
+          </p>
+          <div className="space-y-3">
+            <Link
+              href="/candidate/applications"
+              className="block bg-indigo-600 text-white px-8 py-3 rounded-full font-bold hover:bg-indigo-700 transition-all"
+            >
+              {t('apply.viewMyApplications')}
+            </Link>
+            <Link
+              href={`/jobs/${jobId}`}
+              className="block text-sm text-indigo-600 font-medium hover:underline"
+            >
+              {t('apply.backToJob')}
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (submitted) {
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
@@ -227,7 +282,9 @@ export default function ApplyForm({ jobId, jobRole, jobCompany, jobSource }: Pro
           <h1 className="text-3xl font-bold text-slate-900 mb-3">
             {t('apply.successTitle')}
           </h1>
-          <p className="text-slate-600 mb-8">{t('apply.successMessage')}</p>
+          <p className="text-slate-600 mb-8">
+            {emailSent ? t('apply.successEmailed') : t('apply.successMessage')}
+          </p>
           <Link
             href={`/jobs/${jobId}`}
             className="inline-block bg-indigo-600 text-white px-8 py-3 rounded-full font-bold hover:bg-indigo-700 transition-all"
@@ -258,6 +315,18 @@ export default function ApplyForm({ jobId, jobRole, jobCompany, jobSource }: Pro
             <span className="font-semibold text-slate-700">{jobRole}</span> at{' '}
             <span className="font-semibold text-slate-700">{jobCompany}</span>
           </p>
+
+          {/* Signed-out applications cannot be linked to an account, so they
+              never reach the candidate's dashboard and cannot be deduplicated.
+              Say so before they fill the form in, not after. */}
+          {profileLoaded && !isSignedIn && jobSource === 'db' && (
+            <div className="mb-6 text-sm text-slate-600 bg-indigo-50 border border-indigo-100 rounded-2xl px-4 py-3">
+              {t('apply.signInPrompt')}{' '}
+              <Link href="/login" className="text-indigo-600 font-medium hover:underline">
+                {t('apply.signIn')}
+              </Link>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
@@ -312,6 +381,7 @@ export default function ApplyForm({ jobId, jobRole, jobCompany, jobSource }: Pro
                 onChange={handleChange}
                 className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
               />
+              <p className="text-xs text-slate-500 mt-1.5">{t('apply.emailHint')}</p>
             </div>
 
             <div>
