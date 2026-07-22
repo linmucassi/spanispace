@@ -6,7 +6,7 @@
 
 ---
 
-## 🔴 Blocker: Run 7 Migrations Against Production
+## 🔴 Blocker: Run 9 Migrations Against Production
 
 Everything below this line is **code-complete, typechecked, linted, and build-verified**, but none of it is live until these run in the Supabase SQL Editor, in this order:
 
@@ -17,8 +17,21 @@ Everything below this line is **code-complete, typechecked, linted, and build-ve
 5. `supabase/add-company-events-training.sql` — company-created events & training
 6. `supabase/add-messaging.sql` — candidate ↔ company messaging
 7. `supabase/add-auto-apply.sql` — candidate auto-apply preferences + match queue (10 Jul 2026)
+8. `supabase/add-informal-jobs.sql` — SA jobs first, informal work experience, `jobs.duration` (20 Jul 2026)
+9. `supabase/fix-application-visibility.sql` — issue #4: candidates could not see the jobs they applied for, could apply to the same job repeatedly, and companies could not see or action applications on their own jobs (22 Jul 2026)
 
-All seven are idempotent (`IF NOT EXISTS` / safe re-run). `supabase/schema.sql` has been updated to match, so a fresh environment provisioned from it doesn't need any of these on top.
+`supabase/fix-application-visibility.sql` is idempotent and safe to re-run. The
+earlier files use bare `CREATE POLICY`, so re-running one of those throws 42710
+on the policy statements even though the table and column changes are guarded.
+Run each of 1 to 8 once, in order.
+
+`supabase/schema.sql` has been updated to match, so a fresh environment provisioned from it doesn't need any of these on top.
+
+### After migration 9, set these in the Netlify dashboard
+
+`RESEND_API_KEY` and `EMAIL_FROM` (see `.env.example`). They turn on the
+confirmation email an applicant gets after applying. The apply flow works
+without them, applicants simply get no email, so this is not a deploy blocker.
 
 ---
 

@@ -99,6 +99,9 @@ const en = {
     expiresOn: 'Expires on',
     backToJobs: 'Back to Jobs',
     expired: 'This listing has expired.',
+    alreadyApplied: 'You applied for this job',
+    appliedOn: 'Applied on',
+    viewMyApplications: 'View my applications',
   },
   apply: {
     title: 'Apply for this Position',
@@ -107,6 +110,7 @@ const en = {
     phone: 'Phone Number',
     whatsapp: 'WhatsApp Number (if different)',
     email: 'Email (optional)',
+    emailHint: 'Add your email and we will send you a confirmation that this application went through.',
     yourLocation: 'Your Area / City',
     aboutYou: 'Tell us about yourself',
     aboutYouPlaceholder:
@@ -116,10 +120,19 @@ const en = {
     successTitle: 'Application Submitted!',
     successMessage:
       'Thank you for applying. The company will contact you if you are shortlisted.',
+    successEmailed: 'We have emailed you a confirmation. The company will contact you if you are shortlisted.',
     backToJob: 'Back to Job',
     error: 'Something went wrong. Please try again.',
     required: 'This field is required',
     invalidPhone: 'Please enter a valid phone number',
+    alreadyAppliedTitle: 'You already applied',
+    alreadyAppliedMessage:
+      'Your application for this job is already in, so there is no need to send it again.',
+    appliedOn: 'Applied on',
+    viewMyApplications: 'View my applications',
+    signInPrompt:
+      'Sign in before you apply and this application is saved to your dashboard, so you can see it later and you will not apply twice by accident.',
+    signIn: 'Sign in',
   },
   postJob: {
     title: 'Post a Job',

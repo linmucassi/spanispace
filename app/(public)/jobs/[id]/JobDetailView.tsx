@@ -1,14 +1,17 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { CheckCircle2 } from 'lucide-react';
 import { useTranslation } from '@/lib/i18n/context';
 import type { PublicJobDetail } from '@/lib/publicJobs';
 import { logJobEvent } from '@/lib/jobAnalytics';
+import { fetchMyApplicationForJob, formatAppliedDate } from '@/lib/applications';
 
 export default function JobDetailView({ job }: { job: PublicJobDetail }) {
   const { t } = useTranslation();
   const isExpired = new Date(job.expiryDate) < new Date();
+  const [appliedAt, setAppliedAt] = useState<string | null>(null);
 
   useEffect(() => {
     // Only real, company-owned listings can be tracked (static fallback
@@ -16,6 +19,19 @@ export default function JobDetailView({ job }: { job: PublicJobDetail }) {
     if (job.source === 'db') {
       logJobEvent('job_views', job.id);
     }
+  }, [job.id, job.source]);
+
+  useEffect(() => {
+    // Static fallback jobs are never written to `applications`, so there is
+    // nothing to look up for them.
+    if (job.source !== 'db') return;
+    let active = true;
+    fetchMyApplicationForJob(job.id).then((result) => {
+      if (active) setAppliedAt(result.appliedAt);
+    });
+    return () => {
+      active = false;
+    };
   }, [job.id, job.source]);
 
   return (
@@ -137,14 +153,32 @@ export default function JobDetailView({ job }: { job: PublicJobDetail }) {
             )}
           </div>
 
-          {/* Apply button */}
-          {!isExpired && (
-            <Link
-              href={`/jobs/${job.id}/apply`}
-              className="block w-full text-center bg-indigo-600 text-white px-8 py-4 rounded-2xl font-bold shadow-lg hover:bg-indigo-700 transition-all hover:scale-[1.02]"
-            >
-              {t('jobDetail.applyForPosition')}
-            </Link>
+          {/* Apply button, or a reminder that this one is already in */}
+          {appliedAt ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-center gap-2 bg-green-50 border border-green-100 text-green-700 px-8 py-4 rounded-2xl font-bold">
+                <CheckCircle2 className="h-5 w-5 flex-shrink-0" />
+                {t('jobDetail.alreadyApplied')}
+              </div>
+              <p className="text-center text-sm text-slate-500">
+                {t('jobDetail.appliedOn')} {formatAppliedDate(appliedAt)}
+              </p>
+              <Link
+                href="/candidate/applications"
+                className="block text-center text-sm text-indigo-600 font-medium hover:underline"
+              >
+                {t('jobDetail.viewMyApplications')}
+              </Link>
+            </div>
+          ) : (
+            !isExpired && (
+              <Link
+                href={`/jobs/${job.id}/apply`}
+                className="block w-full text-center bg-indigo-600 text-white px-8 py-4 rounded-2xl font-bold shadow-lg hover:bg-indigo-700 transition-all hover:scale-[1.02]"
+              >
+                {t('jobDetail.applyForPosition')}
+              </Link>
+            )
           )}
         </div>
       </div>

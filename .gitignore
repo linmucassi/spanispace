@@ -32,6 +32,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# except the template, it holds names only and is how a new environment is set up
+!.env.example
 
 # vercel
 .vercel

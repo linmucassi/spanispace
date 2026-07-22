@@ -46,7 +46,7 @@ export default async function CandidateDashboard() {
     .from('candidate_profiles')
     .select('id, full_name, profile_score')
     .eq('user_id', user.id)
-    .single();
+    .maybeSingle();
 
   const candidateId = profile?.id;
   const fullName = profile?.full_name ?? user.email?.split('@')[0] ?? 'there';
@@ -55,6 +55,7 @@ export default async function CandidateDashboard() {
   // Fetch applications
   let totalApplications = 0;
   let shortlistedCount = 0;
+  let applicationsLoadFailed = false;
   let recentApplications: {
     id: string;
     status: string;
@@ -76,12 +77,19 @@ export default async function CandidateDashboard() {
       .eq('status', 'shortlisted');
     shortlistedCount = shortlisted ?? 0;
 
-    const { data: apps } = await supabase
+    const { data: apps, error: appsError } = await supabase
       .from('applications')
       .select('id, status, created_at, job:jobs(title)')
       .eq('candidate_id', candidateId)
       .order('created_at', { ascending: false })
       .limit(10);
+
+    // A failed read must not render as "you have not applied to any jobs yet".
+    if (appsError) {
+      console.error('[candidate/dashboard] could not load applications:', appsError.message);
+      applicationsLoadFailed = true;
+    }
+
     recentApplications = (apps ?? []).map((a) => ({
       ...a,
       job: Array.isArray(a.job) ? a.job[0] ?? null : a.job,
@@ -165,7 +173,14 @@ export default async function CandidateDashboard() {
           </h2>
         </div>
 
-        {recentApplications.length === 0 ? (
+        {applicationsLoadFailed ? (
+          <div className="p-8 text-center">
+            <p className="text-slate-500">
+              We could not load your applications just now. Please refresh the page,
+              and if it keeps happening let us know.
+            </p>
+          </div>
+        ) : recentApplications.length === 0 ? (
           <div className="p-8 text-center">
             <p className="text-slate-500">
               You have not applied to any jobs yet.
