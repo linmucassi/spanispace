@@ -81,6 +81,7 @@ A listing is published only after a human reviews its vetted_status as "verified
 - Home: https://spanispace.com/
 - Job Board: https://spanispace.com/jobs
 - Training: https://spanispace.com/training
+- Academy: https://spanispace.com/academy
 - Academic Portal: https://spanispace.com/academic
 - Events: https://spanispace.com/events
 - Post a Job: https://spanispace.com/post-job

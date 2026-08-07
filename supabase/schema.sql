@@ -106,6 +106,9 @@ CREATE TABLE trainings (
   duration_weeks INT,
   format TEXT CHECK (format IN ('online', 'hybrid', 'in-person')),
   skills_covered TEXT[] DEFAULT '{}',
+  -- Beginner is free, Advanced is paid. is_free is derived from level by the
+  -- trainings_enforce_pricing trigger below, never set on its own.
+  level TEXT NOT NULL DEFAULT 'Beginner' CHECK (level IN ('Beginner', 'Advanced')),
   is_free BOOLEAN DEFAULT TRUE,
   vetted_status TEXT DEFAULT 'verified' CHECK (vetted_status IN ('pending', 'verified', 'rejected')),
   status TEXT DEFAULT 'active' CHECK (status IN ('active', 'completed', 'cancelled', 'draft')),
@@ -551,6 +554,25 @@ CREATE TRIGGER on_auth_user_created
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- ============================================================
+-- TRIGGER: course pricing follows the level, always
+-- Beginner courses are free, advanced courses are paid. Nobody gets to set
+-- is_free independently, whichever form or script is doing the writing.
+-- ============================================================
+CREATE OR REPLACE FUNCTION public.enforce_training_pricing()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  NEW.is_free := (NEW.level = 'Beginner');
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trainings_enforce_pricing
+  BEFORE INSERT OR UPDATE ON trainings
+  FOR EACH ROW EXECUTE FUNCTION public.enforce_training_pricing();
+
+-- ============================================================
 -- INDEXES for performance
 -- ============================================================
 CREATE INDEX idx_jobs_status ON jobs(status);
@@ -566,6 +588,7 @@ CREATE UNIQUE INDEX idx_applications_candidate_job_unique
   ON applications (candidate_id, job_id)
   WHERE candidate_id IS NOT NULL;
 CREATE INDEX idx_trainings_status ON trainings(status);
+CREATE INDEX idx_trainings_level ON trainings(level);
 CREATE INDEX idx_learnerships_expiry ON learnerships(expiry_date);
 CREATE INDEX idx_late_uni_closing ON late_uni_apps(closing_date);
 CREATE INDEX idx_events_status ON events(status);

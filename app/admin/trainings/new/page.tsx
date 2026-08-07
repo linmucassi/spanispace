@@ -3,12 +3,13 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { accessHelp, isFreeLevel, isMissingLevelColumn, withoutLevel, TRAINING_LEVELS, type TrainingLevel } from '@/lib/training-level';
 
 export default function AdminNewTraining() {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [form, setForm] = useState({ title: '', description: '', category: 'Bootcamp', start_date: '', duration_weeks: '', format: 'online', skills_covered: '' });
+  const [form, setForm] = useState({ title: '', description: '', category: 'Bootcamp', start_date: '', duration_weeks: '', format: 'online', skills_covered: '', level: 'Beginner' as TrainingLevel });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -18,12 +19,20 @@ export default function AdminNewTraining() {
     const supabase = createClient();
     if (!supabase) { setError('Supabase not configured'); setSaving(false); return; }
 
-    const { error: dbError } = await supabase.from('trainings').insert({
+    const row = {
       title: form.title, description: form.description || null, category: form.category,
       start_date: form.start_date || null, duration_weeks: form.duration_weeks ? parseInt(form.duration_weeks) : null,
       format: form.format, skills_covered: form.skills_covered ? form.skills_covered.split(',').map(s => s.trim()) : [],
-      is_free: true, status: 'active',
-    });
+      level: form.level,
+      // is_free is derived from level by the database trigger, see
+      // supabase/add-training-levels.sql.
+      is_free: isFreeLevel(form.level), status: 'active',
+    };
+
+    let { error: dbError } = await supabase.from('trainings').insert(row);
+    if (isMissingLevelColumn(dbError)) {
+      ({ error: dbError } = await supabase.from('trainings').insert(withoutLevel(row)));
+    }
 
     setSaving(false);
     if (dbError) { setError(dbError.message); return; }
@@ -46,6 +55,15 @@ export default function AdminNewTraining() {
           <div><label className="block text-sm font-medium text-slate-700 mb-1">Duration (weeks)</label><input name="duration_weeks" type="number" value={form.duration_weeks} onChange={handleChange} className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 outline-none" /></div>
         </div>
         <div><label className="block text-sm font-medium text-slate-700 mb-1">Skills Covered (comma-separated)</label><input name="skills_covered" value={form.skills_covered} onChange={handleChange} placeholder="AI, Python, DevOps" className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 outline-none" /></div>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Level</label>
+          <select name="level" value={form.level} onChange={handleChange} className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm bg-white focus:border-indigo-500 outline-none">
+            {TRAINING_LEVELS.map((l) => (
+              <option key={l} value={l}>{l === 'Beginner' ? 'Beginner, free for candidates' : 'Advanced, paid'}</option>
+            ))}
+          </select>
+          <p className="text-xs text-slate-500 mt-1.5">{accessHelp(form.level)}</p>
+        </div>
         {error && <p className="text-red-600 text-sm">{error}</p>}
         <div className="flex gap-3 pt-2">
           <button type="submit" disabled={saving} className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-indigo-700 disabled:opacity-50">{saving ? 'Saving...' : 'Create Training'}</button>
