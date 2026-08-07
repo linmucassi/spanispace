@@ -9,6 +9,8 @@ import {
   isFreeLevel,
   levelFromIsFree,
   isTrainingLevel,
+  isMissingLevelColumn,
+  withoutLevel,
   TRAINING_LEVELS,
   type TrainingLevel,
 } from '@/lib/training-level';
@@ -133,24 +135,29 @@ export default function CompanyEditTraining() {
       return;
     }
 
-    const { error: dbError } = await supabase
-      .from('trainings')
-      .update({
-        title: form.title,
-        description: form.description || null,
-        category: form.category,
-        format: form.format,
-        start_date: form.start_date || null,
-        duration_weeks: form.duration_weeks ? parseInt(form.duration_weeks) : null,
-        skills_covered: form.skills_covered
-          ? form.skills_covered.split(',').map((s) => s.trim()).filter(Boolean)
-          : [],
-        level: form.level,
-        // is_free is derived from level by the database trigger, see
-        // supabase/add-training-levels.sql.
-        is_free: isFreeLevel(form.level),
-      })
-      .eq('id', trainingId);
+    const row = {
+      title: form.title,
+      description: form.description || null,
+      category: form.category,
+      format: form.format,
+      start_date: form.start_date || null,
+      duration_weeks: form.duration_weeks ? parseInt(form.duration_weeks) : null,
+      skills_covered: form.skills_covered
+        ? form.skills_covered.split(',').map((s) => s.trim()).filter(Boolean)
+        : [],
+      level: form.level,
+      // is_free is derived from level by the database trigger, see
+      // supabase/add-training-levels.sql.
+      is_free: isFreeLevel(form.level),
+    };
+
+    let { error: dbError } = await supabase.from('trainings').update(row).eq('id', trainingId);
+    if (isMissingLevelColumn(dbError)) {
+      ({ error: dbError } = await supabase
+        .from('trainings')
+        .update(withoutLevel(row))
+        .eq('id', trainingId));
+    }
 
     setSaving(false);
 

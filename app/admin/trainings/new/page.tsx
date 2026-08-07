@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { accessHelp, isFreeLevel, TRAINING_LEVELS, type TrainingLevel } from '@/lib/training-level';
+import { accessHelp, isFreeLevel, isMissingLevelColumn, withoutLevel, TRAINING_LEVELS, type TrainingLevel } from '@/lib/training-level';
 
 export default function AdminNewTraining() {
   const router = useRouter();
@@ -19,7 +19,7 @@ export default function AdminNewTraining() {
     const supabase = createClient();
     if (!supabase) { setError('Supabase not configured'); setSaving(false); return; }
 
-    const { error: dbError } = await supabase.from('trainings').insert({
+    const row = {
       title: form.title, description: form.description || null, category: form.category,
       start_date: form.start_date || null, duration_weeks: form.duration_weeks ? parseInt(form.duration_weeks) : null,
       format: form.format, skills_covered: form.skills_covered ? form.skills_covered.split(',').map(s => s.trim()) : [],
@@ -27,7 +27,12 @@ export default function AdminNewTraining() {
       // is_free is derived from level by the database trigger, see
       // supabase/add-training-levels.sql.
       is_free: isFreeLevel(form.level), status: 'active',
-    });
+    };
+
+    let { error: dbError } = await supabase.from('trainings').insert(row);
+    if (isMissingLevelColumn(dbError)) {
+      ({ error: dbError } = await supabase.from('trainings').insert(withoutLevel(row)));
+    }
 
     setSaving(false);
     if (dbError) { setError(dbError.message); return; }

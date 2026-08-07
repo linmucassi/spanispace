@@ -3,7 +3,14 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { accessHelp, isFreeLevel, TRAINING_LEVELS, type TrainingLevel } from '@/lib/training-level';
+import {
+  accessHelp,
+  isFreeLevel,
+  isMissingLevelColumn,
+  withoutLevel,
+  TRAINING_LEVELS,
+  type TrainingLevel,
+} from '@/lib/training-level';
 
 const CATEGORIES = ['Bootcamp', 'Short Course', 'Event'];
 const FORMATS = ['online', 'hybrid', 'in-person'];
@@ -86,7 +93,7 @@ export default function CompanyNewTraining() {
       return;
     }
 
-    const { error: dbError } = await supabase.from('trainings').insert({
+    const row = {
       company_id: companyId,
       title: form.title,
       description: form.description || null,
@@ -104,7 +111,12 @@ export default function CompanyNewTraining() {
       is_free: isFreeLevel(form.level),
       vetted_status: 'pending',
       status: 'active',
-    });
+    };
+
+    let { error: dbError } = await supabase.from('trainings').insert(row);
+    if (isMissingLevelColumn(dbError)) {
+      ({ error: dbError } = await supabase.from('trainings').insert(withoutLevel(row)));
+    }
 
     setSaving(false);
 
