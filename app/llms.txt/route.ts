@@ -13,7 +13,8 @@ Spanispace is built for South African youth (18–35), with a focus on Gauteng a
 
 - [Home](https://spanispace.com/): Overview, featured jobs, training programs, academic deadlines, success stories.
 - [Job Board](https://spanispace.com/jobs): Vetted job listings — remote, hybrid, on-site, learnerships. All listings are verified before being published.
-- [Training & Bootcamps](https://spanispace.com/training): Expert-led bootcamps (AI for devs, cloud, tech sales) and short courses to make candidates job-ready in weeks.
+- [Training & Bootcamps](https://spanispace.com/training): Expert-led bootcamps and short courses, plus partner terminal training from Terminal School (vim, awk, sed, jq). Beginner courses are free, advanced courses are paid.
+- [Academy](https://spanispace.com/academy): Free self-paced AI and Tech Careers programme. A 12 module bootcamp, a short course, career tracks, a South African salary guide, certifications and company case studies.
 - [Academic Deadlines](https://spanispace.com/academic): Late university applications, learnerships, and vocational training dates across SA institutions.
 - [Events](https://spanispace.com/events): Workshops, webinars, hackathons, and career fairs.
 - [Post a Job (Free)](https://spanispace.com/post-job): Any employer can post a job for free; jobs are reviewed before going live.

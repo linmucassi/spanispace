@@ -165,27 +165,29 @@ FROM (VALUES
 -- TRAININGS
 -- ============================================================
 
-INSERT INTO trainings (title, description, category, start_date, duration_weeks, format, skills_covered, is_free, status)
+-- is_free is not set here on purpose. The trainings_enforce_pricing trigger
+-- derives it from level: Beginner is free, Advanced is paid.
+INSERT INTO trainings (title, description, category, level, start_date, duration_weeks, format, skills_covered, status)
 VALUES
   ('Modern AI for Devs', 'Master LLMs, RAG, and AI integration in 12 weeks. Hands-on with Python and modern AI tooling.',
-   'Bootcamp', (CURRENT_DATE + INTERVAL '30 days')::date, 12, 'online',
-   ARRAY['AI', 'Python', 'LLMs', 'RAG', 'DevOps'], TRUE, 'active'),
+   'Bootcamp', 'Advanced', (CURRENT_DATE + INTERVAL '30 days')::date, 12, 'online',
+   ARRAY['AI', 'Python', 'LLMs', 'RAG', 'DevOps'], 'active'),
 
   ('CV Mastery & Interview Prep', 'One-day intensive event: expert feedback on your CV plus live mock interviews with hiring managers.',
-   'Event', (CURRENT_DATE + INTERVAL '14 days')::date, 1, 'hybrid',
-   ARRAY['Soft Skills', 'Careers', 'Communication'], TRUE, 'active'),
+   'Event', 'Beginner', (CURRENT_DATE + INTERVAL '14 days')::date, 1, 'hybrid',
+   ARRAY['Soft Skills', 'Careers', 'Communication'], 'active'),
 
   ('Cloud Foundations (AWS / Azure)', 'Short course on cloud fundamentals, infrastructure-as-code, and deploying production workloads.',
-   'Short Course', (CURRENT_DATE + INTERVAL '21 days')::date, 6, 'online',
-   ARRAY['Cloud', 'AWS', 'Azure', 'Terraform', 'CI/CD'], TRUE, 'active'),
+   'Short Course', 'Advanced', (CURRENT_DATE + INTERVAL '21 days')::date, 6, 'online',
+   ARRAY['Cloud', 'AWS', 'Azure', 'Terraform', 'CI/CD'], 'active'),
 
   ('Excel & Data Literacy', 'Become job-ready with practical Excel: pivots, lookups, dashboards, and basic data analysis.',
-   'Short Course', (CURRENT_DATE + INTERVAL '7 days')::date, 4, 'online',
-   ARRAY['Excel', 'Data Analysis', 'Reporting'], TRUE, 'active'),
+   'Short Course', 'Beginner', (CURRENT_DATE + INTERVAL '7 days')::date, 4, 'online',
+   ARRAY['Excel', 'Data Analysis', 'Reporting'], 'active'),
 
   ('Tech Sales Bootcamp', '8-week bootcamp covering SDR fundamentals, CRM tooling, and modern outbound for tech companies.',
-   'Bootcamp', (CURRENT_DATE + INTERVAL '45 days')::date, 8, 'hybrid',
-   ARRAY['Sales', 'CRM', 'Communication', 'Negotiation'], TRUE, 'active');
+   'Bootcamp', 'Advanced', (CURRENT_DATE + INTERVAL '45 days')::date, 8, 'hybrid',
+   ARRAY['Sales', 'CRM', 'Communication', 'Negotiation'], 'active');
 
 -- ============================================================
 -- LEARNERSHIPS (curated, public)

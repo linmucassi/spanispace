@@ -220,12 +220,142 @@ export const JOBS: Job[] = [
   },
 ];
 
+// Beginner is free, Advanced is paid. The rule lives in lib/training-level.ts
+// and the card UI derives the badge from `level`, so never write a price here.
+// Partner courses carry external: true, because the partner sets their own price.
 export const TRAININGS: Training[] = [
+  // SpaniSpace Academy, our own AI course, live now at /academy.
+  {
+    id: 'academy-shortcourse',
+    title: 'AI Foundations Short Course',
+    category: 'Short Course',
+    level: 'Beginner',
+    provider: 'SpaniSpace',
+    href: '/academy',
+    description:
+      'What AI actually is, in plain language, with South African examples. Self paced, and the honest way to find out whether this world is for you before you commit.',
+    tags: ['AI', 'Beginner', 'Self paced'],
+  },
+  {
+    id: 'academy-bootcamp',
+    title: 'AI and Tech Careers Bootcamp',
+    category: 'Bootcamp',
+    level: 'Beginner',
+    provider: 'SpaniSpace',
+    href: '/academy',
+    description:
+      'Twelve modules from zero to job ready. Career tracks, a salary guide checked against South African sources, certifications and real company case studies.',
+    tags: ['AI', 'Careers', 'Salaries', 'Self paced'],
+  },
+
+  // Terminal School (terminal.school), interactive terminal training.
+  // Track and lesson names taken from their own sitemap, verified 7 August 2026.
+  {
+    id: 'ts-vim-essentials',
+    title: 'Vim Essentials',
+    category: 'Short Course',
+    level: 'Beginner',
+    provider: 'Terminal School',
+    href: 'https://terminal.school/irc/vim',
+    external: true,
+    description:
+      'Movement fundamentals, word motions, find and till, operators and motions, and text objects. Interactive challenges in a real terminal.',
+    tags: ['Vim', 'Terminal', 'Editors'],
+  },
+  {
+    id: 'ts-vim-mastery',
+    title: 'Vim Mastery',
+    category: 'Short Course',
+    level: 'Advanced',
+    provider: 'Terminal School',
+    href: 'https://terminal.school/irc/vim/search-and-replace',
+    external: true,
+    description:
+      'Search and replace, jumps and marks, macros and registers, visual modes, and Ex command mastery. The half that makes you fast.',
+    tags: ['Vim', 'Terminal', 'Editors'],
+  },
+  {
+    id: 'ts-awk-essentials',
+    title: 'Awk Essentials',
+    category: 'Short Course',
+    level: 'Beginner',
+    provider: 'Terminal School',
+    href: 'https://terminal.school/irc/awk',
+    external: true,
+    description:
+      'Print, fields, patterns, aggregation, and BEGIN and END blocks. Turn a messy text file into an answer without opening a spreadsheet.',
+    tags: ['Awk', 'Terminal', 'Data'],
+  },
+  {
+    id: 'ts-awk-advanced',
+    title: 'Awk Advanced',
+    category: 'Short Course',
+    level: 'Advanced',
+    provider: 'Terminal School',
+    href: 'https://terminal.school/irc/awk/conditionals',
+    external: true,
+    description:
+      'Conditionals, arrays, built in functions, flow control, and user defined functions. Awk as a real programming language.',
+    tags: ['Awk', 'Terminal', 'Data'],
+  },
+  {
+    id: 'ts-sed-essentials',
+    title: 'Sed Essentials',
+    category: 'Short Course',
+    level: 'Beginner',
+    provider: 'Terminal School',
+    href: 'https://terminal.school/irc/sed',
+    external: true,
+    description:
+      'Addresses, regular expressions, substitution, and what sed can do beyond substitution. Edit files at scale from the command line.',
+    tags: ['Sed', 'Terminal', 'Regex'],
+  },
+  {
+    id: 'ts-sed-advanced',
+    title: 'Sed Advanced',
+    category: 'Short Course',
+    level: 'Advanced',
+    provider: 'Terminal School',
+    href: 'https://terminal.school/irc/sed/hold-space',
+    external: true,
+    description:
+      'Hold space, working across line boundaries, and branching. The parts of sed that most people never reach.',
+    tags: ['Sed', 'Terminal', 'Regex'],
+  },
+  {
+    id: 'ts-jq-essentials',
+    title: 'Jq Essentials',
+    category: 'Short Course',
+    level: 'Beginner',
+    provider: 'Terminal School',
+    href: 'https://terminal.school/irc/jq',
+    external: true,
+    description:
+      'Objects and field access, arrays and iteration, filtering and mapping, sorting and grouping. Read any API response with confidence.',
+    tags: ['Jq', 'Terminal', 'JSON'],
+  },
+  {
+    id: 'ts-jq-advanced',
+    title: 'Jq Advanced',
+    category: 'Short Course',
+    level: 'Advanced',
+    provider: 'Terminal School',
+    href: 'https://terminal.school/irc/jq/string-functions',
+    external: true,
+    description:
+      'String functions, variables and bindings, updates, and paths. Reshape JSON instead of just reading it.',
+    tags: ['Jq', 'Terminal', 'JSON'],
+  },
+
+  // Announced SpaniSpace courses. No enrolment flow yet, so these send people
+  // to the waitlist rather than pretending a seat can be booked.
   {
     id: 't1',
     title: 'Modern AI for Devs',
     category: 'Bootcamp',
-    date: 'Jan 15, 2025',
+    level: 'Advanced',
+    provider: 'SpaniSpace',
+    href: '/join-waitlist',
     description: 'Master LLMs, RAG, and AI integration in 12 weeks.',
     tags: ['AI', 'Python', 'DevOps'],
   },
@@ -233,6 +363,9 @@ export const TRAININGS: Training[] = [
     id: 't2',
     title: 'CV Mastery & Interview Prep',
     category: 'Event',
+    level: 'Beginner',
+    provider: 'SpaniSpace',
+    href: '/join-waitlist',
     date: 'Dec 10, 2024',
     description: 'Expert feedback on your resume and live mock interviews.',
     tags: ['Soft Skills', 'Careers'],
@@ -241,7 +374,9 @@ export const TRAININGS: Training[] = [
     id: 't3',
     title: 'Cloud Foundations (AWS/Azure)',
     category: 'Short Course',
-    date: 'Feb 1, 2025',
+    level: 'Advanced',
+    provider: 'SpaniSpace',
+    href: '/join-waitlist',
     description: 'Learn infrastructure as code and cloud deployment.',
     tags: ['Cloud', 'AWS', 'Azure'],
   },

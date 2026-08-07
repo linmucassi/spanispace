@@ -4,6 +4,14 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import {
+  accessHelp,
+  isFreeLevel,
+  levelFromIsFree,
+  isTrainingLevel,
+  TRAINING_LEVELS,
+  type TrainingLevel,
+} from '@/lib/training-level';
 
 const CATEGORIES = ['Bootcamp', 'Short Course', 'Event'];
 const FORMATS = ['online', 'hybrid', 'in-person'];
@@ -16,7 +24,7 @@ type TrainingForm = {
   start_date: string;
   duration_weeks: string;
   skills_covered: string;
-  is_free: boolean;
+  level: TrainingLevel;
 };
 
 export default function CompanyEditTraining() {
@@ -38,7 +46,7 @@ export default function CompanyEditTraining() {
     start_date: '',
     duration_weeks: '',
     skills_covered: '',
-    is_free: true,
+    level: 'Beginner',
   });
 
   useEffect(() => {
@@ -93,7 +101,8 @@ export default function CompanyEditTraining() {
         start_date: training.start_date ?? '',
         duration_weeks: training.duration_weeks ? String(training.duration_weeks) : '',
         skills_covered: (training.skills_covered ?? []).join(', '),
-        is_free: training.is_free ?? true,
+        // Rows written before the level column existed only carry is_free.
+        level: isTrainingLevel(training.level) ? training.level : levelFromIsFree(training.is_free),
       });
       setLoading(false);
     }
@@ -136,7 +145,10 @@ export default function CompanyEditTraining() {
         skills_covered: form.skills_covered
           ? form.skills_covered.split(',').map((s) => s.trim()).filter(Boolean)
           : [],
-        is_free: form.is_free,
+        level: form.level,
+        // is_free is derived from level by the database trigger, see
+        // supabase/add-training-levels.sql.
+        is_free: isFreeLevel(form.level),
       })
       .eq('id', trainingId);
 
@@ -290,16 +302,22 @@ export default function CompanyEditTraining() {
           />
         </div>
 
-        <label className="flex items-center gap-2 text-sm text-slate-700">
-          <input
-            type="checkbox"
-            name="is_free"
-            checked={form.is_free}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Level</label>
+          <select
+            name="level"
+            value={form.level}
             onChange={handleChange}
-            className="rounded border-slate-300"
-          />
-          This training is free for candidates
-        </label>
+            className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+          >
+            {TRAINING_LEVELS.map((l) => (
+              <option key={l} value={l}>
+                {l === 'Beginner' ? 'Beginner, free for candidates' : 'Advanced, paid'}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-slate-500 mt-1.5">{accessHelp(form.level)}</p>
+        </div>
 
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-3">
