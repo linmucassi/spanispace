@@ -121,6 +121,10 @@ const en = {
     joinWaitlist: 'Join the Waitlist',
     postJob: 'Post a Job',
   },
+  betaNote: {
+    text: 'The isiZulu on this site is still being checked by a first language speaker, so some phrasing may read oddly. The English is unaffected.',
+    report: 'Tell us if something reads wrong.',
+  },
   footer: {
     tagline:
       'Bridging skills and hiring since 2024. Expert-led bootcamps for the next generation of talent.',

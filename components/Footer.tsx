@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useTranslation } from '../lib/i18n/context';
 import { createClient } from '../lib/supabase/client';
+import TranslationBetaNote from './TranslationBetaNote';
 
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
@@ -148,7 +149,11 @@ const Footer: React.FC = () => {
           )}
         </div>
       </div>
-      <div className="max-w-7xl mx-auto border-t border-ink-800 mt-12 pt-8 flex flex-col md:flex-row justify-between text-xs font-medium uppercase tracking-widest gap-4">
+      {/* Only renders while the site is being read in isiZulu. */}
+      <div className="max-w-7xl mx-auto mt-12">
+        <TranslationBetaNote />
+      </div>
+      <div className="max-w-7xl mx-auto border-t border-ink-800 mt-6 pt-8 flex flex-col md:flex-row justify-between text-xs font-medium uppercase tracking-widest gap-4">
         <p>
           &copy; {currentYear} SPANISPACE. {t('footer.allRightsReserved')}
         </p>

@@ -122,6 +122,10 @@ const zu = {
     joinWaitlist: 'Joyina Uhlu Lokulinda',
     postJob: 'Faka Umsebenzi',
   },
+  betaNote: {
+    text: 'IsiZulu kule sayithi sisahlolwa ngumuntu okhuluma lolu limi, ngakho amanye amagama angase angezwakali kahle. IsiNgisi asithintekile.',
+    report: 'Sitshele uma kukhona okungalungile.',
+  },
   footer: {
     tagline:
       'Sixhumanisa amakhono nokuqashwa kusukela ngo-2024. Ama-bootcamp aholwa yizingcweti esizukulwane esilandelayo samathalente.',
