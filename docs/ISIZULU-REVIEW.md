@@ -1,13 +1,16 @@
 # isiZulu review sheet
 
-**Status: awaiting a first language isiZulu speaker. Nothing here has been checked by one.**
+**Status: grammar checked against sources, not yet checked by a first language speaker.**
 
 Fifty two isiZulu strings were added or changed on 8 August 2026 in
 `lib/i18n/zu.ts`, alongside the training rebuild and the visual redesign. They
-were written by matching the vocabulary already in that file and by checking
-individual terms against online dictionaries. That is not the same thing as a
-native check, and this file exists so the real check is a short job rather than
-an open ended one.
+were written by matching the vocabulary already in that file. Since then two
+passes have been done: individual terms checked against dictionaries, and the
+number agreement checked against the Wiktionary Zulu concord appendix, which
+found and fixed four wrong forms. That is a grammar check, not a native check.
+A source can confirm a concord is legal. It cannot tell you the phrase sounds
+like something a person would actually say. This file exists so that last step
+is a short job rather than an open ended one.
 
 **How to use this.** Read the isiZulu column. Where it is wrong, write the
 correction in the last column. You do not need to touch code, and you do not
@@ -19,26 +22,39 @@ table is worth the most attention and the last one the least.
 
 ---
 
-## Start here. Numbers, where the errors most likely are
+## Numbers. Checked against a concord table, but still worth your eye
 
-isiZulu agrees numbers with the noun class, and this is the part written with
-the least confidence. Every one of these renders with a real digit substituted
-for `{n}`, so a wrong concord shows on screen constantly.
+isiZulu agrees numbers with the noun class. These were written with the least
+confidence, so on 8 August they were checked against the Wiktionary Zulu
+concord appendix and an attested example, and four were corrected. The concord
+column below shows the working, so you can see whether the reasoning holds
+rather than just whether the string looks right.
 
-| Key | English | isiZulu as written | Renders as | Correction |
+The rule applied: relative concord for the noun's class, plus the copulative
+`ngu-`. Class 4 `imi-` takes `e-`, class 7 `isi-` takes `esi-`, classes 8 `izi-`
+and 10 `izin-` both take `ezi-`. Attested example, `izinsuku ezingu-8`, 8 days.
+
+| Key | English | isiZulu as written | Noun and class | Correction |
 | --- | --- | --- | --- | --- |
-| `training.lessonCount` | {n} lessons | izifundo ezingu-{n} | izifundo ezingu-5 | |
-| `course.lessons` | {n} lessons | izifundo ezingu-{n} | izifundo ezingu-12 | |
-| `training.minutes` | {n} min read | imizuzu engu-{n} yokufunda | imizuzu engu-16 yokufunda | |
-| `course.minRead` | {n} min read | imizuzu engu-{n} yokufunda | imizuzu engu-4 yokufunda | |
-| `course.min` | {n} min | imizuzu engu-{n} | imizuzu engu-4 | |
-| `course.position` | {n} of {total} | {n} kwangu-{total} | 2 kwangu-5 | |
-| `course.progressLabel` | Lesson {n} of {total} | Isifundo {n} kwangu-{total} | Isifundo 2 kwangu-5 | |
-| `course.roles` | {n} roles | izikhundla ezingu-{n} | izikhundla ezingu-3 | |
-| `course.role` | 1 role | isikhundla esi-1 | isikhundla esi-1 | |
-| `academic.closesIn` | Closes in {n} days | Ivalwa ezinsukwini ezingu-{n} | Ivalwa ezinsukwini ezingu-7 | |
-| `academic.openCount` | {n} still open | ezingu-{n} zisavuliwe | ezingu-9 zisavuliwe | |
-| `academic.showClosed` | Show {n} closed deadlines | Bonisa izicelo ezingu-{n} ezivaliwe | Bonisa izicelo ezingu-4 ezivaliwe | |
+| `training.lessonCount` | {n} lessons | izifundo ezingu-{n} | izifundo, cl 8 → ezi- | |
+| `course.lessons` | {n} lessons | izifundo ezingu-{n} | izifundo, cl 8 → ezi- | |
+| `training.minutes` | {n} min read | imizuzu engu-{n} yokufunda | imizuzu, cl 4 → e- | |
+| `course.minRead` | {n} min read | imizuzu engu-{n} yokufunda | imizuzu, cl 4 → e- | |
+| `course.min` | {n} min | imizuzu engu-{n} | imizuzu, cl 4 → e- | |
+| `course.roles` | {n} roles | izikhundla ezingu-{n} | izikhundla, cl 8 → ezi- | |
+| `academic.openCount` | {n} still open | ezingu-{n} zisavuliwe | izicelo, cl 8 → ezi- | |
+| `academic.showClosed` | Show {n} closed deadlines | Bonisa izicelo ezingu-{n} ezivaliwe | izicelo, cl 8 → ezi- | |
+
+**The four that were corrected on 8 August.** These were wrong. They are the
+ones most worth a second opinion, because they were changed on grammar
+reasoning rather than on an attested example.
+
+| Key | English | Was | Now | Why | Correction |
+| --- | --- | --- | --- | --- | --- |
+| `course.position` | {n} of {total} | {n} kwangu-{total} | {n} kwezingu-{total} | `kwangu-` is not a form. Partitive is kwa- plus the class 8 relative ezi- | |
+| `course.progressLabel` | Lesson {n} of {total} | Isifundo {n} kwangu-{total} | Isifundo {n} kwezingu-{total} | same | |
+| `course.role` | 1 role | isikhundla esi-1 | isikhundla esisodwa | isiZulu does not count one with a digit, it uses the -odwa stem | |
+| `academic.closesIn` | Closes in {n} days | Ivalwa ezinsukwini ezingu-{n} | Kusele izinsuku ezingu-{n} | concord was right, phrasing was marked. Now matches the attested izinsuku ezingu-8, and says what is left | |
 
 **One bug this sheet has already caught.** There was a `course.read` key that
 took an already formatted English duration, so the course page rendered
