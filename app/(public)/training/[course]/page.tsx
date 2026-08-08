@@ -12,6 +12,7 @@ import {
 import { formatMinutes } from '@/lib/format-duration';
 import { accessLabel } from '@/lib/training-level';
 import { Inline, Prose } from '@/components/Prose';
+import T from '@/components/T';
 
 type Props = { params: Promise<{ course: string }> };
 
@@ -46,18 +47,19 @@ export default async function CoursePage({ params }: Props) {
             href="/training"
             className="text-sm text-slate-400 hover:text-white transition-colors"
           >
-            &larr; Training
+            &larr; <T k="course.back" />
           </Link>
           <h1 className="text-3xl md:text-5xl font-bold tracking-tight mt-4">{course.title}</h1>
           <p className="text-lg text-slate-300 mt-3">{course.promise}</p>
           <p className="text-sm text-slate-400 mt-1">{course.forWho}</p>
 
           <p className="text-sm text-slate-400 mt-6">
-            {course.lessons.length} lessons · {formatMinutes(courseMinutes(course))} read ·{' '}
+            <T k="course.lessons" vars={{ n: course.lessons.length }} /> ·{' '}
+            <T k="course.read" vars={{ d: formatMinutes(courseMinutes(course)) }} /> ·{' '}
             <span className={accessLabel(course.level) === 'Free' ? 'text-emerald-400' : ''}>
-              {accessLabel(course.level)}
+              <T k={accessLabel(course.level) === 'Free' ? 'course.free' : 'course.paid'} />
             </span>{' '}
-            · Self paced
+            · <T k="course.selfPaced" />
           </p>
 
           {first && (
@@ -65,7 +67,7 @@ export default async function CoursePage({ params }: Props) {
               href={lessonHref(course, first)}
               className="inline-block mt-7 bg-indigo-600 hover:bg-indigo-500 transition-colors text-white font-bold px-7 py-3.5 rounded-xl"
             >
-              Start lesson 1
+              <T k="course.start" />
             </Link>
           )}
         </div>
@@ -92,7 +94,7 @@ export default async function CoursePage({ params }: Props) {
                   </span>
                 </span>
                 <span className="text-xs text-slate-400 whitespace-nowrap pt-0.5">
-                  {readingMinutes(lesson)} min
+                  <T k="course.min" vars={{ n: readingMinutes(lesson) }} />
                 </span>
               </Link>
             </li>
@@ -103,7 +105,9 @@ export default async function CoursePage({ params }: Props) {
             people away. It is worth reading, so it stays, one tap off the path. */}
         <details className="group mt-8 bg-white border border-slate-200 rounded-2xl overflow-hidden">
           <summary className="flex items-center gap-3 p-5 cursor-pointer list-none [&::-webkit-details-marker]:hidden font-semibold text-slate-900">
-            <span className="flex-1">A word before you start</span>
+            <span className="flex-1">
+              <T k="course.aboutTitle" />
+            </span>
             <span className="text-slate-300 text-2xl leading-none transition-transform group-open:rotate-45">
               +
             </span>

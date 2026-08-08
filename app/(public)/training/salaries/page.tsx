@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { academy } from '@/data/academy';
 import GuideShell from '@/components/GuideShell';
 import { Prose } from '@/components/Prose';
+import T from '@/components/T';
 
 export const metadata: Metadata = {
   title: 'South African tech salary guide',
@@ -80,7 +81,9 @@ export default function SalariesPage() {
 
       <details className="group mt-6 bg-white border border-slate-200 rounded-2xl overflow-hidden">
         <summary className="flex items-center gap-3 p-5 cursor-pointer list-none [&::-webkit-details-marker]:hidden font-semibold text-slate-900">
-          <span className="flex-1">How to read these numbers</span>
+          <span className="flex-1">
+            <T k="course.howToRead" />
+          </span>
           <span className="text-slate-300 text-2xl leading-none transition-transform group-open:rotate-45">
             +
           </span>

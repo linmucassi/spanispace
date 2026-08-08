@@ -12,6 +12,7 @@ import {
   readingMinutes,
 } from '@/data/courses';
 import { Inline, Prose } from '@/components/Prose';
+import T from '@/components/T';
 
 type Props = { params: Promise<{ course: string; lesson: string }> };
 
@@ -57,7 +58,7 @@ export default async function LessonPage({ params }: Props) {
             &larr; {course.title}
           </Link>
           <span className="ml-auto text-xs font-mono text-slate-400 whitespace-nowrap tabular-nums">
-            {position} of {total}
+            <T k="course.position" vars={{ n: position, total }} />
           </span>
         </div>
         <div
@@ -81,11 +82,13 @@ export default async function LessonPage({ params }: Props) {
         <p className="font-serif italic text-lg text-slate-700 mt-5">
           <Inline html={lesson.hookHtml} />
         </p>
-        <p className="text-xs text-slate-400 mt-4">{readingMinutes(lesson)} min read</p>
+        <p className="text-xs text-slate-400 mt-4">
+          <T k="course.minRead" vars={{ n: readingMinutes(lesson) }} />
+        </p>
 
         <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 mt-8">
           <p className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-400 mb-2">
-            By the end you can
+            <T k="course.outcomes" />
           </p>
           <ul className="list-disc pl-5 space-y-1 text-sm text-slate-700">
             {lesson.outcomes.map((outcome, i) => (
@@ -106,7 +109,7 @@ export default async function LessonPage({ params }: Props) {
         {lesson.keyTerms.length > 0 && (
           <div className="mt-10 pt-6 border-t border-slate-200">
             <p className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-400 mb-4">
-              Key words in plain language
+              <T k="course.keyTerms" />
             </p>
             <dl className="space-y-3">
               {lesson.keyTerms.map((term, i) => (
@@ -124,7 +127,7 @@ export default async function LessonPage({ params }: Props) {
         {lesson.activityHtml && (
           <div className="mt-8 bg-indigo-50 border border-indigo-100 rounded-2xl p-5">
             <p className="text-[10px] font-mono font-bold uppercase tracking-wider text-indigo-600 mb-1.5">
-              Try this, free
+              <T k="course.activity" />
             </p>
             <p className="text-sm text-slate-700 leading-relaxed">
               <Inline html={lesson.activityHtml} />
@@ -137,7 +140,7 @@ export default async function LessonPage({ params }: Props) {
         {!next && (
           <div className="mt-12 bg-slate-900 text-white rounded-3xl p-7 md:p-10">
             <p className="text-xs font-mono font-bold uppercase tracking-[0.16em] text-indigo-400 mb-4">
-              You finished {course.title}
+              <T k="course.finished" vars={{ course: course.title }} />
             </p>
             <div
               className="text-slate-200 leading-relaxed [&_p]:mb-4 [&_strong]:text-white"
@@ -148,13 +151,13 @@ export default async function LessonPage({ params }: Props) {
                 href="/training/career-tracks"
                 className="bg-white text-slate-900 font-bold px-5 py-3 rounded-xl hover:bg-indigo-50 transition-colors"
               >
-                Pick a career track
+                <T k="course.pickTrack" />
               </Link>
               <Link
                 href="/jobs"
                 className="border border-white/20 text-white font-bold px-5 py-3 rounded-xl hover:bg-white/10 transition-colors"
               >
-                Browse jobs
+                <T k="course.browseJobs" />
               </Link>
             </div>
           </div>
@@ -166,7 +169,7 @@ export default async function LessonPage({ params }: Props) {
               href={lessonHref(course, previous)}
               className="flex-1 border border-slate-200 rounded-2xl p-4 hover:border-indigo-400 transition-colors"
             >
-              <span className="block text-xs text-slate-400">&larr; Previous</span>
+              <span className="block text-xs text-slate-400">&larr; <T k="course.previous" /></span>
               <span className="block text-sm font-semibold text-slate-800 mt-1 line-clamp-2">
                 {previous.title}
               </span>
@@ -179,7 +182,7 @@ export default async function LessonPage({ params }: Props) {
               href={lessonHref(course, next)}
               className="flex-1 bg-slate-900 text-white rounded-2xl p-4 hover:bg-slate-800 transition-colors text-right"
             >
-              <span className="block text-xs text-slate-400">Next &rarr;</span>
+              <span className="block text-xs text-slate-400"><T k="course.next" /> &rarr;</span>
               <span className="block text-sm font-semibold mt-1 line-clamp-2">{next.title}</span>
             </Link>
           )}
