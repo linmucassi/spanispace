@@ -9,7 +9,6 @@ import {
   lessonHref,
   readingMinutes,
 } from '@/data/courses';
-import { formatMinutes } from '@/lib/format-duration';
 import { accessLabel } from '@/lib/training-level';
 import { Inline, Prose } from '@/components/Prose';
 import T from '@/components/T';
@@ -55,7 +54,7 @@ export default async function CoursePage({ params }: Props) {
 
           <p className="text-sm text-ink-400 mt-6">
             <T k="course.lessons" vars={{ n: course.lessons.length }} /> ·{' '}
-            <T k="course.read" vars={{ d: formatMinutes(courseMinutes(course)) }} /> ·{' '}
+            <T k="course.minRead" vars={{ n: courseMinutes(course) }} /> ·{' '}
             <span className={accessLabel(course.level) === 'Free' ? 'text-emerald-400' : ''}>
               <T k={accessLabel(course.level) === 'Free' ? 'course.free' : 'course.paid'} />
             </span>{' '}
