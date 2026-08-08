@@ -8,7 +8,7 @@ const statusColors: Record<string, string> = {
 };
 
 const progressBarColors: Record<string, string> = {
-  enrolled: 'bg-indigo-600',
+  enrolled: 'bg-brand-600',
   completed: 'bg-green-600',
   dropped: 'bg-slate-400',
 };
@@ -99,7 +99,7 @@ export default async function CandidateEnrollmentsPage() {
         </div>
         <Link
           href="/#training"
-          className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+          className="inline-flex items-center px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors"
         >
           Browse Training
         </Link>
@@ -112,7 +112,7 @@ export default async function CandidateEnrollmentsPage() {
           </p>
           <Link
             href="/#training"
-            className="inline-flex items-center mt-4 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+            className="inline-flex items-center mt-4 px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors"
           >
             Browse Training
           </Link>

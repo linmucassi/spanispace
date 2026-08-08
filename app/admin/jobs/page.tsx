@@ -52,7 +52,7 @@ export default function AdminJobs() {
         </div>
         <Link
           href="/admin/jobs/new"
-          className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all"
+          className="bg-brand-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-brand-700 transition-all"
         >
           + Add Job
         </Link>
@@ -65,7 +65,7 @@ export default function AdminJobs() {
             key={f}
             onClick={() => setFilter(f)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              filter === f ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+              filter === f ? 'bg-brand-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
             }`}
           >
             {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -77,7 +77,7 @@ export default function AdminJobs() {
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center h-32">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600" />
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-600" />
           </div>
         ) : jobs.length === 0 ? (
           <div className="px-6 py-12 text-center text-slate-400">No jobs found.</div>

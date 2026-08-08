@@ -9,13 +9,13 @@ export default function PrivacyPolicyPage() {
   return (
     <div className="min-h-screen bg-white pt-24 pb-16">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold text-slate-900 mb-2">Privacy Policy</h1>
-        <p className="text-sm text-slate-500 mb-10">Last updated: 26 June 2026</p>
+        <h1 className="text-3xl font-bold text-ink-900 mb-2">Privacy Policy</h1>
+        <p className="text-sm text-ink-500 mb-10">Last updated: 26 June 2026</p>
 
         <div className="prose prose-slate max-w-none space-y-8">
           <section>
-            <h2 className="text-xl font-semibold text-slate-800 mb-3">1. Introduction</h2>
-            <p className="text-slate-600 leading-relaxed">
+            <h2 className="text-xl font-semibold text-ink-800 mb-3">1. Introduction</h2>
+            <p className="text-ink-600 leading-relaxed">
               Spanispace (&quot;we&quot;, &quot;our&quot;, or &quot;us&quot;) is committed to protecting your personal information
               and your right to privacy. This Privacy Policy explains how we collect, use, disclose, and
               safeguard your information when you use our talent and employment platform. We are a South
@@ -25,12 +25,12 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-slate-800 mb-3">2. Information We Collect</h2>
-            <p className="text-slate-600 leading-relaxed mb-3">
+            <h2 className="text-xl font-semibold text-ink-800 mb-3">2. Information We Collect</h2>
+            <p className="text-ink-600 leading-relaxed mb-3">
               We collect information that you provide directly to us, as well as information that is
               generated automatically when you use our platform. This includes:
             </p>
-            <ul className="list-disc list-inside text-slate-600 space-y-2 ml-2">
+            <ul className="list-disc list-inside text-ink-600 space-y-2 ml-2">
               <li>
                 <strong>Account Information:</strong> Name, email address, phone number, password, and
                 account type (candidate or employer).
@@ -59,11 +59,11 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-slate-800 mb-3">3. How We Use Your Information</h2>
-            <p className="text-slate-600 leading-relaxed mb-3">
+            <h2 className="text-xl font-semibold text-ink-800 mb-3">3. How We Use Your Information</h2>
+            <p className="text-ink-600 leading-relaxed mb-3">
               We use the information we collect for the following purposes:
             </p>
-            <ul className="list-disc list-inside text-slate-600 space-y-2 ml-2">
+            <ul className="list-disc list-inside text-ink-600 space-y-2 ml-2">
               <li>To create and manage your account on our platform.</li>
               <li>To facilitate job applications and match candidates with employers.</li>
               <li>To provide training programmes, bootcamps, and academic opportunity tracking.</li>
@@ -76,12 +76,12 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-slate-800 mb-3">4. Data Sharing and Disclosure</h2>
-            <p className="text-slate-600 leading-relaxed mb-3">
+            <h2 className="text-xl font-semibold text-ink-800 mb-3">4. Data Sharing and Disclosure</h2>
+            <p className="text-ink-600 leading-relaxed mb-3">
               We do not sell your personal information. We may share your information in the following
               circumstances:
             </p>
-            <ul className="list-disc list-inside text-slate-600 space-y-2 ml-2">
+            <ul className="list-disc list-inside text-ink-600 space-y-2 ml-2">
               <li>
                 <strong>With Employers:</strong> When you apply for a job, your application details
                 and profile information are shared with the relevant employer.
@@ -104,8 +104,8 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-slate-800 mb-3">5. Data Security</h2>
-            <p className="text-slate-600 leading-relaxed">
+            <h2 className="text-xl font-semibold text-ink-800 mb-3">5. Data Security</h2>
+            <p className="text-ink-600 leading-relaxed">
               We implement appropriate technical and organisational measures to protect your personal
               information against unauthorised access, alteration, disclosure, or destruction. These
               measures include encryption of data in transit and at rest, access controls, regular
@@ -116,8 +116,8 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-slate-800 mb-3">6. Data Retention</h2>
-            <p className="text-slate-600 leading-relaxed">
+            <h2 className="text-xl font-semibold text-ink-800 mb-3">6. Data Retention</h2>
+            <p className="text-ink-600 leading-relaxed">
               We retain your personal information for as long as your account is active or as needed to
               provide you with our services. If you close your account, we will delete or anonymise your
               personal information within 90 days, unless we are required to retain it for legal,
@@ -127,12 +127,12 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-slate-800 mb-3">7. Your Rights Under POPIA</h2>
-            <p className="text-slate-600 leading-relaxed mb-3">
+            <h2 className="text-xl font-semibold text-ink-800 mb-3">7. Your Rights Under POPIA</h2>
+            <p className="text-ink-600 leading-relaxed mb-3">
               Under the Protection of Personal Information Act (POPIA), you have the following rights
               regarding your personal information:
             </p>
-            <ul className="list-disc list-inside text-slate-600 space-y-2 ml-2">
+            <ul className="list-disc list-inside text-ink-600 space-y-2 ml-2">
               <li>
                 <strong>Right of Access:</strong> You may request confirmation of whether we hold your
                 personal information and request access to it.
@@ -158,14 +158,14 @@ export default function PrivacyPolicyPage() {
                 Information Regulator of South Africa if you believe your rights have been infringed.
               </li>
             </ul>
-            <p className="text-slate-600 leading-relaxed mt-3">
+            <p className="text-ink-600 leading-relaxed mt-3">
               To exercise any of these rights, please contact us using the details provided below.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-slate-800 mb-3">8. Cookies and Tracking</h2>
-            <p className="text-slate-600 leading-relaxed">
+            <h2 className="text-xl font-semibold text-ink-800 mb-3">8. Cookies and Tracking</h2>
+            <p className="text-ink-600 leading-relaxed">
               We use cookies and similar tracking technologies to enhance your experience on our
               platform. Cookies are small data files stored on your device that help us remember your
               preferences, understand how you use our platform, and improve our services. You can
@@ -176,8 +176,8 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-slate-800 mb-3">9. Third-Party Links</h2>
-            <p className="text-slate-600 leading-relaxed">
+            <h2 className="text-xl font-semibold text-ink-800 mb-3">9. Third-Party Links</h2>
+            <p className="text-ink-600 leading-relaxed">
               Our platform may contain links to third-party websites, services, or applications that
               are not operated by us. We are not responsible for the privacy practices of these third
               parties. We encourage you to review the privacy policies of any third-party services
@@ -186,12 +186,12 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-slate-800 mb-3">10. AI CV Audit Feature</h2>
-            <p className="text-slate-600 leading-relaxed mb-3">
+            <h2 className="text-xl font-semibold text-ink-800 mb-3">10. AI CV Audit Feature</h2>
+            <p className="text-ink-600 leading-relaxed mb-3">
               Spanispace offers an optional AI-Driven CV Audit feature that allows candidates to paste
               their CV text and receive automated feedback. When you use this feature:
             </p>
-            <ul className="list-disc list-inside text-slate-600 space-y-2 ml-2">
+            <ul className="list-disc list-inside text-ink-600 space-y-2 ml-2">
               <li>
                 Your CV text is transmitted to Anthropic&apos;s API for processing. Anthropic&apos;s own
                 Privacy Policy governs how they handle this data. We do not store your CV text on our
@@ -209,8 +209,8 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-slate-800 mb-3">11. Document Storage</h2>
-            <p className="text-slate-600 leading-relaxed">
+            <h2 className="text-xl font-semibold text-ink-800 mb-3">11. Document Storage</h2>
+            <p className="text-ink-600 leading-relaxed">
               Candidates may upload documents (such as CVs and certificates) to their Spanispace
               profile through the My Documents section. These files are stored securely using
               Supabase Storage with access controls that limit visibility to you and authorised
@@ -220,8 +220,8 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-slate-800 mb-3">12. Scraped Job Listings</h2>
-            <p className="text-slate-600 leading-relaxed">
+            <h2 className="text-xl font-semibold text-ink-800 mb-3">12. Scraped Job Listings</h2>
+            <p className="text-ink-600 leading-relaxed">
               Some job listings displayed on Spanispace are sourced automatically from third-party
               job boards (including RemoteOK, Remotive, and Adzuna) via automated scraping. These
               listings are curated and filtered before display but originate from external sources.
@@ -233,8 +233,8 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-slate-800 mb-3">13. Changes to This Policy</h2>
-            <p className="text-slate-600 leading-relaxed">
+            <h2 className="text-xl font-semibold text-ink-800 mb-3">13. Changes to This Policy</h2>
+            <p className="text-ink-600 leading-relaxed">
               We may update this Privacy Policy from time to time to reflect changes in our practices
               or applicable law. We will notify you of any material changes by posting the updated
               policy on our platform and updating the &quot;Last updated&quot; date. Your continued use of the
@@ -243,12 +243,12 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-slate-800 mb-3">14. Contact Information</h2>
-            <p className="text-slate-600 leading-relaxed">
+            <h2 className="text-xl font-semibold text-ink-800 mb-3">14. Contact Information</h2>
+            <p className="text-ink-600 leading-relaxed">
               If you have any questions about this Privacy Policy or wish to exercise your data
               protection rights, please contact us at:
             </p>
-            <div className="mt-3 bg-slate-50 rounded-lg p-4 text-slate-600 text-sm space-y-1">
+            <div className="mt-3 bg-ink-50 rounded-lg p-4 text-ink-600 text-sm space-y-1">
               <p><strong>Spanispace (Pty) Ltd</strong></p>
               <p>Email: privacy@spanispace.com</p>
               <p>South Africa</p>
@@ -256,10 +256,10 @@ export default function PrivacyPolicyPage() {
           </section>
         </div>
 
-        <div className="mt-12 pt-8 border-t border-slate-200">
+        <div className="mt-12 pt-8 border-t border-ink-200">
           <Link
             href="/"
-            className="text-indigo-600 hover:text-indigo-700 text-sm font-medium transition-colors"
+            className="text-brand-600 hover:text-brand-700 text-sm font-medium transition-colors"
           >
             &larr; Back to Home
           </Link>

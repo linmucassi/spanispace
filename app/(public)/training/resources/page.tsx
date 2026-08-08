@@ -22,13 +22,13 @@ export default function ResourcesPage() {
             href={link.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="block bg-white border border-slate-200 rounded-2xl p-5 hover:border-indigo-400 transition-colors"
+            className="block bg-white border border-ink-200 rounded-2xl p-5 hover:border-brand-400 transition-colors"
           >
-            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-indigo-600">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-brand-600">
               {link.kind}
             </span>
-            <p className="font-semibold text-slate-900 mt-1">{link.title}</p>
-            <p className="text-sm text-slate-500 mt-0.5">{link.note}</p>
+            <p className="font-semibold text-ink-900 mt-1">{link.title}</p>
+            <p className="text-sm text-ink-500 mt-0.5">{link.note}</p>
           </a>
         ))}
       </div>

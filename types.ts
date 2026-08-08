@@ -17,6 +17,12 @@ export interface Job {
   expiryDate: string;
   vettedStatus: VettedStatus;
   duration?: string; // e.g. '3 months', 'Weekends' — how long the work lasts
+  /**
+   * What the job pays, as the employer wrote it: 'R200/day', 'R5000/month',
+   * 'Negotiable'. Optional because most scraped listings carry no salary, and
+   * a card must never guess or imply a figure that was not published.
+   */
+  payRange?: string;
   type:
     | 'Remote'
     | 'Hybrid'

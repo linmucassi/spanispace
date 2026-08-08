@@ -82,7 +82,7 @@ export default function LoginPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="block w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+            className="block w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
             placeholder="you@example.com"
           />
         </div>
@@ -94,7 +94,7 @@ export default function LoginPage() {
             </label>
             <Link
               href="/forgot-password"
-              className="text-xs text-indigo-600 hover:text-indigo-700 font-medium"
+              className="text-xs text-brand-600 hover:text-brand-700 font-medium"
             >
               {t('auth.forgotPassword')}
             </Link>
@@ -104,7 +104,7 @@ export default function LoginPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="block w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+            className="block w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
           />
         </div>
 
@@ -117,7 +117,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+          className="w-full bg-brand-600 text-white py-3 rounded-xl font-bold hover:bg-brand-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {loading && <Loader2 className="w-4 h-4 animate-spin" />}
           {loading ? t('auth.signingIn') : t('auth.signIn')}
@@ -126,7 +126,7 @@ export default function LoginPage() {
 
       <p className="text-center text-sm text-slate-500 mt-6">
         {t('auth.noAccount')}{' '}
-        <Link href="/register" className="text-indigo-600 hover:text-indigo-700 font-medium">
+        <Link href="/register" className="text-brand-600 hover:text-brand-700 font-medium">
           {t('auth.createAccount')}
         </Link>
       </p>

@@ -17,6 +17,10 @@ const zu = {
       'Inkundla ehamba phambili yabafundi abasanda kuphothula nabafuna imisebenzi. Thola ukuqeqeshwa okuholwa yizingcweti, amathuba omsebenzi aqinisekisiwe, nokulungiswa kwe-CV yakho ukuze ugqame.',
     browseJobs: 'Bheka Amathuba',
     joinBootcamp: 'Joyina I-Bootcamp',
+    statJobs: 'imisebenzi evulekile manje',
+    statCourses: 'izifundo zamahhala',
+    statPrice: 'kwabafuna umsebenzi, njalo',
+    statPriceValue: 'Mahhala',
   },
   jobs: {
     title: 'Amathuba Omsebenzi Aqinisekisiwe',
@@ -47,6 +51,7 @@ const zu = {
     skillsAssessed: 'Amakhono Ahlolwe',
     elite: 'Indlela Yabagqamile',
     viewDetails: 'Buka Imininingwane',
+    payNotListed: 'Inkokhelo ayishiwongo',
   },
   training: {
     title: 'Funda Okukhokhelayo',
@@ -99,11 +104,16 @@ const zu = {
     role: 'isikhundla esi-1',
   },
   academic: {
-    title: 'Isiqalo Esivela Esikoleni Samabanga Aphezulu',
+    title: 'Imikhawulo yenyuvesi',
     subtitle:
       'Uphuthwa yizikhathi zokufaka izicelo? I-Spanispace ilandelela izicelo zamuva, ubufundiswa, nezikhathi zokuqeqeshwa kwamakhono ukuze ungasali ngemuva.',
     deadline: 'Umkhawulo',
     deadlinePassed: 'Umkhawulo Udlulile',
+    closesIn: 'Ivalwa ezinsukwini ezingu-{n}',
+    closesToday: 'Ivalwa namuhla',
+    openCount: 'ezingu-{n} zisavuliwe',
+    showClosed: 'Bonisa izicelo ezingu-{n} ezivaliwe',
+    noneOpen: 'Ayikho evuliwe njengamanje. Sihlola masonto onke, buya futhi noma ubheke imisebenzi okwamanje.',
   },
   cta: {
     title: 'Joyina Inqubo',

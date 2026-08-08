@@ -46,7 +46,7 @@ export default function AdminTrainings() {
           <h1 className="text-2xl font-extrabold text-slate-900">Trainings</h1>
           <p className="text-slate-500 text-sm">Manage bootcamps, short courses, and events — including company submissions</p>
         </div>
-        <Link href="/admin/trainings/new" className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all">
+        <Link href="/admin/trainings/new" className="bg-brand-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-brand-700 transition-all">
           + Add Training
         </Link>
       </div>
@@ -57,7 +57,7 @@ export default function AdminTrainings() {
             key={f}
             onClick={() => setFilter(f)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              filter === f ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+              filter === f ? 'bg-brand-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
             }`}
           >
             {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -67,7 +67,7 @@ export default function AdminTrainings() {
 
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         {loading ? (
-          <div className="flex items-center justify-center h-32"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600" /></div>
+          <div className="flex items-center justify-center h-32"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-600" /></div>
         ) : items.length === 0 ? (
           <div className="px-6 py-12 text-center text-slate-400">No trainings found.</div>
         ) : (
@@ -89,7 +89,7 @@ export default function AdminTrainings() {
               {items.map((item) => (
                 <tr key={item.id} className="hover:bg-slate-50/50">
                   <td className="px-6 py-4 text-sm font-bold text-slate-900">{item.title}</td>
-                  <td className="px-6 py-4"><span className={`px-2 py-0.5 rounded-full text-xs font-bold ${item.category === 'Bootcamp' ? 'bg-indigo-100 text-indigo-700' : item.category === 'Event' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>{item.category}</span></td>
+                  <td className="px-6 py-4"><span className={`px-2 py-0.5 rounded-full text-xs font-bold ${item.category === 'Bootcamp' ? 'bg-brand-100 text-brand-700' : item.category === 'Event' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>{item.category}</span></td>
                   <td className="px-6 py-4 text-sm text-slate-500">{item.company_id ? 'Company' : 'Platform'}</td>
                   <td className="px-6 py-4 text-sm text-slate-600 font-mono">{item.start_date || '-'}</td>
                   <td className="px-6 py-4 text-sm text-slate-600">{item.format || '-'}</td>

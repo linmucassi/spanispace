@@ -111,7 +111,7 @@ export default async function CandidateDashboard() {
     {
       label: 'Total Applications',
       value: totalApplications,
-      color: 'bg-indigo-50 text-indigo-700',
+      color: 'bg-brand-50 text-brand-700',
     },
     {
       label: 'Shortlisted',
@@ -144,7 +144,7 @@ export default async function CandidateDashboard() {
         </div>
         <Link
           href="/#jobs"
-          className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+          className="inline-flex items-center px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors"
         >
           Browse Jobs
         </Link>
@@ -187,7 +187,7 @@ export default async function CandidateDashboard() {
             </p>
             <Link
               href="/#jobs"
-              className="inline-flex items-center mt-4 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+              className="inline-flex items-center mt-4 px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors"
             >
               Browse Jobs
             </Link>

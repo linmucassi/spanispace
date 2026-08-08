@@ -69,7 +69,7 @@ export default function CandidateSearch({
             placeholder="Search by skills or name..."
             value={searchSkills}
             onChange={(e) => setSearchSkills(e.target.value)}
-            className="block w-full rounded-xl border border-slate-200 pl-10 pr-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none bg-white"
+            className="block w-full rounded-xl border border-slate-200 pl-10 pr-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none bg-white"
           />
         </div>
         <div className="relative">
@@ -79,7 +79,7 @@ export default function CandidateSearch({
             placeholder="Filter by location..."
             value={searchLocation}
             onChange={(e) => setSearchLocation(e.target.value)}
-            className="block w-full rounded-xl border border-slate-200 pl-10 pr-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none bg-white"
+            className="block w-full rounded-xl border border-slate-200 pl-10 pr-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none bg-white"
           />
         </div>
       </div>
@@ -108,7 +108,7 @@ export default function CandidateSearch({
             <div
               key={candidate.id}
               onClick={() => setSelectedCandidate(candidate)}
-              className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 hover:shadow-md hover:border-indigo-200 transition-all cursor-pointer"
+              className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 hover:shadow-md hover:border-brand-200 transition-all cursor-pointer"
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1 min-w-0">
@@ -117,7 +117,7 @@ export default function CandidateSearch({
                       {candidate.full_name}
                     </h3>
                     {candidate.verified && (
-                      <CheckCircle className="w-4 h-4 text-indigo-600 shrink-0" />
+                      <CheckCircle className="w-4 h-4 text-brand-600 shrink-0" />
                     )}
                   </div>
                   {candidate.location && (
@@ -171,8 +171,8 @@ export default function CandidateSearch({
 
             <div className="px-6 py-5 space-y-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center">
-                  <span className="text-lg font-bold text-indigo-600">
+                <div className="w-12 h-12 rounded-full bg-brand-100 flex items-center justify-center">
+                  <span className="text-lg font-bold text-brand-600">
                     {selectedCandidate.full_name.charAt(0).toUpperCase()}
                   </span>
                 </div>
@@ -182,7 +182,7 @@ export default function CandidateSearch({
                       {selectedCandidate.full_name}
                     </h3>
                     {selectedCandidate.verified && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-100 text-xs font-bold text-indigo-700">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-brand-100 text-xs font-bold text-brand-700">
                         <CheckCircle className="w-3 h-3" />
                         Verified
                       </span>
@@ -205,7 +205,7 @@ export default function CandidateSearch({
                   <div className="mt-1 flex items-center gap-2">
                     <div className="flex-1 bg-slate-100 rounded-full h-2">
                       <div
-                        className="bg-indigo-600 h-2 rounded-full transition-all"
+                        className="bg-brand-600 h-2 rounded-full transition-all"
                         style={{
                           width: `${selectedCandidate.profile_score}%`,
                         }}
@@ -257,7 +257,7 @@ export default function CandidateSearch({
               <div className="flex gap-3 pt-2">
                 <Link
                   href={`/company/messages?candidateId=${selectedCandidate.id}`}
-                  className="inline-flex items-center gap-1.5 text-sm text-indigo-600 font-medium hover:underline"
+                  className="inline-flex items-center gap-1.5 text-sm text-brand-600 font-medium hover:underline"
                 >
                   <MessageSquare className="w-4 h-4" />
                   Message
@@ -267,7 +267,7 @@ export default function CandidateSearch({
                     href={selectedCandidate.portfolio_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-indigo-600 font-medium hover:underline"
+                    className="text-sm text-brand-600 font-medium hover:underline"
                   >
                     View Portfolio
                   </a>
@@ -277,7 +277,7 @@ export default function CandidateSearch({
                     href={selectedCandidate.cv_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-indigo-600 font-medium hover:underline"
+                    className="text-sm text-brand-600 font-medium hover:underline"
                   >
                     Download CV
                   </a>

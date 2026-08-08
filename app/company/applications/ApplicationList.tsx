@@ -38,7 +38,7 @@ function StatusBadge({ status }: { status: string }) {
     reviewed: 'bg-blue-100 text-blue-700',
     shortlisted: 'bg-green-100 text-green-700',
     rejected: 'bg-red-100 text-red-700',
-    hired: 'bg-indigo-100 text-indigo-700',
+    hired: 'bg-brand-100 text-brand-700',
   };
 
   return (
@@ -99,7 +99,7 @@ export default function ApplicationList({
             onClick={() => setFilter(f)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               filter === f
-                ? 'bg-indigo-600 text-white'
+                ? 'bg-brand-600 text-white'
                 : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
             }`}
           >
@@ -240,7 +240,7 @@ export default function ApplicationList({
                               href={doc.file_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors"
+                              className="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-lg bg-brand-50 text-brand-700 hover:bg-brand-100 transition-colors"
                             >
                               {DOC_LABELS[doc.doc_type] ?? doc.doc_type}: {doc.name}
                             </a>
@@ -258,7 +258,7 @@ export default function ApplicationList({
                               href={app.cv_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-sm text-indigo-600 font-medium hover:underline"
+                              className="text-sm text-brand-600 font-medium hover:underline"
                             >
                               View / Download CV
                             </a>
@@ -291,7 +291,7 @@ export default function ApplicationList({
                         <button
                           onClick={() => updateStatus(app.id, 'hired')}
                           disabled={updating === app.id}
-                          className="px-3 py-1.5 text-xs font-bold bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-colors disabled:opacity-50"
+                          className="px-3 py-1.5 text-xs font-bold bg-brand-50 text-brand-700 rounded-lg hover:bg-brand-100 transition-colors disabled:opacity-50"
                         >
                           Mark Hired
                         </button>

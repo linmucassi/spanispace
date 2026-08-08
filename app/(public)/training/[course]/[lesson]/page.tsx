@@ -49,20 +49,20 @@ export default async function LessonPage({ params }: Props) {
   return (
     <article className="pt-16">
       {/* The only chrome on the page: where you are, and the way back. */}
-      <div className="sticky top-16 z-30 bg-white/90 backdrop-blur border-b border-slate-200">
+      <div className="sticky top-16 z-30 bg-white/90 backdrop-blur border-b border-ink-200">
         <div className="max-w-2xl mx-auto px-4 flex items-center gap-4 py-3">
           <Link
             href={`/training/${course.slug}`}
-            className="text-sm text-slate-500 hover:text-indigo-600 transition-colors truncate"
+            className="text-sm text-ink-500 hover:text-brand-600 transition-colors truncate"
           >
             &larr; {course.title}
           </Link>
-          <span className="ml-auto text-xs font-mono text-slate-400 whitespace-nowrap tabular-nums">
+          <span className="ml-auto text-xs font-mono text-ink-400 whitespace-nowrap tabular-nums">
             <T k="course.position" vars={{ n: position, total }} />
           </span>
         </div>
         <div
-          className="h-0.5 bg-indigo-600"
+          className="h-0.5 bg-brand-600"
           style={{ width: `${(position / total) * 100}%` }}
           role="progressbar"
           aria-valuenow={position}
@@ -73,24 +73,24 @@ export default async function LessonPage({ params }: Props) {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-10 md:py-14">
-        <p className="font-mono text-sm font-bold text-indigo-600 tabular-nums">
+        <p className="font-mono text-sm font-bold text-brand-600 tabular-nums">
           {String(lesson.number).padStart(2, '0')}
         </p>
-        <h1 className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tight leading-tight mt-2">
+        <h1 className="text-3xl md:text-4xl font-bold text-ink-900 tracking-tight leading-tight mt-2">
           {lesson.title}
         </h1>
-        <p className="font-serif italic text-lg text-slate-700 mt-5">
+        <p className="font-serif italic text-lg text-ink-700 mt-5">
           <Inline html={lesson.hookHtml} />
         </p>
-        <p className="text-xs text-slate-400 mt-4">
+        <p className="text-xs text-ink-400 mt-4">
           <T k="course.minRead" vars={{ n: readingMinutes(lesson) }} />
         </p>
 
-        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 mt-8">
-          <p className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-400 mb-2">
+        <div className="bg-ink-50 border border-ink-200 rounded-2xl p-5 mt-8">
+          <p className="text-[11px] font-mono font-bold uppercase tracking-wider text-ink-400 mb-2">
             <T k="course.outcomes" />
           </p>
-          <ul className="list-disc pl-5 space-y-1 text-sm text-slate-700">
+          <ul className="list-disc pl-5 space-y-1 text-sm text-ink-700">
             {lesson.outcomes.map((outcome, i) => (
               <li key={i}>
                 <Inline html={outcome} />
@@ -103,19 +103,19 @@ export default async function LessonPage({ params }: Props) {
             words on a narrower line with room to breathe read as half as long. */}
         <Prose
           html={lesson.bodyHtml}
-          className="mt-8 text-[17px] leading-8 text-slate-700 [&_p]:mb-6 [&_strong]:text-slate-900 [&_a]:text-indigo-600 [&_a]:underline"
+          className="mt-8 text-[17px] leading-8 text-ink-700 [&_p]:mb-6 [&_strong]:text-ink-900 [&_a]:text-brand-600 [&_a]:underline"
         />
 
         {lesson.keyTerms.length > 0 && (
-          <div className="mt-10 pt-6 border-t border-slate-200">
-            <p className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-400 mb-4">
+          <div className="mt-10 pt-6 border-t border-ink-200">
+            <p className="text-[11px] font-mono font-bold uppercase tracking-wider text-ink-400 mb-4">
               <T k="course.keyTerms" />
             </p>
             <dl className="space-y-3">
               {lesson.keyTerms.map((term, i) => (
                 <div key={i}>
-                  <dt className="font-semibold text-slate-900 text-sm">{term.term}</dt>
-                  <dd className="text-sm text-slate-600">
+                  <dt className="font-semibold text-ink-900 text-sm">{term.term}</dt>
+                  <dd className="text-sm text-ink-600">
                     <Inline html={term.planHtml} />
                   </dd>
                 </div>
@@ -125,11 +125,11 @@ export default async function LessonPage({ params }: Props) {
         )}
 
         {lesson.activityHtml && (
-          <div className="mt-8 bg-indigo-50 border border-indigo-100 rounded-2xl p-5">
-            <p className="text-[10px] font-mono font-bold uppercase tracking-wider text-indigo-600 mb-1.5">
+          <div className="mt-8 bg-brand-50 border border-brand-100 rounded-2xl p-5">
+            <p className="text-[10px] font-mono font-bold uppercase tracking-wider text-brand-600 mb-1.5">
               <T k="course.activity" />
             </p>
-            <p className="text-sm text-slate-700 leading-relaxed">
+            <p className="text-sm text-ink-700 leading-relaxed">
               <Inline html={lesson.activityHtml} />
             </p>
           </div>
@@ -138,18 +138,18 @@ export default async function LessonPage({ params }: Props) {
         {/* The closing letter used to sit at the bottom of the one long page,
             where almost nobody reached it. It belongs here, at the finish. */}
         {!next && (
-          <div className="mt-12 bg-slate-900 text-white rounded-3xl p-7 md:p-10">
-            <p className="text-xs font-mono font-bold uppercase tracking-[0.16em] text-indigo-400 mb-4">
+          <div className="mt-12 bg-ink-900 text-white rounded-3xl p-7 md:p-10">
+            <p className="text-xs font-mono font-bold uppercase tracking-[0.16em] text-brand-400 mb-4">
               <T k="course.finished" vars={{ course: course.title }} />
             </p>
             <div
-              className="text-slate-200 leading-relaxed [&_p]:mb-4 [&_strong]:text-white"
+              className="text-ink-200 leading-relaxed [&_p]:mb-4 [&_strong]:text-white"
               dangerouslySetInnerHTML={{ __html: academy.spine.closingHtml }}
             />
             <div className="flex flex-wrap gap-3 mt-7">
               <Link
                 href="/training/career-tracks"
-                className="bg-white text-slate-900 font-bold px-5 py-3 rounded-xl hover:bg-indigo-50 transition-colors"
+                className="bg-white text-ink-900 font-bold px-5 py-3 rounded-xl hover:bg-brand-50 transition-colors"
               >
                 <T k="course.pickTrack" />
               </Link>
@@ -167,10 +167,10 @@ export default async function LessonPage({ params }: Props) {
           {previous ? (
             <Link
               href={lessonHref(course, previous)}
-              className="flex-1 border border-slate-200 rounded-2xl p-4 hover:border-indigo-400 transition-colors"
+              className="flex-1 border border-ink-200 rounded-2xl p-4 hover:border-brand-400 transition-colors"
             >
-              <span className="block text-xs text-slate-400">&larr; <T k="course.previous" /></span>
-              <span className="block text-sm font-semibold text-slate-800 mt-1 line-clamp-2">
+              <span className="block text-xs text-ink-400">&larr; <T k="course.previous" /></span>
+              <span className="block text-sm font-semibold text-ink-800 mt-1 line-clamp-2">
                 {previous.title}
               </span>
             </Link>
@@ -180,9 +180,9 @@ export default async function LessonPage({ params }: Props) {
           {next && (
             <Link
               href={lessonHref(course, next)}
-              className="flex-1 bg-slate-900 text-white rounded-2xl p-4 hover:bg-slate-800 transition-colors text-right"
+              className="flex-1 bg-ink-900 text-white rounded-2xl p-4 hover:bg-ink-800 transition-colors text-right"
             >
-              <span className="block text-xs text-slate-400"><T k="course.next" /> &rarr;</span>
+              <span className="block text-xs text-ink-400"><T k="course.next" /> &rarr;</span>
               <span className="block text-sm font-semibold mt-1 line-clamp-2">{next.title}</span>
             </Link>
           )}

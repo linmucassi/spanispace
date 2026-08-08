@@ -97,7 +97,7 @@ export default async function CompanyJobs() {
         </div>
         <Link
           href="/company/jobs/new"
-          className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all"
+          className="bg-brand-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-brand-700 transition-all"
         >
           + Post New Job
         </Link>
@@ -129,7 +129,7 @@ export default async function CompanyJobs() {
             </p>
             <Link
               href="/company/jobs/new"
-              className="inline-flex bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all"
+              className="inline-flex bg-brand-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-brand-700 transition-all"
             >
               Post Your First Job
             </Link>

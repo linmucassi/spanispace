@@ -42,7 +42,7 @@ export default function AdminApplications() {
         {['all', 'pending', 'reviewed', 'shortlisted', 'rejected', 'hired'].map((f) => (
           <button key={f} onClick={() => setFilter(f)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              filter === f ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+              filter === f ? 'bg-brand-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
             }`}>
             {f.charAt(0).toUpperCase() + f.slice(1)}
           </button>
@@ -52,7 +52,7 @@ export default function AdminApplications() {
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center h-32">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600" />
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-600" />
           </div>
         ) : apps.length === 0 ? (
           <div className="px-6 py-12 text-center text-slate-400">No applications found.</div>
@@ -69,7 +69,7 @@ export default function AdminApplications() {
                     <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-bold ${
                       app.status === 'pending' ? 'bg-amber-100 text-amber-700' :
                       app.status === 'shortlisted' ? 'bg-green-100 text-green-700' :
-                      app.status === 'hired' ? 'bg-indigo-100 text-indigo-700' :
+                      app.status === 'hired' ? 'bg-brand-100 text-brand-700' :
                       app.status === 'rejected' ? 'bg-red-100 text-red-700' :
                       'bg-slate-100 text-slate-700'
                     }`}>{app.status}</span>
@@ -99,7 +99,7 @@ export default function AdminApplications() {
                         <button onClick={() => updateStatus(app.id, 'reviewed')} className="px-3 py-1.5 text-xs font-bold bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100">Mark Reviewed</button>
                       )}
                       <button onClick={() => updateStatus(app.id, 'shortlisted')} className="px-3 py-1.5 text-xs font-bold bg-green-50 text-green-700 rounded-lg hover:bg-green-100">Shortlist</button>
-                      <button onClick={() => updateStatus(app.id, 'hired')} className="px-3 py-1.5 text-xs font-bold bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100">Mark Hired</button>
+                      <button onClick={() => updateStatus(app.id, 'hired')} className="px-3 py-1.5 text-xs font-bold bg-brand-50 text-brand-700 rounded-lg hover:bg-brand-100">Mark Hired</button>
                       <button onClick={() => updateStatus(app.id, 'rejected')} className="px-3 py-1.5 text-xs font-bold bg-red-50 text-red-700 rounded-lg hover:bg-red-100">Reject</button>
                     </div>
                   </div>

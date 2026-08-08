@@ -132,7 +132,7 @@ export default function CompanyNewTraining() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600" />
       </div>
     );
   }
@@ -174,7 +174,7 @@ export default function CompanyNewTraining() {
             onChange={handleChange}
             required
             placeholder="e.g. Frontend Development Bootcamp"
-            className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+            className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
           />
         </div>
 
@@ -186,7 +186,7 @@ export default function CompanyNewTraining() {
             onChange={handleChange}
             rows={4}
             placeholder="What will candidates learn?"
-            className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none resize-none"
+            className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none resize-none"
           />
         </div>
 
@@ -197,7 +197,7 @@ export default function CompanyNewTraining() {
               name="category"
               value={form.category}
               onChange={handleChange}
-              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm bg-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
             >
               {CATEGORIES.map((c) => (
                 <option key={c} value={c}>{c}</option>
@@ -210,7 +210,7 @@ export default function CompanyNewTraining() {
               name="format"
               value={form.format}
               onChange={handleChange}
-              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm bg-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
             >
               {FORMATS.map((f) => (
                 <option key={f} value={f}>{f}</option>
@@ -227,7 +227,7 @@ export default function CompanyNewTraining() {
               type="date"
               value={form.start_date}
               onChange={handleChange}
-              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
             />
           </div>
           <div>
@@ -238,7 +238,7 @@ export default function CompanyNewTraining() {
               min="1"
               value={form.duration_weeks}
               onChange={handleChange}
-              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
             />
           </div>
         </div>
@@ -250,7 +250,7 @@ export default function CompanyNewTraining() {
             value={form.skills_covered}
             onChange={handleChange}
             placeholder="React, Node.js, SQL"
-            className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+            className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
           />
         </div>
 
@@ -260,7 +260,7 @@ export default function CompanyNewTraining() {
             name="level"
             value={form.level}
             onChange={handleChange}
-            className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+            className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm bg-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
           >
             {TRAINING_LEVELS.map((l) => (
               <option key={l} value={l}>
@@ -281,7 +281,7 @@ export default function CompanyNewTraining() {
           <button
             type="submit"
             disabled={saving}
-            className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all disabled:opacity-50"
+            className="bg-brand-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-brand-700 transition-all disabled:opacity-50"
           >
             {saving ? 'Submitting...' : 'Submit Training'}
           </button>

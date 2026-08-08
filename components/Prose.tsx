@@ -8,7 +8,7 @@
 export function Prose({ html, className = '' }: { html: string; className?: string }) {
   return (
     <div
-      className={`text-slate-600 leading-relaxed ${className}`}
+      className={`text-ink-600 leading-relaxed ${className}`}
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );

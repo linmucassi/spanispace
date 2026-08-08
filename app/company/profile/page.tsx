@@ -129,7 +129,7 @@ export default function CompanyProfile() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600" />
       </div>
     );
   }
@@ -156,7 +156,7 @@ export default function CompanyProfile() {
             value={form.company_name}
             onChange={handleChange}
             required
-            className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+            className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
           />
         </div>
 
@@ -169,7 +169,7 @@ export default function CompanyProfile() {
             value={form.industry}
             onChange={handleChange}
             placeholder="e.g. Technology, Finance, Healthcare"
-            className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+            className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
           />
         </div>
 
@@ -182,7 +182,7 @@ export default function CompanyProfile() {
             value={form.location}
             onChange={handleChange}
             placeholder="e.g. Johannesburg, Gauteng"
-            className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+            className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
           />
         </div>
 
@@ -197,7 +197,7 @@ export default function CompanyProfile() {
             placeholder="https://yourcompany.co.za"
             type="text"
             inputMode="url"
-            className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+            className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
           />
         </div>
 
@@ -212,7 +212,7 @@ export default function CompanyProfile() {
             placeholder="https://example.com/logo.png"
             type="text"
             inputMode="url"
-            className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+            className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
           />
           {form.logo_url && (
             <div className="mt-3 flex items-center gap-3">
@@ -236,7 +236,7 @@ export default function CompanyProfile() {
               Subscription Tier
             </label>
             <div className="flex items-center gap-3">
-              <span className="inline-flex px-3 py-1.5 rounded-lg bg-indigo-50 text-sm font-bold text-indigo-700">
+              <span className="inline-flex px-3 py-1.5 rounded-lg bg-brand-50 text-sm font-bold text-brand-700">
                 {profile.subscription_tier || 'Free'}
               </span>
               {profile.subscription_status && (
@@ -275,7 +275,7 @@ export default function CompanyProfile() {
           <button
             type="submit"
             disabled={saving}
-            className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all disabled:opacity-50"
+            className="bg-brand-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-brand-700 transition-all disabled:opacity-50"
           >
             {saving ? 'Saving...' : 'Save Changes'}
           </button>

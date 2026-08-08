@@ -26,11 +26,11 @@ const DOC_LABELS: Record<string, string> = {
 };
 
 const DOC_COLORS: Record<string, string> = {
-  cv: 'bg-indigo-100 text-indigo-700',
+  cv: 'bg-brand-100 text-brand-700',
   certificate: 'bg-emerald-100 text-emerald-700',
   cover_letter: 'bg-amber-100 text-amber-700',
   motivational_letter: 'bg-purple-100 text-purple-700',
-  other: 'bg-slate-100 text-slate-600',
+  other: 'bg-ink-100 text-ink-600',
 };
 
 export default function ApplyForm({ jobId, jobRole, jobCompany, jobSource }: Props) {
@@ -234,23 +234,23 @@ export default function ApplyForm({ jobId, jobRole, jobCompany, jobSource }: Pro
           <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-6">
             <CheckCircle2 className="w-8 h-8 text-green-600" />
           </div>
-          <h1 className="text-3xl font-bold text-slate-900 mb-3">
+          <h1 className="text-3xl font-bold text-ink-900 mb-3">
             {t('apply.alreadyAppliedTitle')}
           </h1>
-          <p className="text-slate-600 mb-2">{t('apply.alreadyAppliedMessage')}</p>
-          <p className="text-sm text-slate-500 mb-8">
+          <p className="text-ink-600 mb-2">{t('apply.alreadyAppliedMessage')}</p>
+          <p className="text-sm text-ink-500 mb-8">
             {t('apply.appliedOn')} {formatAppliedDate(appliedAt)}
           </p>
           <div className="space-y-3">
             <Link
               href="/candidate/applications"
-              className="block bg-indigo-600 text-white px-8 py-3 rounded-full font-bold hover:bg-indigo-700 transition-all"
+              className="block bg-brand-600 text-white px-8 py-3 rounded-full font-bold hover:bg-brand-700 transition-all"
             >
               {t('apply.viewMyApplications')}
             </Link>
             <Link
               href={`/jobs/${jobId}`}
-              className="block text-sm text-indigo-600 font-medium hover:underline"
+              className="block text-sm text-brand-600 font-medium hover:underline"
             >
               {t('apply.backToJob')}
             </Link>
@@ -279,15 +279,15 @@ export default function ApplyForm({ jobId, jobRole, jobCompany, jobSource }: Pro
               />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-slate-900 mb-3">
+          <h1 className="text-3xl font-bold text-ink-900 mb-3">
             {t('apply.successTitle')}
           </h1>
-          <p className="text-slate-600 mb-8">
+          <p className="text-ink-600 mb-8">
             {emailSent ? t('apply.successEmailed') : t('apply.successMessage')}
           </p>
           <Link
             href={`/jobs/${jobId}`}
-            className="inline-block bg-indigo-600 text-white px-8 py-3 rounded-full font-bold hover:bg-indigo-700 transition-all"
+            className="inline-block bg-brand-600 text-white px-8 py-3 rounded-full font-bold hover:bg-brand-700 transition-all"
           >
             {t('apply.backToJob')}
           </Link>
@@ -297,32 +297,32 @@ export default function ApplyForm({ jobId, jobRole, jobCompany, jobSource }: Pro
   }
 
   return (
-    <div className="min-h-screen pt-24 pb-20 px-4 bg-gradient-to-b from-indigo-50/50 to-white">
+    <div className="min-h-screen pt-24 pb-20 px-4 bg-gradient-to-b from-brand-50/50 to-white">
       <div className="max-w-lg mx-auto">
         <Link
           href={`/jobs/${jobId}`}
-          className="inline-flex items-center text-sm text-indigo-600 font-medium hover:underline mb-6"
+          className="inline-flex items-center text-sm text-brand-600 font-medium hover:underline mb-6"
         >
           {t('apply.backToJob')}
         </Link>
 
-        <div className="bg-white rounded-2xl shadow-xl border border-slate-100 p-8">
-          <h1 className="text-2xl font-bold text-slate-900 mb-2">
+        <div className="bg-white rounded-2xl shadow-xl border border-ink-100 p-8">
+          <h1 className="text-2xl font-bold text-ink-900 mb-2">
             {t('apply.title')}
           </h1>
-          <p className="text-slate-500 mb-8">
+          <p className="text-ink-500 mb-8">
             {t('apply.applyingFor')}:{' '}
-            <span className="font-semibold text-slate-700">{jobRole}</span> at{' '}
-            <span className="font-semibold text-slate-700">{jobCompany}</span>
+            <span className="font-semibold text-ink-700">{jobRole}</span> at{' '}
+            <span className="font-semibold text-ink-700">{jobCompany}</span>
           </p>
 
           {/* Signed-out applications cannot be linked to an account, so they
               never reach the candidate's dashboard and cannot be deduplicated.
               Say so before they fill the form in, not after. */}
           {profileLoaded && !isSignedIn && jobSource === 'db' && (
-            <div className="mb-6 text-sm text-slate-600 bg-indigo-50 border border-indigo-100 rounded-2xl px-4 py-3">
+            <div className="mb-6 text-sm text-ink-600 bg-brand-50 border border-brand-100 rounded-2xl px-4 py-3">
               {t('apply.signInPrompt')}{' '}
-              <Link href="/login" className="text-indigo-600 font-medium hover:underline">
+              <Link href="/login" className="text-brand-600 font-medium hover:underline">
                 {t('apply.signIn')}
               </Link>
             </div>
@@ -330,7 +330,7 @@ export default function ApplyForm({ jobId, jobRole, jobCompany, jobSource }: Pro
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-ink-700 mb-1">
                 {t('apply.fullName')} *
               </label>
               <input
@@ -338,12 +338,12 @@ export default function ApplyForm({ jobId, jobRole, jobCompany, jobSource }: Pro
                 value={form.fullName}
                 onChange={handleChange}
                 required
-                className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+                className="block w-full rounded-xl border border-ink-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-ink-700 mb-1">
                 {t('apply.phone')} *
               </label>
               <input
@@ -353,12 +353,12 @@ export default function ApplyForm({ jobId, jobRole, jobCompany, jobSource }: Pro
                 onChange={handleChange}
                 required
                 placeholder="+27 82 123 4567"
-                className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+                className="block w-full rounded-xl border border-ink-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-ink-700 mb-1">
                 {t('apply.whatsapp')}
               </label>
               <input
@@ -366,12 +366,12 @@ export default function ApplyForm({ jobId, jobRole, jobCompany, jobSource }: Pro
                 type="tel"
                 value={form.whatsapp}
                 onChange={handleChange}
-                className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+                className="block w-full rounded-xl border border-ink-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-ink-700 mb-1">
                 {t('apply.email')}
               </label>
               <input
@@ -379,13 +379,13 @@ export default function ApplyForm({ jobId, jobRole, jobCompany, jobSource }: Pro
                 type="email"
                 value={form.email}
                 onChange={handleChange}
-                className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+                className="block w-full rounded-xl border border-ink-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
               />
-              <p className="text-xs text-slate-500 mt-1.5">{t('apply.emailHint')}</p>
+              <p className="text-xs text-ink-500 mt-1.5">{t('apply.emailHint')}</p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-ink-700 mb-1">
                 {t('apply.yourLocation')}
               </label>
               <input
@@ -393,12 +393,12 @@ export default function ApplyForm({ jobId, jobRole, jobCompany, jobSource }: Pro
                 value={form.location}
                 onChange={handleChange}
                 placeholder="e.g. Soweto, Johannesburg"
-                className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+                className="block w-full rounded-xl border border-ink-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-ink-700 mb-1">
                 {t('apply.aboutYou')}
               </label>
               <textarea
@@ -407,14 +407,14 @@ export default function ApplyForm({ jobId, jobRole, jobCompany, jobSource }: Pro
                 onChange={handleChange}
                 rows={4}
                 placeholder={t('apply.aboutYouPlaceholder')}
-                className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none resize-none"
+                className="block w-full rounded-xl border border-ink-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none resize-none"
               />
             </div>
 
             {/* Document picker — signed-in users only */}
             {docs.length > 0 && (
-              <div className="border border-slate-200 rounded-xl p-4 space-y-2">
-                <p className="text-sm font-medium text-slate-700">
+              <div className="border border-ink-200 rounded-xl p-4 space-y-2">
+                <p className="text-sm font-medium text-ink-700">
                   Attach from your document library
                 </p>
                 {docs.map((doc) => {
@@ -426,22 +426,22 @@ export default function ApplyForm({ jobId, jobRole, jobCompany, jobSource }: Pro
                       onClick={() => toggleDoc(doc.id)}
                       className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-colors ${
                         selected
-                          ? 'border-indigo-400 bg-indigo-50'
-                          : 'border-slate-200 bg-white hover:bg-slate-50'
+                          ? 'border-brand-400 bg-brand-50'
+                          : 'border-ink-200 bg-white hover:bg-ink-50'
                       }`}
                     >
                       {selected ? (
-                        <CheckSquare className="w-4 h-4 text-indigo-600 shrink-0" />
+                        <CheckSquare className="w-4 h-4 text-brand-600 shrink-0" />
                       ) : (
-                        <Square className="w-4 h-4 text-slate-400 shrink-0" />
+                        <Square className="w-4 h-4 text-ink-400 shrink-0" />
                       )}
-                      <FileText className="w-4 h-4 text-slate-400 shrink-0" />
+                      <FileText className="w-4 h-4 text-ink-400 shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-slate-900 truncate">
+                        <p className="text-sm font-medium text-ink-900 truncate">
                           {doc.name}
                         </p>
                         <span
-                          className={`inline-block text-xs font-medium px-2 py-0.5 rounded-full mt-0.5 ${DOC_COLORS[doc.doc_type] ?? 'bg-slate-100 text-slate-600'}`}
+                          className={`inline-block text-xs font-medium px-2 py-0.5 rounded-full mt-0.5 ${DOC_COLORS[doc.doc_type] ?? 'bg-ink-100 text-ink-600'}`}
                         >
                           {DOC_LABELS[doc.doc_type] ?? doc.doc_type}
                         </span>
@@ -449,9 +449,9 @@ export default function ApplyForm({ jobId, jobRole, jobCompany, jobSource }: Pro
                     </button>
                   );
                 })}
-                <p className="text-xs text-slate-400 pt-1">
+                <p className="text-xs text-ink-400 pt-1">
                   Selected documents are included with your application.{' '}
-                  <Link href="/candidate/profile" className="text-indigo-500 hover:underline">
+                  <Link href="/candidate/profile" className="text-brand-500 hover:underline">
                     Manage documents
                   </Link>
                 </p>
@@ -459,9 +459,9 @@ export default function ApplyForm({ jobId, jobRole, jobCompany, jobSource }: Pro
             )}
 
             {profileLoaded && docs.length === 0 && (
-              <div className="text-xs text-slate-500 bg-slate-50 rounded-xl px-4 py-3 border border-slate-100">
+              <div className="text-xs text-ink-500 bg-ink-50 rounded-xl px-4 py-3 border border-ink-100">
                 No documents in your library.{' '}
-                <Link href="/candidate/profile" className="text-indigo-500 hover:underline">
+                <Link href="/candidate/profile" className="text-brand-500 hover:underline">
                   Upload your CV and supporting documents
                 </Link>{' '}
                 to attach them here.
@@ -475,7 +475,7 @@ export default function ApplyForm({ jobId, jobRole, jobCompany, jobSource }: Pro
             <button
               type="submit"
               disabled={submitting}
-              className="w-full bg-indigo-600 text-white py-3.5 rounded-full font-bold hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-brand-600 text-white py-3.5 rounded-full font-bold hover:bg-brand-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? t('apply.submitting') : t('apply.submit')}
             </button>

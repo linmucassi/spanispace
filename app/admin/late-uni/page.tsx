@@ -31,11 +31,11 @@ export default function AdminLateUni() {
     <div>
       <div className="flex items-center justify-between mb-8">
         <div><h1 className="text-2xl font-extrabold text-slate-900">Late Uni Applications</h1><p className="text-slate-500 text-sm">Manage tertiary application deadlines</p></div>
-        <Link href="/admin/late-uni/new" className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700">+ Add Entry</Link>
+        <Link href="/admin/late-uni/new" className="bg-brand-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-brand-700">+ Add Entry</Link>
       </div>
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         {loading ? (
-          <div className="flex items-center justify-center h-32"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600" /></div>
+          <div className="flex items-center justify-center h-32"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-600" /></div>
         ) : items.length === 0 ? (
           <div className="px-6 py-12 text-center text-slate-400">No entries yet.</div>
         ) : (

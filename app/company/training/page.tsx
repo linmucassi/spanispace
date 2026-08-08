@@ -74,7 +74,7 @@ export default async function CompanyTraining() {
         </div>
         <Link
           href="/company/training/new"
-          className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all"
+          className="bg-brand-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-brand-700 transition-all"
         >
           + New Training
         </Link>
@@ -91,7 +91,7 @@ export default async function CompanyTraining() {
             </p>
             <Link
               href="/company/training/new"
-              className="inline-flex bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all"
+              className="inline-flex bg-brand-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-brand-700 transition-all"
             >
               Create Your First Training
             </Link>

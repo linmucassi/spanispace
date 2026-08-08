@@ -47,7 +47,7 @@ export default function ComingSoon() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-blue-50 flex items-center justify-center py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-b from-brand-50 via-white to-blue-50 flex items-center justify-center py-12 px-4">
       <div className="max-w-lg w-full bg-white/90 backdrop-blur-sm rounded-2xl shadow-2xl p-8 md:p-10 border border-gray-100">
         <div className="text-center mb-8">
           <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">Coming Soon</h1>
@@ -79,7 +79,7 @@ export default function ComingSoon() {
                 onChange={handleChange}
                 required
                 placeholder="Thabo Mokoena"
-                className="block w-full rounded-xl border border-gray-200 px-4 py-3 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+                className="block w-full rounded-xl border border-gray-200 px-4 py-3 text-sm shadow-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
               />
             </div>
 
@@ -92,7 +92,7 @@ export default function ComingSoon() {
                 onChange={handleChange}
                 required
                 placeholder="you@example.com"
-                className="block w-full rounded-xl border border-gray-200 px-4 py-3 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+                className="block w-full rounded-xl border border-gray-200 px-4 py-3 text-sm shadow-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
               />
             </div>
 
@@ -106,7 +106,7 @@ export default function ComingSoon() {
                 value={form.phone}
                 onChange={handleChange}
                 placeholder="+27 82 123 4567"
-                className="block w-full rounded-xl border border-gray-200 px-4 py-3 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+                className="block w-full rounded-xl border border-gray-200 px-4 py-3 text-sm shadow-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
               />
             </div>
 
@@ -118,7 +118,7 @@ export default function ComingSoon() {
                 name="type"
                 value={form.type}
                 onChange={handleChange}
-                className="block w-full rounded-xl border border-gray-200 px-4 py-3 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none bg-white"
+                className="block w-full rounded-xl border border-gray-200 px-4 py-3 text-sm shadow-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none bg-white"
               >
                 <option value="Bootcamp">Bootcamp</option>
                 <option value="Course">Short Course</option>
@@ -132,7 +132,7 @@ export default function ComingSoon() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-full transition-all shadow-md disabled:opacity-50"
+              className="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 rounded-full transition-all shadow-md disabled:opacity-50"
             >
               {submitting ? t('apply.submitting') : 'Join the Reminder List'}
             </button>

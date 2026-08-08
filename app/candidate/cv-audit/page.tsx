@@ -63,7 +63,7 @@ export default function CVAuditPage() {
       <div>
         <div className="flex items-center gap-3 mb-1">
           <h1 className="text-2xl font-bold text-slate-900">AI CV Audit</h1>
-          <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-full uppercase tracking-wide">
+          <span className="px-2 py-0.5 bg-brand-100 text-brand-700 text-xs font-semibold rounded-full uppercase tracking-wide">
             New
           </span>
         </div>
@@ -86,7 +86,7 @@ export default function CVAuditPage() {
             rows={16}
             maxLength={8000}
             placeholder="Paste your full CV here — including work experience, education, skills, and any other sections..."
-            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-y"
+            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent resize-y"
             required
           />
           <div className="flex justify-between mt-1 text-xs text-slate-400">
@@ -104,7 +104,7 @@ export default function CVAuditPage() {
         <button
           type="submit"
           disabled={loading || cvText.trim().length < 50}
-          className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="inline-flex items-center gap-2 px-6 py-3 bg-brand-600 text-white text-sm font-semibold rounded-xl hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {loading ? (
             <>
@@ -175,14 +175,14 @@ export default function CVAuditPage() {
           </div>
 
           {/* Quick wins */}
-          <div className="bg-indigo-50 rounded-xl border border-indigo-100 p-6">
+          <div className="bg-brand-50 rounded-xl border border-brand-100 p-6">
             <h2 className="text-base font-semibold text-slate-900 mb-4 flex items-center gap-2">
-              <span className="text-indigo-600">⚡</span> Quick Wins
+              <span className="text-brand-600">⚡</span> Quick Wins
             </h2>
             <ul className="space-y-2">
               {result.quickWins.map((w, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm text-slate-700">
-                  <span className="mt-0.5 h-4 w-4 flex-shrink-0 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold">
+                  <span className="mt-0.5 h-4 w-4 flex-shrink-0 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center text-xs font-bold">
                     {i + 1}
                   </span>
                   {w}
@@ -194,7 +194,7 @@ export default function CVAuditPage() {
           {/* Retry button */}
           <button
             onClick={() => { setResult(null); setCvText(''); }}
-            className="text-sm text-indigo-600 hover:text-indigo-700 font-medium transition-colors"
+            className="text-sm text-brand-600 hover:text-brand-700 font-medium transition-colors"
           >
             ← Audit a different CV
           </button>

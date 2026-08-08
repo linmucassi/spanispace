@@ -25,7 +25,7 @@ function StatusBadge({ status }: { status: string }) {
     reviewed: 'bg-blue-100 text-blue-700',
     shortlisted: 'bg-green-100 text-green-700',
     rejected: 'bg-red-100 text-red-700',
-    hired: 'bg-indigo-100 text-indigo-700',
+    hired: 'bg-brand-100 text-brand-700',
   };
 
   return (
@@ -131,7 +131,7 @@ export default async function CompanyDashboard() {
         </div>
         <Link
           href="/company/jobs/new"
-          className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all"
+          className="bg-brand-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-brand-700 transition-all"
         >
           + Post a Job
         </Link>
@@ -143,7 +143,7 @@ export default async function CompanyDashboard() {
         <StatsCard
           label="Total Applications"
           value={totalApplications}
-          color="text-indigo-600"
+          color="text-brand-600"
         />
         <StatsCard
           label="Shortlisted Candidates"
@@ -190,7 +190,7 @@ export default async function CompanyDashboard() {
           <h2 className="font-bold text-slate-900">Recent Applications</h2>
           <Link
             href="/company/applications"
-            className="text-sm text-indigo-600 font-medium hover:underline"
+            className="text-sm text-brand-600 font-medium hover:underline"
           >
             View all
           </Link>

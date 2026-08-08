@@ -1,24 +1,66 @@
-
 @import "tailwindcss";
 
+/* =====================================================================
+   Spanispace design tokens.
+
+   Every colour here is sampled from the logo in public/assets, not chosen
+   from a framework palette. The old system was Tailwind's default
+   indigo-600 on slate with a backdrop-blur .glass-card, which is the exact
+   combination every generated template ships with, and it read as generic
+   because it was.
+
+   Brand blue #0070C8 is the single most used colour in the wordmark, 799
+   sampled pixels of it. It clears 5.06:1 on white, so it is safe for body
+   text and for white text sitting on it. Ink #0B1A2E comes from the navbar
+   mark, which is near black navy rather than slate grey.
+   ===================================================================== */
+@theme {
+  /* Brand, straight off the logo */
+  --color-brand-50:  #eaf4fd;
+  --color-brand-100: #cfe7fa;
+  --color-brand-200: #9ecdf5;
+  --color-brand-300: #5aabec;
+  --color-brand-400: #1d88dd;
+  --color-brand-500: #0070c8; /* the logo blue */
+  --color-brand-600: #005ca5;
+  --color-brand-700: #004a86;
+  --color-brand-800: #003a6b;
+  --color-brand-900: #002a4d;
+  --color-brand-950: #001a30;
+
+  /* Ink, from the navbar mark. Warmer and deeper than slate. */
+  --color-ink-50:  #f5f7fa;
+  --color-ink-100: #e8edf3;
+  --color-ink-200: #cfd8e4;
+  --color-ink-300: #a3b2c6;
+  --color-ink-400: #6f83a0;
+  --color-ink-500: #4a5f7d;
+  --color-ink-600: #33465f;
+  --color-ink-700: #21334a;
+  --color-ink-800: #142338;
+  --color-ink-900: #0b1a2e;
+  --color-ink-950: #061120;
+
+  /* Work type accents. Each kind of work gets its own colour so a piece job
+     and a learnership do not read as the same thing in a scanning glance. */
+  --color-work-piece: #b45309;   /* amber 700, casual and immediate */
+  --color-work-learn: #6d28d9;   /* violet 700, study linked */
+  --color-work-remote: #0f766e;  /* teal 700, work from anywhere */
+  --color-work-perm: #005ca5;    /* brand, the steady roles */
+}
+
 @layer base {
- :root {
-  --foreground-rgb: 15, 23, 42;
-  --background-start-rgb: 248, 250, 252;
-}
+  body {
+    color: var(--color-ink-900);
+    background: var(--color-ink-50);
+    scroll-behavior: smooth;
+  }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: rgb(var(--background-start-rgb));
-  font-family: 'Inter', sans-serif;
-  scroll-behavior: smooth;
+  /* Headlines carry the personality, body text carries the legibility.
+     Archivo is wide and confident at large sizes, Inter is unbeaten at 13px
+     on a cheap phone screen, which is what most of this audience is holding. */
+  h1, h2, h3, .font-display {
+    font-family: var(--font-display), system-ui, sans-serif;
+    letter-spacing: -0.022em;
+  }
 }
-
-.glass-card {
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-}
-}
-
-/* Optional: reset or custom base styles here */

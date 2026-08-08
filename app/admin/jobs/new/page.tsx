@@ -80,31 +80,31 @@ export default function AdminNewJob() {
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">Job Title *</label>
           <input name="title" value={form.title} onChange={handleChange} required
-            className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none" />
+            className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none" />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">Description *</label>
           <textarea name="description" value={form.description} onChange={handleChange} required rows={4}
-            className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none resize-none" />
+            className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none resize-none" />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">Requirements</label>
           <textarea name="requirements" value={form.requirements} onChange={handleChange} rows={3}
-            className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none resize-none" />
+            className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none resize-none" />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Location *</label>
             <input name="location" value={form.location} onChange={handleChange} required
-              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none" />
+              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none" />
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Job Type</label>
             <select name="job_type" value={form.job_type} onChange={handleChange}
-              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none">
+              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm bg-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none">
               <option>Full-time</option><option>Part-time</option><option>Piece Job</option>
               <option>Temporary</option><option>Contract</option>
               <option>Remote</option><option>Hybrid</option><option>On-site</option>
@@ -117,17 +117,17 @@ export default function AdminNewJob() {
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Salary Range</label>
             <input name="salary_range" value={form.salary_range} onChange={handleChange} placeholder="e.g. R8,000 - R12,000/month"
-              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none" />
+              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none" />
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Duration (optional)</label>
             <input name="duration" value={form.duration} onChange={handleChange} placeholder="e.g. 3 months, Weekends"
-              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none" />
+              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none" />
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Expiry Date *</label>
             <input name="expiry_date" type="date" value={form.expiry_date} onChange={handleChange} required
-              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none" />
+              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none" />
           </div>
         </div>
 
@@ -135,12 +135,12 @@ export default function AdminNewJob() {
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Posted By</label>
             <input name="poster_name" value={form.poster_name} onChange={handleChange}
-              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none" />
+              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none" />
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Verification Status</label>
             <select name="vetted_status" value={form.vetted_status} onChange={handleChange}
-              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none">
+              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm bg-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none">
               <option value="verified">Verified</option>
               <option value="pending">Pending</option>
             </select>
@@ -151,7 +151,7 @@ export default function AdminNewJob() {
 
         <div className="flex gap-3 pt-2">
           <button type="submit" disabled={saving}
-            className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all disabled:opacity-50">
+            className="bg-brand-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-brand-700 transition-all disabled:opacity-50">
             {saving ? 'Saving...' : 'Create Job'}
           </button>
           <button type="button" onClick={() => router.push('/admin/jobs')}

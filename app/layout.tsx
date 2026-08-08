@@ -1,12 +1,23 @@
 import './globals.css';
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
+import { Archivo, Inter } from 'next/font/google';
 import Providers from './providers';
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({ subsets: ['latin'], variable: '--font-body', display: 'swap' });
+
+// Archivo carries the headlines. It is wide, confident and slightly squared,
+// which echoes the SPAN mark, and it is a different voice from the Inter that
+// every generated template defaults to for everything. Inter stays for body
+// copy, where it is unbeaten at small sizes on a cheap phone screen.
+const archivo = Archivo({
+  subsets: ['latin'],
+  weight: ['600', '700', '800'],
+  variable: '--font-display',
+  display: 'swap',
+});
 
 export const viewport: Viewport = {
-  themeColor: '#0f172a',
+  themeColor: '#0b1a2e',
   width: 'device-width',
   initialScale: 1,
 };
@@ -90,7 +101,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="scroll-pt-20">
-      <body className={inter.className}>
+      <body className={`${inter.variable} ${archivo.variable} ${inter.className}`}>
         <Providers>{children}</Providers>
       </body>
     </html>

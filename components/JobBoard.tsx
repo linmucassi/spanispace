@@ -6,6 +6,7 @@ import { JOBS } from '../data/constants';
 import { VettedStatus, type Job } from '../types';
 import { isSouthAfricanJob } from '../lib/jobLocation';
 import { useTranslation } from '../lib/i18n/context';
+import { WORK_KIND_CHIP, WORK_KIND_EDGE, workKind } from '../lib/work-type';
 
 const PAGE_SIZE = 15;
 
@@ -51,17 +52,17 @@ const JobBoard: React.FC<JobBoardProps> = ({ initialJobs }) => {
   };
 
   return (
-    <div className="py-12 px-4 max-w-7xl mx-auto">
+    <div className="pt-8 pb-16 px-4 max-w-7xl mx-auto">
       <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-slate-900">{t('jobs.title')}</h2>
-          <p className="text-slate-500 mt-2">{t('jobs.subtitle')}</p>
+          <h2 className="font-display text-3xl font-extrabold text-ink-900">{t('jobs.title')}</h2>
+          <p className="text-ink-500 mt-2">{t('jobs.subtitle')}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <select
             value={locationFilter}
             onChange={(e) => handleLocationFilterChange(e.target.value)}
-            className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm"
+            className="bg-white border border-ink-200 rounded-lg px-3 py-2 text-sm"
           >
             <option value="All">{t('jobs.allLocations')}</option>
             <option value="ZA">{t('jobs.southAfricaOnly')}</option>
@@ -69,7 +70,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ initialJobs }) => {
           <select
             value={filter}
             onChange={(e) => handleFilterChange(e.target.value)}
-            className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm"
+            className="bg-white border border-ink-200 rounded-lg px-3 py-2 text-sm"
           >
             <option value="All">{t('jobs.allTypes')}</option>
             <option value="Full-time">{t('jobs.fullTime')}</option>
@@ -85,130 +86,113 @@ const JobBoard: React.FC<JobBoardProps> = ({ initialJobs }) => {
         </div>
       </div>
 
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-100">
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  {t('jobs.roleTitle')}
-                </th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  {t('jobs.company')}
-                </th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider hidden md:table-cell">
-                  {t('jobs.location')}
-                </th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider hidden md:table-cell">
-                  {t('jobs.expiry')}
-                </th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  {t('jobs.status')}
-                </th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  {t('jobs.action')}
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {pagedJobs.map((job) => {
-                const isExpired = new Date(job.expiryDate) < now;
-                return (
-                  <tr
-                    key={job.id}
-                    className={`transition-colors ${isExpired ? 'opacity-50' : 'hover:bg-slate-50/50'}`}
-                  >
-                    <td className="px-6 py-5">
-                      <Link href={`/jobs/${job.id}`} className="block">
-                        <span className="block text-sm font-bold text-slate-900 hover:text-indigo-600 transition-colors">
-                          {job.role}
-                        </span>
-                        <span className="text-xs text-indigo-500 font-medium">
-                          {job.type}
-                          {job.duration ? ` · ${job.duration}` : ''}
-                        </span>
-                      </Link>
-                    </td>
-                    <td className="px-6 py-5 text-sm text-slate-600">{job.company}</td>
-                    <td className="px-6 py-5 text-sm text-slate-600 hidden md:table-cell">
-                      {job.location}
-                    </td>
-                    <td className="px-6 py-5 text-sm text-slate-600 font-mono hidden md:table-cell">
-                      {job.expiryDate}
-                    </td>
-                    <td className="px-6 py-5">
-                      {isExpired ? (
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700">
-                          <svg className="mr-1.5 h-2 w-2 text-current fill-current" viewBox="0 0 8 8">
-                            <circle cx="4" cy="4" r="3" />
-                          </svg>
-                          {t('jobs.expired')}
-                        </span>
-                      ) : (
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                            job.vettedStatus === VettedStatus.VERIFIED
-                              ? 'bg-green-100 text-green-700'
-                              : job.vettedStatus === VettedStatus.SKILLS_ASSESSED
-                                ? 'bg-blue-100 text-blue-700'
-                                : 'bg-purple-100 text-purple-700'
-                          }`}
-                        >
-                          <svg className="mr-1.5 h-2 w-2 text-current fill-current" viewBox="0 0 8 8">
-                            <circle cx="4" cy="4" r="3" />
-                          </svg>
-                          {job.vettedStatus}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-5">
-                      {isExpired ? (
-                        <span className="text-slate-400 text-sm">{t('jobs.expired')}</span>
-                      ) : (
-                        <Link
-                          href={`/jobs/${job.id}`}
-                          className="text-indigo-600 hover:text-indigo-700 font-bold text-sm"
-                        >
-                          {t('jobs.viewDetails')} &rarr;
-                        </Link>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-              {pagedJobs.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
-                    {t('jobs.noJobs')}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {/* A feed of cards, at every width.
+          This was a <table> in an overflow-x-auto, so on a phone you scrolled
+          sideways to reach View Details and the Spanispace Verified badge, the
+          one signal that says this is not a scam, was cut off by the screen
+          edge. A table is for comparing columns on a wide screen. This audience
+          is on a phone, scanning, deciding on pay and place. So: cards, ordered
+          the way the decision is actually made. */}
+      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {pagedJobs.map((job) => {
+          const isExpired = new Date(job.expiryDate) < now;
+          const kind = workKind(job.type);
+          const verified = job.vettedStatus === VettedStatus.VERIFIED;
+
+          return (
+            <li key={job.id}>
+              <Link
+                href={`/jobs/${job.id}`}
+                className={`group flex h-full flex-col rounded-xl border border-l-4 border-ink-200 bg-white p-5 transition-colors hover:border-ink-300 ${
+                  WORK_KIND_EDGE[kind]
+                } ${isExpired ? 'opacity-55' : ''}`}
+              >
+                {/* Trust first, and it can no longer be clipped. */}
+                <div className="mb-4 flex items-center justify-between gap-2">
+                  {isExpired ? (
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-ink-400">
+                      {t('jobs.expired')}
+                    </span>
+                  ) : (
+                    <span
+                      className={`inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider ${
+                        verified ? 'text-emerald-700' : 'text-brand-700'
+                      }`}
+                    >
+                      <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 shrink-0 fill-current" aria-hidden>
+                        <path d="M8 0 9.9 1.4 12.2 1 13 3.2l2 1.2-.7 2.3.7 2.3-2 1.2-.8 2.2-2.3-.4L8 14l-1.9-1.4-2.3.4-.8-2.2-2-1.2.7-2.3L1 4.4l2-1.2.8-2.2 2.3.4z" />
+                        <path d="m6.9 10.4-2.4-2.4 1-1 1.4 1.4 3.3-3.3 1 1z" className="fill-white" />
+                      </svg>
+                      {verified ? t('jobs.verified') : job.vettedStatus}
+                    </span>
+                  )}
+                  {job.duration && (
+                    <span className="shrink-0 text-[11px] text-ink-400">{job.duration}</span>
+                  )}
+                </div>
+
+                <h3 className="font-display text-lg font-bold leading-snug text-ink-900 group-hover:text-brand-600">
+                  {job.role}
+                </h3>
+                <p className="mt-1 text-sm text-ink-500">{job.company}</p>
+
+                <div className="mt-auto pt-5">
+                  <p className="flex items-start gap-1.5 text-sm text-ink-600">
+                    <svg viewBox="0 0 16 16" className="mt-0.5 h-3.5 w-3.5 shrink-0 fill-ink-300" aria-hidden>
+                      <path d="M8 0a5 5 0 0 0-5 5c0 3.7 5 11 5 11s5-7.3 5-11a5 5 0 0 0-5-5m0 7a2 2 0 1 1 0-4 2 2 0 0 1 0 4" />
+                    </svg>
+                    {job.location}
+                  </p>
+                  <div className="mt-2.5 flex items-center justify-between gap-2">
+                    {/* Pay only appears when the listing actually published one. */}
+                    {job.payRange ? (
+                      <span className="font-display text-base font-bold text-ink-900">
+                        {job.payRange}
+                      </span>
+                    ) : (
+                      // Say nothing rather than "Pay not listed" on every card.
+                      // Repeated down a column it reads as a wall of no.
+                      <span />
+                    )}
+                    <span
+                      className={`shrink-0 rounded-md border px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${WORK_KIND_CHIP[kind]}`}
+                    >
+                      {job.type}
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+      {pagedJobs.length === 0 && (
+        <p className="rounded-xl border border-dashed border-ink-200 py-16 text-center text-ink-400">
+          {t('jobs.noJobs')}
+        </p>
+      )}
 
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between mt-6 px-1">
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-ink-500">
             Showing {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, sortedJobs.length)} of {sortedJobs.length} jobs
           </p>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="px-3 py-1.5 rounded-lg border border-ink-200 text-sm font-medium text-ink-600 hover:bg-ink-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               ← Prev
             </button>
-            <span className="text-sm text-slate-500">
+            <span className="text-sm text-ink-500">
               {currentPage} / {totalPages}
             </span>
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="px-3 py-1.5 rounded-lg border border-ink-200 text-sm font-medium text-ink-600 hover:bg-ink-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               Next →
             </button>

@@ -1,4 +1,5 @@
 import Hero from '@/components/Hero';
+import { VettedStatus } from '@/types';
 import CVAuditBanner from '@/components/CVAuditBanner';
 import JobBoard from '@/components/JobBoard';
 import TrainingSection, { type CourseMeta } from '@/components/TrainingSection';
@@ -99,6 +100,16 @@ export default async function Home() {
   const [jobs, uniApps] = await Promise.all([fetchPublicJobs(), fetchPublicUniApps()]);
   // Computed server side so the lesson prose in data/academy.ts never reaches
   // the browser. Same reason as /training. See app/(public)/training/page.tsx.
+  // Real counts, from the same data the board and catalogue render. The hero
+  // used to hardcode 2,400+ jobs and 12K+ candidates, neither of which was true.
+  const today = new Date().toISOString().split('T')[0];
+  const heroStats = {
+    openJobs: jobs.filter(
+      (j) => j.vettedStatus === VettedStatus.VERIFIED && j.expiryDate >= today
+    ).length,
+    courses: COURSES.length,
+  };
+
   const courseMeta: Record<string, CourseMeta> = Object.fromEntries(
     COURSES.map((course) => [
       course.slug,
@@ -111,7 +122,7 @@ export default async function Home() {
       <JsonLd data={websiteSchema} />
       <JsonLd data={faqSchema} />
       <div id="home">
-        <Hero />
+        <Hero stats={heroStats} />
       </div>
       <CVAuditBanner />
       <div id="jobs">

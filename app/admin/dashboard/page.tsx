@@ -63,7 +63,7 @@ export default function AdminDashboard() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600" />
       </div>
     );
   }
@@ -89,7 +89,7 @@ export default function AdminDashboard() {
         </div>
         <Link
           href="/admin/jobs/new"
-          className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all"
+          className="bg-brand-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-brand-700 transition-all"
         >
           + Add Job
         </Link>
@@ -99,7 +99,7 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatsCard label="Active Jobs" value={stats.activeJobs} color="text-slate-900" />
         <StatsCard label="Pending Approval" value={stats.pendingJobs} color="text-amber-600" />
-        <StatsCard label="Applications (7d)" value={stats.weekApplications} color="text-indigo-600" />
+        <StatsCard label="Applications (7d)" value={stats.weekApplications} color="text-brand-600" />
         <StatsCard label="Waitlist Signups" value={stats.totalWaitlist} color="text-emerald-600" />
       </div>
 
@@ -114,7 +114,7 @@ export default function AdminDashboard() {
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
           <h2 className="font-bold text-slate-900">Recent Applications</h2>
-          <Link href="/admin/applications" className="text-sm text-indigo-600 font-medium hover:underline">
+          <Link href="/admin/applications" className="text-sm text-brand-600 font-medium hover:underline">
             View all
           </Link>
         </div>

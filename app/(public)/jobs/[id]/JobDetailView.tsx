@@ -39,22 +39,22 @@ export default function JobDetailView({ job }: { job: PublicJobDetail }) {
       <div className="max-w-3xl mx-auto">
         <Link
           href="/jobs"
-          className="inline-flex items-center text-sm text-indigo-600 font-medium hover:underline mb-8"
+          className="inline-flex items-center text-sm text-brand-600 font-medium hover:underline mb-8"
         >
           {t('jobDetail.backToJobs')}
         </Link>
 
-        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-8 md:p-10">
+        <div className="bg-white rounded-3xl border border-ink-100 shadow-sm p-8 md:p-10">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-extrabold text-slate-900 mb-3">
+            <h1 className="text-3xl font-extrabold text-ink-900 mb-3">
               {job.role}
             </h1>
-            <div className="flex flex-wrap gap-3 items-center text-sm text-slate-500">
-              <span className="font-semibold text-slate-700">{job.company}</span>
-              <span className="w-1 h-1 rounded-full bg-slate-300" />
+            <div className="flex flex-wrap gap-3 items-center text-sm text-ink-500">
+              <span className="font-semibold text-ink-700">{job.company}</span>
+              <span className="w-1 h-1 rounded-full bg-ink-300" />
               <span>{job.location}</span>
-              <span className="w-1 h-1 rounded-full bg-slate-300" />
+              <span className="w-1 h-1 rounded-full bg-ink-300" />
               <span
                 className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
                   job.type.includes('Remote')
@@ -71,28 +71,28 @@ export default function JobDetailView({ job }: { job: PublicJobDetail }) {
 
           {/* Details grid */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-            <div className="bg-slate-50 rounded-2xl p-4">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
+            <div className="bg-ink-50 rounded-2xl p-4">
+              <p className="text-xs font-bold text-ink-400 uppercase tracking-wider mb-1">
                 {t('jobDetail.postedBy')}
               </p>
-              <p className="font-bold text-slate-900">{job.company}</p>
+              <p className="font-bold text-ink-900">{job.company}</p>
             </div>
-            <div className="bg-slate-50 rounded-2xl p-4">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
+            <div className="bg-ink-50 rounded-2xl p-4">
+              <p className="text-xs font-bold text-ink-400 uppercase tracking-wider mb-1">
                 {t('jobDetail.jobType')}
               </p>
-              <p className="font-bold text-slate-900">
+              <p className="font-bold text-ink-900">
                 {job.type}
                 {job.duration ? ` · ${job.duration}` : ''}
               </p>
             </div>
-            <div className="bg-slate-50 rounded-2xl p-4">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
+            <div className="bg-ink-50 rounded-2xl p-4">
+              <p className="text-xs font-bold text-ink-400 uppercase tracking-wider mb-1">
                 {t('jobDetail.expiresOn')}
               </p>
               <p
                 className={`font-bold ${
-                  isExpired ? 'text-red-600' : 'text-slate-900'
+                  isExpired ? 'text-red-600' : 'text-ink-900'
                 }`}
               >
                 {job.expiryDate}
@@ -103,10 +103,10 @@ export default function JobDetailView({ job }: { job: PublicJobDetail }) {
           {/* Description */}
           {job.description && (
             <div className="mb-8">
-              <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">
+              <h2 className="text-sm font-bold text-ink-400 uppercase tracking-wider mb-2">
                 Role Description
               </h2>
-              <div className="text-slate-700 whitespace-pre-wrap leading-relaxed">
+              <div className="text-ink-700 whitespace-pre-wrap leading-relaxed">
                 {job.description}
               </div>
             </div>
@@ -115,10 +115,10 @@ export default function JobDetailView({ job }: { job: PublicJobDetail }) {
           {/* Requirements */}
           {job.requirements && (
             <div className="mb-8">
-              <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">
+              <h2 className="text-sm font-bold text-ink-400 uppercase tracking-wider mb-2">
                 Requirements
               </h2>
-              <div className="text-slate-700 whitespace-pre-wrap leading-relaxed">
+              <div className="text-ink-700 whitespace-pre-wrap leading-relaxed">
                 {job.requirements}
               </div>
             </div>
@@ -127,10 +127,10 @@ export default function JobDetailView({ job }: { job: PublicJobDetail }) {
           {/* Salary */}
           {job.salaryRange && (
             <div className="mb-8">
-              <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">
+              <h2 className="text-sm font-bold text-ink-400 uppercase tracking-wider mb-2">
                 Salary
               </h2>
-              <p className="text-slate-700">{job.salaryRange}</p>
+              <p className="text-ink-700">{job.salaryRange}</p>
             </div>
           )}
 
@@ -160,12 +160,12 @@ export default function JobDetailView({ job }: { job: PublicJobDetail }) {
                 <CheckCircle2 className="h-5 w-5 flex-shrink-0" />
                 {t('jobDetail.alreadyApplied')}
               </div>
-              <p className="text-center text-sm text-slate-500">
+              <p className="text-center text-sm text-ink-500">
                 {t('jobDetail.appliedOn')} {formatAppliedDate(appliedAt)}
               </p>
               <Link
                 href="/candidate/applications"
-                className="block text-center text-sm text-indigo-600 font-medium hover:underline"
+                className="block text-center text-sm text-brand-600 font-medium hover:underline"
               >
                 {t('jobDetail.viewMyApplications')}
               </Link>
@@ -174,7 +174,7 @@ export default function JobDetailView({ job }: { job: PublicJobDetail }) {
             !isExpired && (
               <Link
                 href={`/jobs/${job.id}/apply`}
-                className="block w-full text-center bg-indigo-600 text-white px-8 py-4 rounded-2xl font-bold shadow-lg hover:bg-indigo-700 transition-all hover:scale-[1.02]"
+                className="block w-full text-center bg-brand-600 text-white px-8 py-4 rounded-2xl font-bold shadow-lg hover:bg-brand-700 transition-all hover:scale-[1.02]"
               >
                 {t('jobDetail.applyForPosition')}
               </Link>

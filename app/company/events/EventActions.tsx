@@ -43,7 +43,7 @@ export default function EventActions({
     <div className="flex items-center gap-2">
       <Link
         href={`/company/events/${eventId}/edit`}
-        className="text-xs font-bold text-indigo-600 hover:underline"
+        className="text-xs font-bold text-brand-600 hover:underline"
       >
         Edit
       </Link>

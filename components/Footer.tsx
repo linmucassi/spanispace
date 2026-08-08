@@ -66,7 +66,7 @@ const Footer: React.FC = () => {
   };
 
   return (
-    <footer className="bg-slate-900 text-slate-400 py-12 px-4 mb-20 md:mb-0">
+    <footer className="bg-ink-900 text-ink-400 py-12 px-4 mb-20 md:mb-0">
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
         <div className="col-span-1 md:col-span-1">
           <div className="mb-6">
@@ -130,12 +130,12 @@ const Footer: React.FC = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Email"
-              className="bg-slate-800 border-none rounded-l-xl px-4 py-2 w-full focus:ring-1 focus:ring-indigo-500 outline-none text-white"
+              className="bg-ink-800 border-none rounded-l-xl px-4 py-2 w-full focus:ring-1 focus:ring-brand-500 outline-none text-white"
             />
             <button
               type="submit"
               disabled={newsletterStatus === 'loading'}
-              className="bg-indigo-600 text-white px-4 py-2 rounded-r-xl hover:bg-indigo-700 transition-colors font-bold disabled:opacity-50"
+              className="bg-brand-600 text-white px-4 py-2 rounded-r-xl hover:bg-brand-700 transition-colors font-bold disabled:opacity-50"
             >
               {newsletterStatus === 'loading' ? '...' : t('footer.join')}
             </button>
@@ -148,7 +148,7 @@ const Footer: React.FC = () => {
           )}
         </div>
       </div>
-      <div className="max-w-7xl mx-auto border-t border-slate-800 mt-12 pt-8 flex flex-col md:flex-row justify-between text-xs font-medium uppercase tracking-widest gap-4">
+      <div className="max-w-7xl mx-auto border-t border-ink-800 mt-12 pt-8 flex flex-col md:flex-row justify-between text-xs font-medium uppercase tracking-widest gap-4">
         <p>
           &copy; {currentYear} SPANISPACE. {t('footer.allRightsReserved')}
         </p>

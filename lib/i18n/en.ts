@@ -17,6 +17,10 @@ const en = {
       'The ultimate platform for fresh graduates and job hunters. Get expert-led training, vetted job opportunities, and professional CV curation to stand out in the AI era.',
     browseJobs: 'Browse Opportunities',
     joinBootcamp: 'Join a Bootcamp',
+    statJobs: 'jobs open now',
+    statCourses: 'free courses',
+    statPrice: 'to job seekers, always',
+    statPriceValue: 'Free',
   },
   jobs: {
     title: 'Vetted Job Opportunities',
@@ -47,6 +51,7 @@ const en = {
     skillsAssessed: 'Skills Assessed',
     elite: 'Elite Candidate Path',
     viewDetails: 'View Details',
+    payNotListed: 'Pay not listed',
   },
   training: {
     title: 'Learn something that pays',
@@ -98,11 +103,16 @@ const en = {
     role: '1 role',
   },
   academic: {
-    title: 'Bridging From High School',
+    title: 'University deadlines',
     subtitle:
       'Missing out on standard application windows? Spanispace tracks late applications, learnerships, and vocational training dates so you never fall behind.',
     deadline: 'Deadline',
     deadlinePassed: 'Deadline Passed',
+    closesIn: 'Closes in {n} days',
+    closesToday: 'Closes today',
+    openCount: '{n} still open',
+    showClosed: 'Show {n} closed deadlines',
+    noneOpen: 'Nothing open right now. We check every week, so come back or browse jobs in the meantime.',
   },
   cta: {
     title: 'Join the Movement',

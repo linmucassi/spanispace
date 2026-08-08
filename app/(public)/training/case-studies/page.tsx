@@ -18,18 +18,18 @@ export default function CaseStudiesPage() {
     >
       <div className="grid md:grid-cols-2 gap-4">
         {academy.usecases.map((usecase) => (
-          <div key={usecase.company} className="bg-white border border-slate-200 rounded-2xl p-6">
+          <div key={usecase.company} className="bg-white border border-ink-200 rounded-2xl p-6">
             <div className="flex items-baseline gap-3 mb-3">
-              <h2 className="font-bold text-slate-900 text-lg">{usecase.company}</h2>
-              <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">
+              <h2 className="font-bold text-ink-900 text-lg">{usecase.company}</h2>
+              <span className="text-[10px] font-mono uppercase tracking-wider text-ink-400">
                 {usecase.sector}
               </span>
             </div>
-            <p className="text-sm text-slate-600 mb-3">
+            <p className="text-sm text-ink-600 mb-3">
               <Inline html={usecase.whatHtml} />
             </p>
-            <p className="text-sm text-slate-800">
-              <span className="text-indigo-600 font-semibold text-[11px] uppercase tracking-wider font-mono mr-1.5">
+            <p className="text-sm text-ink-800">
+              <span className="text-brand-600 font-semibold text-[11px] uppercase tracking-wider font-mono mr-1.5">
                 The payoff
               </span>
               <Inline html={usecase.impactHtml} />
@@ -38,7 +38,7 @@ export default function CaseStudiesPage() {
         ))}
       </div>
 
-      <p className="text-xs text-slate-400 leading-relaxed mt-8">
+      <p className="text-xs text-ink-400 leading-relaxed mt-8">
         Drawn from public reporting. Figures are the companies&apos; own where they have published them.
       </p>
     </GuideShell>

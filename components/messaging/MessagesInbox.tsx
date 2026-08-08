@@ -124,7 +124,7 @@ export default function MessagesInbox({
             key={thread.id}
             onClick={() => setSelectedId(thread.id)}
             className={`w-full text-left px-4 py-3 border-b border-slate-100 transition-colors ${
-              selectedId === thread.id ? 'bg-indigo-50' : 'hover:bg-slate-50'
+              selectedId === thread.id ? 'bg-brand-50' : 'hover:bg-slate-50'
             }`}
           >
             <div className="flex items-center justify-between gap-2">
@@ -132,13 +132,13 @@ export default function MessagesInbox({
                 {thread.otherPartyName}
               </p>
               {thread.unreadCount > 0 && (
-                <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-indigo-600 text-white text-[10px] font-bold">
+                <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-brand-600 text-white text-[10px] font-bold">
                   {thread.unreadCount}
                 </span>
               )}
             </div>
             {thread.jobTitle && (
-              <p className="text-xs text-indigo-500 truncate mt-0.5">{thread.jobTitle}</p>
+              <p className="text-xs text-brand-500 truncate mt-0.5">{thread.jobTitle}</p>
             )}
             <p className="text-xs text-slate-500 truncate mt-0.5">
               {thread.lastMessageBody || 'No messages yet'}
@@ -161,7 +161,7 @@ export default function MessagesInbox({
             <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
               {loadingMessages ? (
                 <div className="flex items-center justify-center h-full">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600" />
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-600" />
                 </div>
               ) : messages.length === 0 ? (
                 <p className="text-sm text-slate-400 text-center mt-8">
@@ -178,13 +178,13 @@ export default function MessagesInbox({
                       <div
                         className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap ${
                           isMine
-                            ? 'bg-indigo-600 text-white rounded-br-sm'
+                            ? 'bg-brand-600 text-white rounded-br-sm'
                             : 'bg-slate-100 text-slate-900 rounded-bl-sm'
                         }`}
                       >
                         {msg.body}
                         <div
-                          className={`text-[10px] mt-1 ${isMine ? 'text-indigo-200' : 'text-slate-400'}`}
+                          className={`text-[10px] mt-1 ${isMine ? 'text-brand-200' : 'text-slate-400'}`}
                         >
                           {new Date(msg.created_at).toLocaleString('en-ZA', {
                             day: '2-digit',
@@ -205,12 +205,12 @@ export default function MessagesInbox({
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
                 placeholder="Type a message..."
-                className="flex-1 rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+                className="flex-1 rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
               />
               <button
                 type="submit"
                 disabled={sending || !body.trim()}
-                className="bg-indigo-600 text-white px-4 py-2.5 rounded-xl font-bold hover:bg-indigo-700 transition-all disabled:opacity-50 flex items-center gap-1.5"
+                className="bg-brand-600 text-white px-4 py-2.5 rounded-xl font-bold hover:bg-brand-700 transition-all disabled:opacity-50 flex items-center gap-1.5"
               >
                 <Send className="w-4 h-4" />
               </button>

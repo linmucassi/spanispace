@@ -43,7 +43,7 @@ export default function JobActions({
     <div className="flex items-center gap-2">
       <Link
         href={`/company/jobs/${jobId}/edit`}
-        className="text-xs font-bold text-indigo-600 hover:underline"
+        className="text-xs font-bold text-brand-600 hover:underline"
       >
         Edit
       </Link>

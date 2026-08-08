@@ -67,8 +67,8 @@ export default function PostJobPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-slate-900 mb-3">{t('postJob.successTitle')}</h1>
-          <p className="text-slate-600 mb-8">{t('postJob.successMessage')}</p>
+          <h1 className="text-3xl font-bold text-ink-900 mb-3">{t('postJob.successTitle')}</h1>
+          <p className="text-ink-600 mb-8">{t('postJob.successMessage')}</p>
           <button
             onClick={() => {
               setSubmitted(false);
@@ -84,7 +84,7 @@ export default function PostJobPage() {
                 pay: '',
               });
             }}
-            className="inline-block bg-indigo-600 text-white px-8 py-3 rounded-full font-bold hover:bg-indigo-700 transition-all"
+            className="inline-block bg-brand-600 text-white px-8 py-3 rounded-full font-bold hover:bg-brand-700 transition-all"
           >
             {t('postJob.postAnother')}
           </button>
@@ -94,16 +94,16 @@ export default function PostJobPage() {
   }
 
   return (
-    <div className="min-h-screen pt-24 pb-20 px-4 bg-gradient-to-b from-indigo-50/50 to-white">
+    <div className="min-h-screen pt-24 pb-20 px-4 bg-gradient-to-b from-brand-50/50 to-white">
       <div className="max-w-lg mx-auto">
-        <div className="bg-white rounded-2xl shadow-xl border border-slate-100 p-8">
-          <h1 className="text-2xl font-bold text-slate-900 mb-2">{t('postJob.title')}</h1>
-          <p className="text-slate-500 mb-8">{t('postJob.subtitle')}</p>
+        <div className="bg-white rounded-2xl shadow-xl border border-ink-100 p-8">
+          <h1 className="text-2xl font-bold text-ink-900 mb-2">{t('postJob.title')}</h1>
+          <p className="text-ink-500 mb-8">{t('postJob.subtitle')}</p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Company / Name */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-ink-700 mb-1">
                 {t('postJob.yourName')} *
               </label>
               <input
@@ -111,13 +111,13 @@ export default function PostJobPage() {
                 value={form.companyName}
                 onChange={handleChange}
                 required
-                className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+                className="block w-full rounded-xl border border-ink-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
               />
             </div>
 
             {/* Phone */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-ink-700 mb-1">
                 {t('postJob.phone')} *
               </label>
               <input
@@ -127,13 +127,13 @@ export default function PostJobPage() {
                 onChange={handleChange}
                 required
                 placeholder="+27 82 123 4567"
-                className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+                className="block w-full rounded-xl border border-ink-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
               />
             </div>
 
             {/* WhatsApp */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-ink-700 mb-1">
                 {t('postJob.whatsapp')}
               </label>
               <input
@@ -141,13 +141,13 @@ export default function PostJobPage() {
                 type="tel"
                 value={form.whatsapp}
                 onChange={handleChange}
-                className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+                className="block w-full rounded-xl border border-ink-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
               />
             </div>
 
             {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-ink-700 mb-1">
                 {t('postJob.email')}
               </label>
               <input
@@ -155,15 +155,15 @@ export default function PostJobPage() {
                 type="email"
                 value={form.email}
                 onChange={handleChange}
-                className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+                className="block w-full rounded-xl border border-ink-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
               />
             </div>
 
-            <hr className="border-slate-100" />
+            <hr className="border-ink-100" />
 
             {/* Job Title */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-ink-700 mb-1">
                 {t('postJob.jobTitle')} *
               </label>
               <input
@@ -172,13 +172,13 @@ export default function PostJobPage() {
                 onChange={handleChange}
                 required
                 placeholder={t('postJob.jobTitlePlaceholder')}
-                className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+                className="block w-full rounded-xl border border-ink-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
               />
             </div>
 
             {/* Description */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-ink-700 mb-1">
                 {t('postJob.description')} *
               </label>
               <textarea
@@ -188,13 +188,13 @@ export default function PostJobPage() {
                 required
                 rows={4}
                 placeholder={t('postJob.descriptionPlaceholder')}
-                className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none resize-none"
+                className="block w-full rounded-xl border border-ink-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none resize-none"
               />
             </div>
 
             {/* Location */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-ink-700 mb-1">
                 {t('postJob.location')} *
               </label>
               <input
@@ -203,20 +203,20 @@ export default function PostJobPage() {
                 onChange={handleChange}
                 required
                 placeholder={t('postJob.locationPlaceholder')}
-                className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+                className="block w-full rounded-xl border border-ink-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
               />
             </div>
 
             {/* Job Type */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-ink-700 mb-1">
                 {t('postJob.jobType')}
               </label>
               <select
                 name="jobType"
                 value={form.jobType}
                 onChange={handleChange}
-                className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none bg-white"
+                className="block w-full rounded-xl border border-ink-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none bg-white"
               >
                 <option value="Full-time">{t('postJob.fullTime')}</option>
                 <option value="Part-time">{t('postJob.partTime')}</option>
@@ -229,7 +229,7 @@ export default function PostJobPage() {
 
             {/* Pay */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
+              <label className="block text-sm font-medium text-ink-700 mb-1">
                 {t('postJob.pay')}
               </label>
               <input
@@ -237,7 +237,7 @@ export default function PostJobPage() {
                 value={form.pay}
                 onChange={handleChange}
                 placeholder={t('postJob.payPlaceholder')}
-                className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+                className="block w-full rounded-xl border border-ink-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
               />
             </div>
 
@@ -246,7 +246,7 @@ export default function PostJobPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full bg-indigo-600 text-white py-3.5 rounded-full font-bold hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-brand-600 text-white py-3.5 rounded-full font-bold hover:bg-brand-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? t('postJob.submitting') : t('postJob.submit')}
             </button>

@@ -129,7 +129,7 @@ export default function CompanyNewEvent() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600" />
       </div>
     );
   }
@@ -171,7 +171,7 @@ export default function CompanyNewEvent() {
             onChange={handleChange}
             required
             placeholder="e.g. Careers in Data Engineering"
-            className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+            className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
           />
         </div>
 
@@ -182,7 +182,7 @@ export default function CompanyNewEvent() {
             value={form.description}
             onChange={handleChange}
             rows={4}
-            className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none resize-none"
+            className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none resize-none"
           />
         </div>
 
@@ -193,7 +193,7 @@ export default function CompanyNewEvent() {
               name="event_type"
               value={form.event_type}
               onChange={handleChange}
-              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm bg-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
             >
               {EVENT_TYPES.map((t) => (
                 <option key={t} value={t}>{t.replace('_', ' ')}</option>
@@ -206,7 +206,7 @@ export default function CompanyNewEvent() {
               name="format"
               value={form.format}
               onChange={handleChange}
-              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm bg-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
             >
               {FORMATS.map((f) => (
                 <option key={f} value={f}>{f.replace('_', ' ')}</option>
@@ -222,7 +222,7 @@ export default function CompanyNewEvent() {
             value={form.location}
             onChange={handleChange}
             placeholder="e.g. Online (Zoom link sent on registration)"
-            className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+            className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
           />
         </div>
 
@@ -235,7 +235,7 @@ export default function CompanyNewEvent() {
               value={form.start_date}
               onChange={handleChange}
               required
-              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
             />
           </div>
           <div>
@@ -245,7 +245,7 @@ export default function CompanyNewEvent() {
               type="datetime-local"
               value={form.end_date}
               onChange={handleChange}
-              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
             />
           </div>
         </div>
@@ -258,7 +258,7 @@ export default function CompanyNewEvent() {
               type="date"
               value={form.registration_deadline}
               onChange={handleChange}
-              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
             />
           </div>
           <div>
@@ -270,7 +270,7 @@ export default function CompanyNewEvent() {
               value={form.capacity}
               onChange={handleChange}
               placeholder="Leave blank for unlimited"
-              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
             />
           </div>
         </div>
@@ -282,7 +282,7 @@ export default function CompanyNewEvent() {
             value={form.skills_focus}
             onChange={handleChange}
             placeholder="Data Engineering, SQL, Cloud"
-            className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+            className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
           />
         </div>
 
@@ -296,7 +296,7 @@ export default function CompanyNewEvent() {
           <button
             type="submit"
             disabled={saving}
-            className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all disabled:opacity-50"
+            className="bg-brand-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-brand-700 transition-all disabled:opacity-50"
           >
             {saving ? 'Submitting...' : 'Submit Event'}
           </button>

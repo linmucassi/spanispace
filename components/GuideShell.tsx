@@ -16,16 +16,16 @@ export default function GuideShell({
 }) {
   return (
     <div className="pt-16">
-      <section className="bg-slate-900 text-white">
+      <section className="bg-ink-900 text-white">
         <div className="max-w-4xl mx-auto px-4 py-12 md:py-14">
           <Link
             href="/training"
-            className="text-sm text-slate-400 hover:text-white transition-colors"
+            className="text-sm text-ink-400 hover:text-white transition-colors"
           >
             &larr; <T k="course.back" />
           </Link>
           <h1 className="text-3xl md:text-5xl font-bold tracking-tight mt-4">{title}</h1>
-          <p className="text-slate-300 mt-3 max-w-2xl">{lede}</p>
+          <p className="text-ink-300 mt-3 max-w-2xl">{lede}</p>
         </div>
       </section>
       <section className="max-w-4xl mx-auto px-4 py-10 md:py-14">{children}</section>

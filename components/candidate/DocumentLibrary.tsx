@@ -24,7 +24,7 @@ const DOC_LABELS: Record<DocType, string> = {
 };
 
 const DOC_COLORS: Record<DocType, string> = {
-  cv: 'bg-indigo-100 text-indigo-700',
+  cv: 'bg-brand-100 text-brand-700',
   certificate: 'bg-emerald-100 text-emerald-700',
   cover_letter: 'bg-amber-100 text-amber-700',
   motivational_letter: 'bg-purple-100 text-purple-700',
@@ -206,7 +206,7 @@ export default function DocumentLibrary() {
                   href={doc.file_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-brand-50 transition-colors"
                   title="View"
                 >
                   <ExternalLink className="w-4 h-4" />
@@ -235,7 +235,7 @@ export default function DocumentLibrary() {
               <select
                 value={selectedType}
                 onChange={(e) => setSelectedType(e.target.value as DocType)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none"
               >
                 {(Object.entries(DOC_LABELS) as [DocType, string][]).map(([val, label]) => (
                   <option key={val} value={val}>
@@ -254,7 +254,7 @@ export default function DocumentLibrary() {
                 value={customName}
                 onChange={(e) => setCustomName(e.target.value)}
                 placeholder="e.g. Software Dev CV 2026"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none"
               />
             </div>
           </div>
@@ -269,9 +269,9 @@ export default function DocumentLibrary() {
               accept=".pdf,.doc,.docx"
               disabled={uploading}
               onChange={handleUpload}
-              className="w-full text-sm text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 file:cursor-pointer disabled:opacity-50"
+              className="w-full text-sm text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100 file:cursor-pointer disabled:opacity-50"
             />
-            {uploading && <p className="text-xs text-indigo-600 mt-1.5">Uploading…</p>}
+            {uploading && <p className="text-xs text-brand-600 mt-1.5">Uploading…</p>}
           </div>
 
           <button
@@ -290,7 +290,7 @@ export default function DocumentLibrary() {
         <button
           type="button"
           onClick={() => setShowUpload(true)}
-          className="flex items-center gap-2 text-sm text-indigo-600 font-medium hover:text-indigo-800 transition-colors"
+          className="flex items-center gap-2 text-sm text-brand-600 font-medium hover:text-brand-800 transition-colors"
         >
           <Upload className="w-4 h-4" />
           Upload document

@@ -193,7 +193,7 @@ export default function WorkExperience({
                 {entry.skills_gained.map((skill, i) => (
                   <span
                     key={`${skill}-${i}`}
-                    className="inline-block px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-xs font-medium"
+                    className="inline-block px-2 py-0.5 rounded-full bg-brand-50 text-brand-700 text-xs font-medium"
                   >
                     {skill}
                   </span>
@@ -219,7 +219,7 @@ export default function WorkExperience({
       ))}
 
       {showForm ? (
-        <form onSubmit={handleAdd} className="border border-indigo-200 bg-indigo-50/40 rounded-xl p-4 space-y-3">
+        <form onSubmit={handleAdd} className="border border-brand-200 bg-brand-50/40 rounded-xl p-4 space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">
@@ -230,7 +230,7 @@ export default function WorkExperience({
                 value={form.job_title}
                 onChange={handleChange}
                 placeholder="e.g. Waiter, Gardener, Car wash"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 bg-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
               />
             </div>
             <div>
@@ -242,7 +242,7 @@ export default function WorkExperience({
                 value={form.employer}
                 onChange={handleChange}
                 placeholder="e.g. Local restaurant, private family"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 bg-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
               />
             </div>
             <div>
@@ -253,7 +253,7 @@ export default function WorkExperience({
                 name="work_type"
                 value={form.work_type}
                 onChange={handleChange}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 bg-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
               >
                 {Object.entries(WORK_TYPE_LABELS).map(([value, label]) => (
                   <option key={value} value={value}>{label}</option>
@@ -269,7 +269,7 @@ export default function WorkExperience({
                 value={form.duration_text}
                 onChange={handleChange}
                 placeholder="e.g. 3 months, weekends in 2025"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 bg-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
               />
             </div>
             <div className="sm:col-span-2">
@@ -281,7 +281,7 @@ export default function WorkExperience({
                 value={form.location}
                 onChange={handleChange}
                 placeholder="e.g. Khayelitsha, Cape Town"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 bg-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
               />
             </div>
             <div className="sm:col-span-2">
@@ -294,7 +294,7 @@ export default function WorkExperience({
                 onChange={handleChange}
                 rows={2}
                 placeholder="e.g. Served tables, handled cash, opened and closed the shop"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none resize-none"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 bg-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none resize-none"
               />
             </div>
             <div className="sm:col-span-2">
@@ -306,7 +306,7 @@ export default function WorkExperience({
                 value={form.skills_gained}
                 onChange={handleChange}
                 placeholder="e.g. Customer service, cash handling, teamwork"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 bg-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
               />
             </div>
             <div>
@@ -318,7 +318,7 @@ export default function WorkExperience({
                 value={form.reference_name}
                 onChange={handleChange}
                 placeholder="Someone who can vouch for you"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 bg-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
               />
             </div>
             <div>
@@ -331,7 +331,7 @@ export default function WorkExperience({
                 value={form.reference_phone}
                 onChange={handleChange}
                 placeholder="e.g. 071 234 5678"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 bg-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
               />
             </div>
           </div>
@@ -349,7 +349,7 @@ export default function WorkExperience({
             <button
               type="submit"
               disabled={saving}
-              className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
+              className="px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50"
             >
               {saving ? 'Saving...' : 'Add Work'}
             </button>

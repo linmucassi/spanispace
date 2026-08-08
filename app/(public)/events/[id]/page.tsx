@@ -165,7 +165,7 @@ export default function EventDetailPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-600 border-t-transparent" />
       </div>
     );
   }
@@ -174,8 +174,8 @@ export default function EventDetailPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-slate-900 mb-4">Event not found</h1>
-          <Link href="/events" className="text-indigo-600 font-bold hover:underline">
+          <h1 className="text-2xl font-bold text-ink-900 mb-4">Event not found</h1>
+          <Link href="/events" className="text-brand-600 font-bold hover:underline">
             {t('events.backToEvents')}
           </Link>
         </div>
@@ -196,13 +196,13 @@ export default function EventDetailPage() {
         {/* Back link */}
         <Link
           href="/events"
-          className="inline-flex items-center gap-1.5 text-sm text-indigo-600 font-medium hover:underline mb-8"
+          className="inline-flex items-center gap-1.5 text-sm text-brand-600 font-medium hover:underline mb-8"
         >
           <ArrowLeft className="h-4 w-4" />
           {t('events.backToEvents')}
         </Link>
 
-        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-8 md:p-10">
+        <div className="bg-white rounded-3xl border border-ink-100 shadow-sm p-8 md:p-10">
           {/* Status banners */}
           {isCancelled && (
             <div className="flex items-center gap-3 bg-red-50 border border-red-100 rounded-2xl p-4 mb-6">
@@ -211,9 +211,9 @@ export default function EventDetailPage() {
             </div>
           )}
           {isCompleted && (
-            <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-6">
-              <CheckCircle2 className="h-5 w-5 text-slate-500 flex-shrink-0" />
-              <p className="text-slate-600 font-medium">{t('events.eventCompleted')}</p>
+            <div className="flex items-center gap-3 bg-ink-50 border border-ink-200 rounded-2xl p-4 mb-6">
+              <CheckCircle2 className="h-5 w-5 text-ink-500 flex-shrink-0" />
+              <p className="text-ink-600 font-medium">{t('events.eventCompleted')}</p>
             </div>
           )}
 
@@ -221,7 +221,7 @@ export default function EventDetailPage() {
           <div className="mb-8">
             <div className="flex flex-wrap gap-2 mb-4">
               {event.event_type && (
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-indigo-100 text-indigo-700">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-brand-100 text-brand-700">
                   {formatEventType(event.event_type)}
                 </span>
               )}
@@ -235,24 +235,24 @@ export default function EventDetailPage() {
                 </span>
               )}
             </div>
-            <h1 className="text-3xl font-extrabold text-slate-900">{event.title}</h1>
+            <h1 className="text-3xl font-extrabold text-ink-900">{event.title}</h1>
           </div>
 
           {/* Details grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
             {event.start_date && (
-              <div className="bg-slate-50 rounded-2xl p-4">
+              <div className="bg-ink-50 rounded-2xl p-4">
                 <div className="flex items-center gap-2 mb-1">
-                  <Calendar className="h-4 w-4 text-slate-400" />
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  <Calendar className="h-4 w-4 text-ink-400" />
+                  <p className="text-xs font-bold text-ink-400 uppercase tracking-wider">
                     {t('events.date')}
                   </p>
                 </div>
-                <p className="font-bold text-slate-900 text-sm">
+                <p className="font-bold text-ink-900 text-sm">
                   {formatDateTime(event.start_date)}
                 </p>
                 {event.end_date && (
-                  <p className="text-xs text-slate-500 mt-1">
+                  <p className="text-xs text-ink-500 mt-1">
                     to {formatDateTime(event.end_date)}
                   </p>
                 )}
@@ -260,26 +260,26 @@ export default function EventDetailPage() {
             )}
 
             {event.location && (
-              <div className="bg-slate-50 rounded-2xl p-4">
+              <div className="bg-ink-50 rounded-2xl p-4">
                 <div className="flex items-center gap-2 mb-1">
-                  <MapPin className="h-4 w-4 text-slate-400" />
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  <MapPin className="h-4 w-4 text-ink-400" />
+                  <p className="text-xs font-bold text-ink-400 uppercase tracking-wider">
                     {t('events.location')}
                   </p>
                 </div>
-                <p className="font-bold text-slate-900 text-sm">{event.location}</p>
+                <p className="font-bold text-ink-900 text-sm">{event.location}</p>
               </div>
             )}
 
             {event.format && (
-              <div className="bg-slate-50 rounded-2xl p-4">
+              <div className="bg-ink-50 rounded-2xl p-4">
                 <div className="flex items-center gap-2 mb-1">
-                  <Monitor className="h-4 w-4 text-slate-400" />
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  <Monitor className="h-4 w-4 text-ink-400" />
+                  <p className="text-xs font-bold text-ink-400 uppercase tracking-wider">
                     {t('events.format')}
                   </p>
                 </div>
-                <p className="font-bold text-slate-900 text-sm">
+                <p className="font-bold text-ink-900 text-sm">
                   {event.format === 'online'
                     ? t('events.online')
                     : event.format === 'hybrid'
@@ -290,18 +290,18 @@ export default function EventDetailPage() {
             )}
 
             {event.capacity !== null && (
-              <div className="bg-slate-50 rounded-2xl p-4">
+              <div className="bg-ink-50 rounded-2xl p-4">
                 <div className="flex items-center gap-2 mb-1">
-                  <Users className="h-4 w-4 text-slate-400" />
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  <Users className="h-4 w-4 text-ink-400" />
+                  <p className="text-xs font-bold text-ink-400 uppercase tracking-wider">
                     {t('events.capacity')}
                   </p>
                 </div>
-                <p className="font-bold text-slate-900 text-sm">
+                <p className="font-bold text-ink-900 text-sm">
                   {registrationCount} / {event.capacity}
                 </p>
                 {spotsLeft !== null && spotsLeft > 0 && !deadlinePassed && (
-                  <p className="text-xs text-indigo-600 font-medium mt-1">
+                  <p className="text-xs text-brand-600 font-medium mt-1">
                     {spotsLeft} {t('events.spotsLeft')}
                   </p>
                 )}
@@ -309,15 +309,15 @@ export default function EventDetailPage() {
             )}
 
             {event.registration_deadline && (
-              <div className="bg-slate-50 rounded-2xl p-4">
+              <div className="bg-ink-50 rounded-2xl p-4">
                 <div className="flex items-center gap-2 mb-1">
-                  <Clock className="h-4 w-4 text-slate-400" />
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  <Clock className="h-4 w-4 text-ink-400" />
+                  <p className="text-xs font-bold text-ink-400 uppercase tracking-wider">
                     {t('events.deadline')}
                   </p>
                 </div>
                 <p
-                  className={`font-bold text-sm ${deadlinePassed ? 'text-red-600' : 'text-slate-900'}`}
+                  className={`font-bold text-sm ${deadlinePassed ? 'text-red-600' : 'text-ink-900'}`}
                 >
                   {new Date(event.registration_deadline).toLocaleDateString('en-ZA', {
                     year: 'numeric',
@@ -329,14 +329,14 @@ export default function EventDetailPage() {
             )}
 
             {event.event_type && (
-              <div className="bg-slate-50 rounded-2xl p-4">
+              <div className="bg-ink-50 rounded-2xl p-4">
                 <div className="flex items-center gap-2 mb-1">
-                  <Tag className="h-4 w-4 text-slate-400" />
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  <Tag className="h-4 w-4 text-ink-400" />
+                  <p className="text-xs font-bold text-ink-400 uppercase tracking-wider">
                     {t('events.type')}
                   </p>
                 </div>
-                <p className="font-bold text-slate-900 text-sm">
+                <p className="font-bold text-ink-900 text-sm">
                   {formatEventType(event.event_type)}
                 </p>
               </div>
@@ -346,14 +346,14 @@ export default function EventDetailPage() {
           {/* Skills focus */}
           {event.skills_focus && event.skills_focus.length > 0 && (
             <div className="mb-8">
-              <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">
+              <h3 className="text-sm font-bold text-ink-400 uppercase tracking-wider mb-3">
                 {t('events.skills')}
               </h3>
               <div className="flex flex-wrap gap-2">
                 {event.skills_focus.map((skill) => (
                   <span
                     key={skill}
-                    className="px-3 py-1 bg-indigo-50 text-indigo-600 text-sm font-medium rounded-full"
+                    className="px-3 py-1 bg-brand-50 text-brand-600 text-sm font-medium rounded-full"
                   >
                     {skill}
                   </span>
@@ -366,7 +366,7 @@ export default function EventDetailPage() {
           {event.description && (
             <div className="mb-8">
               <div className="prose prose-slate max-w-none">
-                <p className="text-slate-600 leading-relaxed whitespace-pre-wrap">
+                <p className="text-ink-600 leading-relaxed whitespace-pre-wrap">
                   {event.description}
                 </p>
               </div>
@@ -397,17 +397,17 @@ export default function EventDetailPage() {
               {!userId ? (
                 <Link
                   href="/login"
-                  className="block w-full text-center bg-slate-900 text-white px-8 py-4 rounded-2xl font-bold shadow-lg hover:bg-slate-800 transition-all hover:scale-[1.02]"
+                  className="block w-full text-center bg-ink-900 text-white px-8 py-4 rounded-2xl font-bold shadow-lg hover:bg-ink-800 transition-all hover:scale-[1.02]"
                 >
                   {t('events.signInToRegister')}
                 </Link>
               ) : deadlinePassed ? (
-                <div className="flex items-center justify-center gap-2 bg-slate-100 text-slate-500 px-8 py-4 rounded-2xl font-bold">
+                <div className="flex items-center justify-center gap-2 bg-ink-100 text-ink-500 px-8 py-4 rounded-2xl font-bold">
                   <Clock className="h-5 w-5" />
                   {t('events.registrationClosed')}
                 </div>
               ) : isFull && !isRegistered ? (
-                <div className="flex items-center justify-center gap-2 bg-slate-100 text-slate-500 px-8 py-4 rounded-2xl font-bold">
+                <div className="flex items-center justify-center gap-2 bg-ink-100 text-ink-500 px-8 py-4 rounded-2xl font-bold">
                   <Users className="h-5 w-5" />
                   {t('events.registrationClosed')}
                 </div>
@@ -429,7 +429,7 @@ export default function EventDetailPage() {
                 <button
                   onClick={handleRegister}
                   disabled={actionLoading}
-                  className="block w-full text-center bg-indigo-600 text-white px-8 py-4 rounded-2xl font-bold shadow-lg hover:bg-indigo-700 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="block w-full text-center bg-brand-600 text-white px-8 py-4 rounded-2xl font-bold shadow-lg hover:bg-brand-700 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {actionLoading ? t('events.registering') : t('events.register')}
                 </button>

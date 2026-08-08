@@ -30,7 +30,7 @@ export default async function AutoApplyPage() {
           </p>
           <Link
             href="/candidate/profile"
-            className="inline-block mt-4 text-indigo-600 font-medium hover:underline"
+            className="inline-block mt-4 text-brand-600 font-medium hover:underline"
           >
             Go to My Profile
           </Link>

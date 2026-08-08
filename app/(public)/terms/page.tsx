@@ -9,13 +9,13 @@ export default function TermsOfServicePage() {
   return (
     <div className="min-h-screen bg-white pt-24 pb-16">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold text-slate-900 mb-2">Terms of Service</h1>
-        <p className="text-sm text-slate-500 mb-10">Last updated: 26 June 2026</p>
+        <h1 className="text-3xl font-bold text-ink-900 mb-2">Terms of Service</h1>
+        <p className="text-sm text-ink-500 mb-10">Last updated: 26 June 2026</p>
 
         <div className="prose prose-slate max-w-none space-y-8">
           <section>
-            <h2 className="text-xl font-semibold text-slate-800 mb-3">1. Acceptance of Terms</h2>
-            <p className="text-slate-600 leading-relaxed">
+            <h2 className="text-xl font-semibold text-ink-800 mb-3">1. Acceptance of Terms</h2>
+            <p className="text-ink-600 leading-relaxed">
               By accessing or using the Spanispace platform (&quot;Platform&quot;), you agree to be bound by
               these Terms of Service (&quot;Terms&quot;). If you do not agree to these Terms, you may not use
               the Platform. These Terms constitute a legally binding agreement between you and
@@ -25,8 +25,8 @@ export default function TermsOfServicePage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-slate-800 mb-3">2. Description of Service</h2>
-            <p className="text-slate-600 leading-relaxed">
+            <h2 className="text-xl font-semibold text-ink-800 mb-3">2. Description of Service</h2>
+            <p className="text-ink-600 leading-relaxed">
               Spanispace is a talent and employment platform that connects job seekers with employers
               and provides professional development services. Our services include, but are not limited
               to: a vetted job board, skills training programmes and bootcamps, academic opportunity
@@ -37,19 +37,19 @@ export default function TermsOfServicePage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-slate-800 mb-3">3. User Accounts</h2>
-            <p className="text-slate-600 leading-relaxed mb-3">
+            <h2 className="text-xl font-semibold text-ink-800 mb-3">3. User Accounts</h2>
+            <p className="text-ink-600 leading-relaxed mb-3">
               To access certain features of the Platform, you must create an account. When creating
               an account, you agree to:
             </p>
-            <ul className="list-disc list-inside text-slate-600 space-y-2 ml-2">
+            <ul className="list-disc list-inside text-ink-600 space-y-2 ml-2">
               <li>Provide accurate, current, and complete information during registration.</li>
               <li>Maintain and update your information to keep it accurate and current.</li>
               <li>Maintain the security and confidentiality of your login credentials.</li>
               <li>Accept responsibility for all activities that occur under your account.</li>
               <li>Notify us immediately of any unauthorised use of your account.</li>
             </ul>
-            <p className="text-slate-600 leading-relaxed mt-3">
+            <p className="text-ink-600 leading-relaxed mt-3">
               We reserve the right to suspend or terminate accounts that violate these Terms or that
               have been inactive for an extended period. You may delete your account at any time by
               contacting our support team.
@@ -57,11 +57,11 @@ export default function TermsOfServicePage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-slate-800 mb-3">4. User Conduct</h2>
-            <p className="text-slate-600 leading-relaxed mb-3">
+            <h2 className="text-xl font-semibold text-ink-800 mb-3">4. User Conduct</h2>
+            <p className="text-ink-600 leading-relaxed mb-3">
               You agree not to use the Platform to:
             </p>
-            <ul className="list-disc list-inside text-slate-600 space-y-2 ml-2">
+            <ul className="list-disc list-inside text-ink-600 space-y-2 ml-2">
               <li>Post false, misleading, or fraudulent job listings or applications.</li>
               <li>Impersonate any person or entity, or misrepresent your affiliation with any person or entity.</li>
               <li>Harass, threaten, or discriminate against other users.</li>
@@ -74,8 +74,8 @@ export default function TermsOfServicePage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-slate-800 mb-3">5. Job Postings and Applications</h2>
-            <p className="text-slate-600 leading-relaxed mb-3">
+            <h2 className="text-xl font-semibold text-ink-800 mb-3">5. Job Postings and Applications</h2>
+            <p className="text-ink-600 leading-relaxed mb-3">
               <strong>For Employers:</strong> You are solely responsible for the accuracy and legality
               of job postings you submit. All job listings must comply with South African labour
               legislation, including the Employment Equity Act, the Basic Conditions of Employment Act,
@@ -84,7 +84,7 @@ export default function TermsOfServicePage() {
               occupational requirement exists. We reserve the right to review, edit, or remove any
               job posting at our discretion.
             </p>
-            <p className="text-slate-600 leading-relaxed">
+            <p className="text-ink-600 leading-relaxed">
               <strong>For Candidates:</strong> You are responsible for the accuracy of information
               provided in your applications and profile. Submitting false qualifications, fabricated
               work experience, or misleading information may result in account termination.
@@ -94,8 +94,8 @@ export default function TermsOfServicePage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-slate-800 mb-3">6. Training and Events</h2>
-            <p className="text-slate-600 leading-relaxed">
+            <h2 className="text-xl font-semibold text-ink-800 mb-3">6. Training and Events</h2>
+            <p className="text-ink-600 leading-relaxed">
               Spanispace may offer training programmes, bootcamps, and events. Enrolment in these
               programmes may be subject to additional terms, fees, and availability. We reserve the
               right to modify, reschedule, or cancel any training programme or event. Where fees
@@ -106,8 +106,8 @@ export default function TermsOfServicePage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-slate-800 mb-3">7. Intellectual Property</h2>
-            <p className="text-slate-600 leading-relaxed">
+            <h2 className="text-xl font-semibold text-ink-800 mb-3">7. Intellectual Property</h2>
+            <p className="text-ink-600 leading-relaxed">
               All content on the Platform, including but not limited to text, graphics, logos, icons,
               images, software, and design elements, is the property of Spanispace or its licensors
               and is protected by South African and international intellectual property laws. You may
@@ -120,8 +120,8 @@ export default function TermsOfServicePage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-slate-800 mb-3">8. Limitation of Liability</h2>
-            <p className="text-slate-600 leading-relaxed">
+            <h2 className="text-xl font-semibold text-ink-800 mb-3">8. Limitation of Liability</h2>
+            <p className="text-ink-600 leading-relaxed">
               To the maximum extent permitted by law, Spanispace shall not be liable for any indirect,
               incidental, special, consequential, or punitive damages arising from your use of the
               Platform. This includes, without limitation, damages for loss of profits, data, or
@@ -134,8 +134,8 @@ export default function TermsOfServicePage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-slate-800 mb-3">9. Indemnification</h2>
-            <p className="text-slate-600 leading-relaxed">
+            <h2 className="text-xl font-semibold text-ink-800 mb-3">9. Indemnification</h2>
+            <p className="text-ink-600 leading-relaxed">
               You agree to indemnify, defend, and hold harmless Spanispace, its directors, officers,
               employees, and agents from and against any claims, liabilities, damages, losses, and
               expenses (including reasonable legal fees) arising out of or in connection with your use
@@ -145,8 +145,8 @@ export default function TermsOfServicePage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-slate-800 mb-3">10. Governing Law and Jurisdiction</h2>
-            <p className="text-slate-600 leading-relaxed">
+            <h2 className="text-xl font-semibold text-ink-800 mb-3">10. Governing Law and Jurisdiction</h2>
+            <p className="text-ink-600 leading-relaxed">
               These Terms shall be governed by and construed in accordance with the laws of the
               Republic of South Africa. Any disputes arising from or related to these Terms or your
               use of the Platform shall be subject to the exclusive jurisdiction of the courts of the
@@ -156,8 +156,8 @@ export default function TermsOfServicePage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-slate-800 mb-3">11. Severability</h2>
-            <p className="text-slate-600 leading-relaxed">
+            <h2 className="text-xl font-semibold text-ink-800 mb-3">11. Severability</h2>
+            <p className="text-ink-600 leading-relaxed">
               If any provision of these Terms is found to be unenforceable or invalid by a court of
               competent jurisdiction, that provision shall be limited or eliminated to the minimum
               extent necessary, and the remaining provisions shall remain in full force and effect.
@@ -165,13 +165,13 @@ export default function TermsOfServicePage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-slate-800 mb-3">12. AI CV Audit — Accuracy Disclaimer</h2>
-            <p className="text-slate-600 leading-relaxed">
+            <h2 className="text-xl font-semibold text-ink-800 mb-3">12. AI CV Audit — Accuracy Disclaimer</h2>
+            <p className="text-ink-600 leading-relaxed">
               The AI-Driven CV Audit feature uses large language model technology to generate
               automated feedback on CV text submitted by candidates. By using this feature, you
               acknowledge and agree that:
             </p>
-            <ul className="list-disc list-inside text-slate-600 space-y-2 ml-2 mt-3">
+            <ul className="list-disc list-inside text-ink-600 space-y-2 ml-2 mt-3">
               <li>
                 Feedback is generated automatically and may contain inaccuracies, omissions, or
                 opinions that do not reflect current hiring practices in your specific industry.
@@ -193,8 +193,8 @@ export default function TermsOfServicePage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-slate-800 mb-3">13. Third-Party Job Listings</h2>
-            <p className="text-slate-600 leading-relaxed">
+            <h2 className="text-xl font-semibold text-ink-800 mb-3">13. Third-Party Job Listings</h2>
+            <p className="text-ink-600 leading-relaxed">
               Some job listings on the Spanispace platform are sourced from third-party job boards
               via automated data collection. While we filter and review these listings before
               display, we do not independently verify the accuracy, completeness, or legitimacy of
@@ -206,8 +206,8 @@ export default function TermsOfServicePage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-slate-800 mb-3">14. Changes to Terms</h2>
-            <p className="text-slate-600 leading-relaxed">
+            <h2 className="text-xl font-semibold text-ink-800 mb-3">14. Changes to Terms</h2>
+            <p className="text-ink-600 leading-relaxed">
               We reserve the right to modify these Terms at any time. We will notify users of
               material changes by posting the updated Terms on the Platform and updating the
               &quot;Last updated&quot; date. Your continued use of the Platform after the effective date of
@@ -217,11 +217,11 @@ export default function TermsOfServicePage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-slate-800 mb-3">15. Contact Information</h2>
-            <p className="text-slate-600 leading-relaxed">
+            <h2 className="text-xl font-semibold text-ink-800 mb-3">15. Contact Information</h2>
+            <p className="text-ink-600 leading-relaxed">
               If you have any questions about these Terms of Service, please contact us at:
             </p>
-            <div className="mt-3 bg-slate-50 rounded-lg p-4 text-slate-600 text-sm space-y-1">
+            <div className="mt-3 bg-ink-50 rounded-lg p-4 text-ink-600 text-sm space-y-1">
               <p><strong>Spanispace (Pty) Ltd</strong></p>
               <p>Email: legal@spanispace.com</p>
               <p>South Africa</p>
@@ -229,10 +229,10 @@ export default function TermsOfServicePage() {
           </section>
         </div>
 
-        <div className="mt-12 pt-8 border-t border-slate-200">
+        <div className="mt-12 pt-8 border-t border-ink-200">
           <Link
             href="/"
-            className="text-indigo-600 hover:text-indigo-700 text-sm font-medium transition-colors"
+            className="text-brand-600 hover:text-brand-700 text-sm font-medium transition-colors"
           >
             &larr; Back to Home
           </Link>

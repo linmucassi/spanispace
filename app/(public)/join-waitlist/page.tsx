@@ -66,7 +66,7 @@ export default function JoinWaitlist() {
                 value={form.name}
                 onChange={handleChange}
                 required
-                className="mt-1 block w-full rounded-xl border border-gray-200 px-4 py-3 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+                className="mt-1 block w-full rounded-xl border border-gray-200 px-4 py-3 text-sm shadow-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
               />
             </div>
 
@@ -78,7 +78,7 @@ export default function JoinWaitlist() {
                 value={form.email}
                 onChange={handleChange}
                 required
-                className="mt-1 block w-full rounded-xl border border-gray-200 px-4 py-3 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+                className="mt-1 block w-full rounded-xl border border-gray-200 px-4 py-3 text-sm shadow-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
               />
             </div>
 
@@ -90,7 +90,7 @@ export default function JoinWaitlist() {
                 value={form.phone}
                 onChange={handleChange}
                 placeholder="+27 82 123 4567"
-                className="mt-1 block w-full rounded-xl border border-gray-200 px-4 py-3 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+                className="mt-1 block w-full rounded-xl border border-gray-200 px-4 py-3 text-sm shadow-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
               />
             </div>
 
@@ -99,7 +99,7 @@ export default function JoinWaitlist() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full bg-indigo-600 text-white py-3 rounded-full font-bold hover:bg-indigo-700 transition disabled:opacity-50"
+              className="w-full bg-brand-600 text-white py-3 rounded-full font-bold hover:bg-brand-700 transition disabled:opacity-50"
             >
               {submitting ? t('apply.submitting') : 'Join Waitlist'}
             </button>

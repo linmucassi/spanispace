@@ -73,12 +73,12 @@ const TrainingSection: React.FC<{
   const Heading = preview ? 'h2' : 'h1';
 
   return (
-    <div className="bg-slate-900 text-white">
+    <div className="bg-ink-900 text-white">
       <div className="max-w-6xl mx-auto px-4 py-16 md:py-20">
         <Heading className="text-4xl md:text-5xl font-bold tracking-tight">
           {t('training.title')}
         </Heading>
-        <p className="text-slate-400 mt-3 max-w-xl">{t('training.subtitle')}</p>
+        <p className="text-ink-400 mt-3 max-w-xl">{t('training.subtitle')}</p>
 
         {!preview && (
           <div
@@ -96,8 +96,8 @@ const TrainingSection: React.FC<{
                   aria-pressed={active}
                   className={`px-4 py-2 rounded-full text-sm font-bold transition-colors ${
                     active
-                      ? 'bg-white text-slate-900'
-                      : 'bg-slate-800 text-slate-300 border border-slate-700 hover:border-indigo-500'
+                      ? 'bg-white text-ink-900'
+                      : 'bg-ink-800 text-ink-300 border border-ink-700 hover:border-brand-500'
                   }`}
                 >
                   {filterLabel[option]}
@@ -130,14 +130,14 @@ const TrainingSection: React.FC<{
               factLine = t('training.comingSoon');
             }
 
-            const cardClass = `group flex flex-col h-full bg-slate-800 border border-slate-700 rounded-2xl p-6 transition-colors ${
-              isPast ? 'opacity-60' : 'hover:border-indigo-500'
+            const cardClass = `group flex flex-col h-full bg-ink-800 border border-ink-700 rounded-2xl p-6 transition-colors ${
+              isPast ? 'opacity-60' : 'hover:border-brand-500'
             }`;
 
             const body = (
               <>
                 <div className="flex items-start justify-between gap-3 mb-4">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-ink-400">
                     {item.category}
                   </span>
                   <span
@@ -146,7 +146,7 @@ const TrainingSection: React.FC<{
                         ? 'text-emerald-400'
                         : access === 'paid'
                           ? 'text-amber-400'
-                          : 'text-slate-400'
+                          : 'text-ink-400'
                     }`}
                   >
                     {access === 'free'
@@ -158,13 +158,13 @@ const TrainingSection: React.FC<{
                 </div>
 
                 <h2
-                  className={`text-xl font-bold leading-snug ${isPast ? '' : 'group-hover:text-indigo-400'}`}
+                  className={`text-xl font-bold leading-snug ${isPast ? '' : 'group-hover:text-brand-400'}`}
                 >
                   {item.title}
                 </h2>
-                <p className="text-slate-400 text-sm mt-1.5">{item.description}</p>
+                <p className="text-ink-400 text-sm mt-1.5">{item.description}</p>
 
-                <p className="mt-auto pt-5 text-xs text-slate-500">
+                <p className="mt-auto pt-5 text-xs text-ink-500">
                   {item.provider} · {factLine}
                 </p>
               </>
@@ -203,13 +203,13 @@ const TrainingSection: React.FC<{
         {preview ? (
           <Link
             href="/training"
-            className="inline-block mt-8 bg-white text-slate-900 font-bold px-6 py-3 rounded-xl hover:bg-indigo-50 transition-colors"
+            className="inline-block mt-8 bg-white text-ink-900 font-bold px-6 py-3 rounded-xl hover:bg-brand-50 transition-colors"
           >
             {t('training.seeAll')}
           </Link>
         ) : (
           <>
-            <h2 className="text-xs font-bold uppercase tracking-widest text-slate-500 mt-16 mb-4">
+            <h2 className="text-xs font-bold uppercase tracking-widest text-ink-500 mt-16 mb-4">
               {t('training.guidesTitle')}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -217,16 +217,16 @@ const TrainingSection: React.FC<{
                 <Link
                   key={guide.slug}
                   href={`/training/${guide.slug}`}
-                  className="group bg-slate-800/60 border border-slate-700 rounded-2xl p-5 transition-colors hover:border-indigo-500"
+                  className="group bg-ink-800/60 border border-ink-700 rounded-2xl p-5 transition-colors hover:border-brand-500"
                 >
-                  <p className="font-bold group-hover:text-indigo-400">{guide.title}</p>
-                  <p className="text-sm text-slate-400 mt-1">{guide.blurb}</p>
-                  <p className="text-xs text-slate-500 mt-3">{guide.count}</p>
+                  <p className="font-bold group-hover:text-brand-400">{guide.title}</p>
+                  <p className="text-sm text-ink-400 mt-1">{guide.blurb}</p>
+                  <p className="text-xs text-ink-500 mt-3">{guide.count}</p>
                 </Link>
               ))}
             </div>
 
-            <p className="text-xs text-slate-500 mt-10">{t('training.pricingNote')}</p>
+            <p className="text-xs text-ink-500 mt-10">{t('training.pricingNote')}</p>
           </>
         )}
       </div>

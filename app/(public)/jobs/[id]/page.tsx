@@ -70,7 +70,7 @@ export default async function JobDetailPage({ params }: Props) {
       <JobDetailView job={job} />
       {job.source === 'static' && (
         <div className="max-w-3xl mx-auto px-4 pb-8 -mt-6">
-          <div className="text-xs text-slate-400 text-center">
+          <div className="text-xs text-ink-400 text-center">
             <Link href="/jobs" className="hover:underline">
               ← Back to all jobs
             </Link>

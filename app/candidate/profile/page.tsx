@@ -265,7 +265,7 @@ export default function CandidateProfilePage() {
                 type="text"
                 value={profile.full_name}
                 onChange={(e) => handleChange('full_name', e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
                 placeholder="e.g. Thabo Mokoena"
               />
             </div>
@@ -290,7 +290,7 @@ export default function CandidateProfilePage() {
                 type="tel"
                 value={profile.phone}
                 onChange={(e) => handleChange('phone', e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
                 placeholder="e.g. 071 234 5678"
               />
             </div>
@@ -303,7 +303,7 @@ export default function CandidateProfilePage() {
                 type="tel"
                 value={profile.whatsapp}
                 onChange={(e) => handleChange('whatsapp', e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
                 placeholder="e.g. 071 234 5678"
               />
             </div>
@@ -316,7 +316,7 @@ export default function CandidateProfilePage() {
                 type="text"
                 value={profile.location}
                 onChange={(e) => handleChange('location', e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
                 placeholder="e.g. Johannesburg, Gauteng"
               />
             </div>
@@ -343,7 +343,7 @@ export default function CandidateProfilePage() {
                     e.target.value ? Number(e.target.value) : null
                   )
                 }
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
                 placeholder="e.g. 2022"
               />
             </div>
@@ -356,7 +356,7 @@ export default function CandidateProfilePage() {
                 type="text"
                 value={profile.university}
                 onChange={(e) => handleChange('university', e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
                 placeholder="e.g. University of Cape Town"
               />
             </div>
@@ -377,7 +377,7 @@ export default function CandidateProfilePage() {
                 value={skillInput}
                 onChange={(e) => setSkillInput(e.target.value)}
                 onKeyDown={handleSkillKeyDown}
-                className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
                 placeholder="e.g. Python, Excel, Data Analysis"
               />
               <button
@@ -395,13 +395,13 @@ export default function CandidateProfilePage() {
               {profile.skills.map((skill) => (
                 <span
                   key={skill}
-                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-sm font-medium"
+                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-brand-50 text-brand-700 text-sm font-medium"
                 >
                   {skill}
                   <button
                     type="button"
                     onClick={() => removeSkill(skill)}
-                    className="ml-0.5 text-indigo-400 hover:text-indigo-700 transition-colors"
+                    className="ml-0.5 text-brand-400 hover:text-brand-700 transition-colors"
                     aria-label={`Remove ${skill}`}
                   >
                     &times;
@@ -424,7 +424,7 @@ export default function CandidateProfilePage() {
               inputMode="url"
               value={profile.portfolio_url}
               onChange={(e) => handleChange('portfolio_url', e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
               placeholder="https://yourportfolio.com"
             />
           </div>
@@ -463,7 +463,7 @@ export default function CandidateProfilePage() {
             onChange={(e) => handleChange('professional_summary', e.target.value)}
             rows={7}
             placeholder="Add your work experience above, then press the button and we will write this for you. You can also write it yourself."
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
           />
           {buildError && <p className="text-red-600 text-sm">{buildError}</p>}
           <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -476,7 +476,7 @@ export default function CandidateProfilePage() {
               type="button"
               onClick={handleBuildSummary}
               disabled={building || workEntries.length === 0}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Sparkles className="w-4 h-4" />
               {building ? 'Building your profile...' : 'Build My Professional Profile'}
@@ -503,7 +503,7 @@ export default function CandidateProfilePage() {
         <button
           onClick={handleSave}
           disabled={saving || !profile.full_name.trim()}
-          className="px-6 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-6 py-2.5 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {saving ? 'Saving...' : 'Save Profile'}
         </button>

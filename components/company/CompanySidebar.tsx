@@ -79,7 +79,7 @@ export default function CompanySidebar() {
       {/* Mobile top bar */}
       <div className="md:hidden fixed top-0 left-0 right-0 h-14 bg-slate-900 text-white flex items-center justify-between px-4 z-40">
         <Link href="/company/dashboard" className="flex items-center gap-2">
-          <div className="bg-indigo-600 w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs">
+          <div className="bg-brand-600 w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs">
             S
           </div>
           <span className="font-bold tracking-tight">spanispace</span>
@@ -146,7 +146,7 @@ export default function CompanySidebar() {
                 href={item.href}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                   isActive
-                    ? 'bg-indigo-600 text-white'
+                    ? 'bg-brand-600 text-white'
                     : 'text-slate-300 hover:bg-slate-800 hover:text-white'
                 }`}
               >

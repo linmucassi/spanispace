@@ -18,8 +18,8 @@ export default function CertificationsPage() {
     >
       <div className="grid md:grid-cols-2 gap-4">
         {academy.certs.map((group) => (
-          <div key={group.provider} className="bg-white border border-slate-200 rounded-2xl p-5">
-            <h2 className="font-bold text-slate-900 text-lg mb-3">{group.provider}</h2>
+          <div key={group.provider} className="bg-white border border-ink-200 rounded-2xl p-5">
+            <h2 className="font-bold text-ink-900 text-lg mb-3">{group.provider}</h2>
             <ul className="space-y-3">
               {group.items.map((cert) => (
                 <li key={cert.name}>
@@ -28,7 +28,7 @@ export default function CertificationsPage() {
                       href={cert.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="font-semibold text-slate-800 hover:text-indigo-600 hover:underline text-sm"
+                      className="font-semibold text-ink-800 hover:text-brand-600 hover:underline text-sm"
                     >
                       {cert.name}
                     </a>
@@ -37,14 +37,14 @@ export default function CertificationsPage() {
                         className={`text-[11px] font-mono px-2 py-0.5 rounded ${
                           /free/i.test(cert.cost)
                             ? 'text-emerald-700 bg-emerald-50 border border-emerald-200'
-                            : 'text-slate-500 bg-slate-50 border border-slate-200'
+                            : 'text-ink-500 bg-ink-50 border border-ink-200'
                         }`}
                       >
                         {cert.cost}
                       </span>
                     )}
                   </div>
-                  <p className="text-[13px] text-slate-500 mt-0.5">
+                  <p className="text-[13px] text-ink-500 mt-0.5">
                     <Inline html={cert.whyHtml} />
                   </p>
                 </li>
