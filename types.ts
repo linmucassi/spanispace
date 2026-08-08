@@ -42,8 +42,14 @@ export interface Training {
   level: TrainingLevel;
   /** Who runs the course. 'SpaniSpace' for our own, otherwise the partner name. */
   provider: string;
-  /** Where the button goes. An internal route, or a full URL for a partner. */
+  /** Where the card goes. An internal route, or a full URL for a partner. */
   href: string;
+  /**
+   * Set when we host the course ourselves and it has lessons on this site, in
+   * which case it matches a slug in data/courses.ts and the card can show a
+   * real lesson count and reading time instead of a guess.
+   */
+  courseSlug?: string;
   /**
    * True when a partner hosts and prices the course. We show their name and
    * send candidates to them, and we never quote a price we do not set.

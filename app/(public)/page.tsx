@@ -1,7 +1,8 @@
 import Hero from '@/components/Hero';
 import CVAuditBanner from '@/components/CVAuditBanner';
 import JobBoard from '@/components/JobBoard';
-import TrainingSection from '@/components/TrainingSection';
+import TrainingSection, { type CourseMeta } from '@/components/TrainingSection';
+import { COURSES, courseMinutes } from '@/data/courses';
 import AcademicPortal from '@/components/AcademicPortal';
 import SuccessStories from '@/components/SuccessStories';
 import JsonLd from '@/components/JsonLd';
@@ -96,6 +97,14 @@ const faqSchema = {
 
 export default async function Home() {
   const [jobs, uniApps] = await Promise.all([fetchPublicJobs(), fetchPublicUniApps()]);
+  // Computed server side so the lesson prose in data/academy.ts never reaches
+  // the browser. Same reason as /training. See app/(public)/training/page.tsx.
+  const courseMeta: Record<string, CourseMeta> = Object.fromEntries(
+    COURSES.map((course) => [
+      course.slug,
+      { lessons: course.lessons.length, minutes: courseMinutes(course) },
+    ])
+  );
   return (
     <>
       <JsonLd data={organizationSchema} />
@@ -109,7 +118,7 @@ export default async function Home() {
         <JobBoard initialJobs={jobs} />
       </div>
       <div id="training">
-        <TrainingSection />
+        <TrainingSection courseMeta={courseMeta} preview />
       </div>
       <div id="academic">
         <AcademicPortal updates={uniApps} />

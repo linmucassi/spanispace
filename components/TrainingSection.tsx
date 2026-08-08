@@ -1,152 +1,234 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
+import Link from 'next/link';
 import { TRAININGS } from '../data/constants';
 import { useTranslation } from '../lib/i18n/context';
-import { accessLabel, isFreeLevel, TRAINING_LEVELS, type TrainingLevel } from '../lib/training-level';
+import { isFreeLevel } from '../lib/training-level';
+import type { Training } from '../types';
 
-type LevelFilter = 'All' | TrainingLevel;
+/**
+ * The catalogue, and nothing else.
+ *
+ * This page used to open with a wall of copy and cards carrying three pills,
+ * a tag row and a button each. Testers said it was too much to scan. A card is
+ * a doorway now, one line of promise and one line of facts, and the whole card
+ * is the link. Everything the course actually says lives on the course page.
+ *
+ * Course lengths arrive as props because working them out means reading
+ * data/academy.ts, which is a large file of lesson prose. It is computed on the
+ * server so none of it ships to the browser.
+ */
 
-const TrainingSection: React.FC = () => {
+export interface CourseMeta {
+  lessons: number;
+  minutes: number;
+}
+
+export interface GuideCard {
+  slug: string;
+  title: string;
+  blurb: string;
+  count: string;
+}
+
+type Access = 'free' | 'paid' | 'partner';
+type Filter = 'all' | Access;
+
+const FILTERS: Filter[] = ['all', 'free', 'paid', 'partner'];
+
+function accessOf(item: Training): Access {
+  // A partner sets their own price, so we never call their course free or paid.
+  if (item.external) return 'partner';
+  return isFreeLevel(item.level) ? 'free' : 'paid';
+}
+
+const TrainingSection: React.FC<{
+  courseMeta: Record<string, CourseMeta>;
+  guides?: GuideCard[];
+  /**
+   * The home page shows a taste of the catalogue, three cards and a way in.
+   * The full grid, the filters and the guides belong on /training, where a
+   * reader has asked for them.
+   */
+  preview?: boolean;
+}> = ({ courseMeta, guides = [], preview = false }) => {
   const now = new Date();
   const { t } = useTranslation();
-  const [levelFilter, setLevelFilter] = useState<LevelFilter>('All');
+  const [filter, setFilter] = useState<Filter>('all');
 
-  const visible = useMemo(
-    () => (levelFilter === 'All' ? TRAININGS : TRAININGS.filter((item) => item.level === levelFilter)),
-    [levelFilter]
-  );
+  const visible = useMemo(() => {
+    if (preview) return TRAININGS.slice(0, 3);
+    return filter === 'all' ? TRAININGS : TRAININGS.filter((item) => accessOf(item) === filter);
+  }, [filter, preview]);
+
+  const filterLabel: Record<Filter, string> = {
+    all: t('training.filterAll'),
+    free: t('training.filterFree'),
+    paid: t('training.filterPaid'),
+    partner: t('training.filterPartner'),
+  };
+
+  // One h1 per page. On the home page this section is a supporting block.
+  const Heading = preview ? 'h2' : 'h1';
 
   return (
-    <div className="py-20 px-4 bg-slate-900 text-white">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h2 className="text-4xl font-bold mb-4">{t('training.title')}</h2>
-          <p className="text-slate-400">{t('training.subtitle')}</p>
-          <p className="text-slate-500 text-sm mt-2">{t('training.pricingNote')}</p>
-        </div>
+    <div className="bg-slate-900 text-white">
+      <div className="max-w-6xl mx-auto px-4 py-16 md:py-20">
+        <Heading className="text-4xl md:text-5xl font-bold tracking-tight">
+          {t('training.title')}
+        </Heading>
+        <p className="text-slate-400 mt-3 max-w-xl">{t('training.subtitle')}</p>
 
-        <div className="flex flex-wrap gap-2 mb-12" role="group" aria-label={t('training.filterLabel')}>
-          {(['All', ...TRAINING_LEVELS] as LevelFilter[]).map((option) => {
-            const active = levelFilter === option;
-            const label =
-              option === 'All'
-                ? t('training.filterAll')
-                : option === 'Beginner'
-                  ? t('training.filterBeginner')
-                  : t('training.filterAdvanced');
-            return (
-              <button
-                key={option}
-                type="button"
-                onClick={() => setLevelFilter(option)}
-                aria-pressed={active}
-                className={`px-4 py-2 rounded-full text-sm font-bold transition-colors ${
-                  active
-                    ? 'bg-white text-slate-900'
-                    : 'bg-slate-800 text-slate-300 border border-slate-700 hover:border-indigo-500'
-                }`}
-              >
-                {label}
-              </button>
-            );
-          })}
-        </div>
+        {!preview && (
+          <div
+            className="flex flex-wrap gap-2 mt-8 mb-8"
+            role="group"
+            aria-label={t('training.filterLabel')}
+          >
+            {FILTERS.map((option) => {
+              const active = filter === option;
+              return (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => setFilter(option)}
+                  aria-pressed={active}
+                  className={`px-4 py-2 rounded-full text-sm font-bold transition-colors ${
+                    active
+                      ? 'bg-white text-slate-900'
+                      : 'bg-slate-800 text-slate-300 border border-slate-700 hover:border-indigo-500'
+                  }`}
+                >
+                  {filterLabel[option]}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 ${preview ? 'mt-8' : ''}`}>
           {visible.map((item) => {
             const isPast = item.date ? new Date(item.date) < now : false;
-            const free = isFreeLevel(item.level);
-            return (
-              <div
-                key={item.id}
-                className={`group flex flex-col bg-slate-800 border border-slate-700 rounded-3xl p-8 transition-all ${isPast ? 'opacity-60' : 'hover:border-indigo-500'}`}
-              >
-                <div className="flex justify-between items-start gap-3 mb-6">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span
-                      className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
-                        item.category === 'Bootcamp'
-                          ? 'bg-indigo-600 text-white'
-                          : item.category === 'Event'
-                            ? 'bg-amber-500 text-slate-900'
-                            : 'bg-emerald-500 text-slate-900'
-                      }`}
-                    >
-                      {item.category}
-                    </span>
-                    <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest bg-slate-700 text-slate-200 border border-slate-600">
-                      {item.level === 'Beginner' ? t('training.levelBeginner') : t('training.levelAdvanced')}
-                    </span>
-                    {isPast && (
-                      <span className="px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest bg-red-500/20 text-red-400 border border-red-500/30">
-                        {t('training.pastEvent')}
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-sm text-slate-500 font-mono whitespace-nowrap">
-                    {item.date ?? t('training.selfPaced')}
+            const access = accessOf(item);
+            const meta = item.courseSlug ? courseMeta[item.courseSlug] : undefined;
+
+            // One line of facts under the promise, in the order that helps a
+            // reader decide: how long is it, or where does it take me.
+            let factLine: string;
+            if (meta) {
+              factLine = `${t('training.lessonCount').replace('{n}', String(meta.lessons))} · ${t(
+                'training.minutes'
+              ).replace('{n}', String(meta.minutes))}`;
+            } else if (item.external) {
+              factLine = t('training.onProvider').replace('{provider}', item.provider);
+            } else if (isPast) {
+              factLine = t('training.pastEvent');
+            } else if (item.date) {
+              factLine = item.date;
+            } else {
+              factLine = t('training.comingSoon');
+            }
+
+            const cardClass = `group flex flex-col h-full bg-slate-800 border border-slate-700 rounded-2xl p-6 transition-colors ${
+              isPast ? 'opacity-60' : 'hover:border-indigo-500'
+            }`;
+
+            const body = (
+              <>
+                <div className="flex items-start justify-between gap-3 mb-4">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                    {item.category}
+                  </span>
+                  <span
+                    className={`text-[10px] font-bold uppercase tracking-widest ${
+                      access === 'free'
+                        ? 'text-emerald-400'
+                        : access === 'paid'
+                          ? 'text-amber-400'
+                          : 'text-slate-400'
+                    }`}
+                  >
+                    {access === 'free'
+                      ? t('training.free')
+                      : access === 'paid'
+                        ? t('training.paid')
+                        : t('training.partnerCourse')}
                   </span>
                 </div>
 
-                <h3
-                  className={`text-2xl font-bold mb-2 transition-colors ${isPast ? '' : 'group-hover:text-indigo-400'}`}
+                <h2
+                  className={`text-xl font-bold leading-snug ${isPast ? '' : 'group-hover:text-indigo-400'}`}
                 >
                   {item.title}
-                </h3>
+                </h2>
+                <p className="text-slate-400 text-sm mt-1.5">{item.description}</p>
 
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="text-xs text-slate-400">{item.provider}</span>
-                  <span className="text-slate-600">&middot;</span>
-                  {item.external ? (
-                    <span className="text-xs font-bold text-slate-300">
-                      {t('training.pricedByProvider')}
-                    </span>
-                  ) : (
-                    <span
-                      className={`text-xs font-bold ${free ? 'text-emerald-400' : 'text-amber-400'}`}
-                    >
-                      {free ? t('training.free') : t('training.paid')}
-                    </span>
-                  )}
+                <p className="mt-auto pt-5 text-xs text-slate-500">
+                  {item.provider} · {factLine}
+                </p>
+              </>
+            );
+
+            if (isPast) {
+              return (
+                <div key={item.id} className={cardClass} aria-disabled="true">
+                  {body}
                 </div>
+              );
+            }
 
-                <p className="text-slate-400 mb-6 line-clamp-3">{item.description}</p>
+            if (item.external) {
+              return (
+                <a
+                  key={item.id}
+                  href={item.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cardClass}
+                >
+                  {body}
+                </a>
+              );
+            }
 
-                <div className="flex flex-wrap gap-2 mb-8">
-                  {item.tags.map((tag) => (
-                    <span key={tag} className="text-[10px] px-2 py-1 bg-slate-700 rounded-md text-slate-300">
-                      #{tag}
-                    </span>
-                  ))}
-                </div>
-
-                <div className="mt-auto">
-                  {isPast ? (
-                    <button
-                      disabled
-                      className="w-full py-3 bg-slate-700 text-slate-500 rounded-xl font-bold cursor-not-allowed"
-                    >
-                      {t('training.pastEvent')}
-                    </button>
-                  ) : (
-                    <a
-                      href={item.href}
-                      {...(item.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-                      className="block w-full py-3 bg-white text-slate-900 rounded-xl font-bold text-center hover:bg-indigo-50 transition-colors"
-                    >
-                      {item.external
-                        ? t('training.openOnProvider').replace('{provider}', item.provider)
-                        : accessLabel(item.level) === 'Free'
-                          ? t('training.startFree')
-                          : t('training.reserveSpot')}
-                    </a>
-                  )}
-                </div>
-              </div>
+            return (
+              <Link key={item.id} href={item.href} className={cardClass}>
+                {body}
+              </Link>
             );
           })}
         </div>
+
+        {preview ? (
+          <Link
+            href="/training"
+            className="inline-block mt-8 bg-white text-slate-900 font-bold px-6 py-3 rounded-xl hover:bg-indigo-50 transition-colors"
+          >
+            {t('training.seeAll')}
+          </Link>
+        ) : (
+          <>
+            <h2 className="text-xs font-bold uppercase tracking-widest text-slate-500 mt-16 mb-4">
+              {t('training.guidesTitle')}
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {guides.map((guide) => (
+                <Link
+                  key={guide.slug}
+                  href={`/training/${guide.slug}`}
+                  className="group bg-slate-800/60 border border-slate-700 rounded-2xl p-5 transition-colors hover:border-indigo-500"
+                >
+                  <p className="font-bold group-hover:text-indigo-400">{guide.title}</p>
+                  <p className="text-sm text-slate-400 mt-1">{guide.blurb}</p>
+                  <p className="text-xs text-slate-500 mt-3">{guide.count}</p>
+                </Link>
+              ))}
+            </div>
+
+            <p className="text-xs text-slate-500 mt-10">{t('training.pricingNote')}</p>
+          </>
+        )}
       </div>
     </div>
   );

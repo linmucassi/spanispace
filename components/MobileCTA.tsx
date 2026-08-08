@@ -1,16 +1,37 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useTranslation } from '../lib/i18n/context';
+
+/**
+ * The floating Browse Jobs bar on mobile.
+ *
+ * It followed a reader everywhere, including into a course, which is the one
+ * place they are meant to be left alone with one thing. It now stays out of the
+ * routes where it is either noise or a loop back to where you already are.
+ *
+ * Clearance at the end of the page comes from `mb-20` on the footer, so this
+ * adds no spacer of its own. It also paints no backdrop, because the footer is
+ * dark and a light wash behind the button banded straight across it.
+ */
+
+function isHidden(pathname: string): boolean {
+  // Already on the job board, or reading a course, a lesson or a guide.
+  return pathname === '/jobs' || pathname.startsWith('/jobs/') || pathname.startsWith('/training/');
+}
 
 const MobileCTA: React.FC = () => {
   const { t } = useTranslation();
+  const pathname = usePathname();
+
+  if (isHidden(pathname ?? '')) return null;
 
   return (
-    <div className="md:hidden fixed bottom-6 left-6 right-6 z-40">
+    <div className="md:hidden fixed left-4 right-4 z-40 bottom-[max(1rem,env(safe-area-inset-bottom))]">
       <Link
         href="/jobs"
-        className="block w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-2xl shadow-indigo-200 border-2 border-indigo-400 text-center"
+        className="block w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-xl text-center"
       >
         {t('mobileCta.browseJobs')}
       </Link>

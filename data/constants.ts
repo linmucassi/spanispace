@@ -224,17 +224,20 @@ export const JOBS: Job[] = [
 // and the card UI derives the badge from `level`, so never write a price here.
 // Partner courses carry external: true, because the partner sets their own price.
 export const TRAININGS: Training[] = [
-  // SpaniSpace Academy, our own AI course, live now at /academy.
+  // Our own AI courses. Each one has its own page and a page per lesson under
+  // it, so courseSlug is set and the card reads its length from data/courses.ts.
+  // Descriptions here are deliberately one line. The card is a doorway, not the
+  // course, and the long version lives on the course page.
   {
     id: 'academy-shortcourse',
-    title: 'AI Foundations Short Course',
+    title: 'AI Foundations',
     category: 'Short Course',
     level: 'Beginner',
     provider: 'SpaniSpace',
-    href: '/academy',
-    description:
-      'What AI actually is, in plain language, with South African examples. Self paced, and the honest way to find out whether this world is for you before you commit.',
-    tags: ['AI', 'Beginner', 'Self paced'],
+    href: '/training/ai-foundations',
+    courseSlug: 'ai-foundations',
+    description: 'Understand AI in an afternoon, in plain language.',
+    tags: ['AI', 'Self paced'],
   },
   {
     id: 'academy-bootcamp',
@@ -242,10 +245,10 @@ export const TRAININGS: Training[] = [
     category: 'Bootcamp',
     level: 'Beginner',
     provider: 'SpaniSpace',
-    href: '/academy',
-    description:
-      'Twelve modules from zero to job ready. Career tracks, a salary guide checked against South African sources, certifications and real company case studies.',
-    tags: ['AI', 'Careers', 'Salaries', 'Self paced'],
+    href: '/training/ai-careers-bootcamp',
+    courseSlug: 'ai-careers-bootcamp',
+    description: 'Start at zero. Finish job ready.',
+    tags: ['AI', 'Careers', 'Self paced'],
   },
 
   // Terminal School (terminal.school), interactive terminal training.
@@ -259,7 +262,7 @@ export const TRAININGS: Training[] = [
     href: 'https://terminal.school/irc/vim',
     external: true,
     description:
-      'Movement fundamentals, word motions, find and till, operators and motions, and text objects. Interactive challenges in a real terminal.',
+      'Move around a file without touching the mouse.',
     tags: ['Vim', 'Terminal', 'Editors'],
   },
   {
@@ -271,7 +274,7 @@ export const TRAININGS: Training[] = [
     href: 'https://terminal.school/irc/vim/search-and-replace',
     external: true,
     description:
-      'Search and replace, jumps and marks, macros and registers, visual modes, and Ex command mastery. The half that makes you fast.',
+      'Macros, registers and Ex commands. The half that makes you fast.',
     tags: ['Vim', 'Terminal', 'Editors'],
   },
   {
@@ -283,7 +286,7 @@ export const TRAININGS: Training[] = [
     href: 'https://terminal.school/irc/awk',
     external: true,
     description:
-      'Print, fields, patterns, aggregation, and BEGIN and END blocks. Turn a messy text file into an answer without opening a spreadsheet.',
+      'Turn a messy text file into an answer, no spreadsheet needed.',
     tags: ['Awk', 'Terminal', 'Data'],
   },
   {
@@ -295,7 +298,7 @@ export const TRAININGS: Training[] = [
     href: 'https://terminal.school/irc/awk/conditionals',
     external: true,
     description:
-      'Conditionals, arrays, built in functions, flow control, and user defined functions. Awk as a real programming language.',
+      'Arrays, functions and flow control. Awk as a real language.',
     tags: ['Awk', 'Terminal', 'Data'],
   },
   {
@@ -307,7 +310,7 @@ export const TRAININGS: Training[] = [
     href: 'https://terminal.school/irc/sed',
     external: true,
     description:
-      'Addresses, regular expressions, substitution, and what sed can do beyond substitution. Edit files at scale from the command line.',
+      'Edit hundreds of files from one command line.',
     tags: ['Sed', 'Terminal', 'Regex'],
   },
   {
@@ -319,7 +322,7 @@ export const TRAININGS: Training[] = [
     href: 'https://terminal.school/irc/sed/hold-space',
     external: true,
     description:
-      'Hold space, working across line boundaries, and branching. The parts of sed that most people never reach.',
+      'Hold space and branching, the parts most people never reach.',
     tags: ['Sed', 'Terminal', 'Regex'],
   },
   {
@@ -331,7 +334,7 @@ export const TRAININGS: Training[] = [
     href: 'https://terminal.school/irc/jq',
     external: true,
     description:
-      'Objects and field access, arrays and iteration, filtering and mapping, sorting and grouping. Read any API response with confidence.',
+      'Read any API response with confidence.',
     tags: ['Jq', 'Terminal', 'JSON'],
   },
   {
@@ -343,7 +346,7 @@ export const TRAININGS: Training[] = [
     href: 'https://terminal.school/irc/jq/string-functions',
     external: true,
     description:
-      'String functions, variables and bindings, updates, and paths. Reshape JSON instead of just reading it.',
+      'Reshape JSON instead of just reading it.',
     tags: ['Jq', 'Terminal', 'JSON'],
   },
 
@@ -356,7 +359,7 @@ export const TRAININGS: Training[] = [
     level: 'Advanced',
     provider: 'SpaniSpace',
     href: '/join-waitlist',
-    description: 'Master LLMs, RAG, and AI integration in 12 weeks.',
+    description: 'Build with LLMs and RAG in 12 weeks.',
     tags: ['AI', 'Python', 'DevOps'],
   },
   {
@@ -366,8 +369,9 @@ export const TRAININGS: Training[] = [
     level: 'Beginner',
     provider: 'SpaniSpace',
     href: '/join-waitlist',
-    date: 'Dec 10, 2024',
-    description: 'Expert feedback on your resume and live mock interviews.',
+    // No date until one is actually booked. It carried 'Dec 10, 2024', which
+    // rendered a live waitlist card as a greyed out Past Event.
+    description: 'Real feedback on your CV, and a live mock interview.',
     tags: ['Soft Skills', 'Careers'],
   },
   {
@@ -377,7 +381,7 @@ export const TRAININGS: Training[] = [
     level: 'Advanced',
     provider: 'SpaniSpace',
     href: '/join-waitlist',
-    description: 'Learn infrastructure as code and cloud deployment.',
+    description: 'Deploy to the cloud and write infrastructure as code.',
     tags: ['Cloud', 'AWS', 'Azure'],
   },
 ];

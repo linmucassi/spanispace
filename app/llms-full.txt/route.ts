@@ -80,9 +80,15 @@ A listing is published only after a human reviews its vetted_status as "verified
 
 - Home: https://spanispace.com/
 - Job Board: https://spanispace.com/jobs
-- Training: https://spanispace.com/training
-- Academy: https://spanispace.com/academy
-- Academic Portal: https://spanispace.com/academic
+- Training (every course): https://spanispace.com/training
+- AI Foundations short course: https://spanispace.com/training/ai-foundations
+- AI and Tech Careers Bootcamp: https://spanispace.com/training/ai-careers-bootcamp
+- Career tracks: https://spanispace.com/training/career-tracks
+- Salary guide: https://spanispace.com/training/salaries
+- Certifications: https://spanispace.com/training/certifications
+- Case studies: https://spanispace.com/training/case-studies
+- Free resources: https://spanispace.com/training/resources
+- University deadlines: https://spanispace.com/university
 - Events: https://spanispace.com/events
 - Post a Job: https://spanispace.com/post-job
 - Success Stories: https://spanispace.com/success-stories

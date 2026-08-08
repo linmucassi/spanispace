@@ -88,7 +88,7 @@ const Footer: React.FC = () => {
               </Link>
             </li>
             <li>
-              <Link href="/academic" className="hover:text-white transition-colors">
+              <Link href="/university" className="hover:text-white transition-colors">
                 {t('footer.academicUpdates')}
               </Link>
             </li>

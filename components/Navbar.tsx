@@ -100,12 +100,14 @@ const Navbar: React.FC = () => {
     return 'Dashboard';
   };
 
+  // Four items, one meaning each. Training holds everything you learn, courses,
+  // bootcamps and certificates. University holds the deadlines you apply to.
+  // The old Academy and Academic entries said the same thing three ways.
   const navItems = [
     { name: t('nav.jobs'), href: '/jobs' },
     { name: t('nav.training'), href: '/training' },
-    { name: t('nav.academy'), href: '/academy' },
-    { name: t('nav.academic'), href: '/academic' },
-    { name: 'Events', href: '/events' },
+    { name: t('nav.university'), href: '/university' },
+    { name: t('nav.events'), href: '/events' },
   ];
 
   return (

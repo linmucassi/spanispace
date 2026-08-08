@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { JOBS } from '@/data/constants';
+import { COURSES, GUIDES, lessonSlug } from '@/data/courses';
 
 const BASE_URL = 'https://spanispace.com';
 
@@ -10,8 +11,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE_URL}/`, lastModified: now, changeFrequency: 'daily', priority: 1.0 },
     { url: `${BASE_URL}/jobs`, lastModified: now, changeFrequency: 'daily', priority: 0.9 },
     { url: `${BASE_URL}/training`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
-    { url: `${BASE_URL}/academy`, lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
-    { url: `${BASE_URL}/academic`, lastModified: now, changeFrequency: 'weekly', priority: 0.7 },
+    { url: `${BASE_URL}/university`, lastModified: now, changeFrequency: 'weekly', priority: 0.7 },
     { url: `${BASE_URL}/events`, lastModified: now, changeFrequency: 'weekly', priority: 0.7 },
     { url: `${BASE_URL}/success-stories`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${BASE_URL}/post-job`, lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
@@ -29,5 +29,29 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.8,
   }));
 
-  return [...staticRoutes, ...jobRoutes];
+  // Every course and every lesson is its own page now, so every one of them is
+  // its own entry. Derived from data/courses.ts, so a new lesson lists itself.
+  const courseRoutes: MetadataRoute.Sitemap = COURSES.flatMap((course) => [
+    {
+      url: `${BASE_URL}/training/${course.slug}`,
+      lastModified: now,
+      changeFrequency: 'monthly' as const,
+      priority: 0.8,
+    },
+    ...course.lessons.map((lesson) => ({
+      url: `${BASE_URL}/training/${course.slug}/${lessonSlug(lesson)}`,
+      lastModified: now,
+      changeFrequency: 'monthly' as const,
+      priority: 0.6,
+    })),
+  ]);
+
+  const guideRoutes: MetadataRoute.Sitemap = GUIDES.map((guide) => ({
+    url: `${BASE_URL}/training/${guide.slug}`,
+    lastModified: now,
+    changeFrequency: 'monthly' as const,
+    priority: 0.7,
+  }));
+
+  return [...staticRoutes, ...courseRoutes, ...guideRoutes, ...jobRoutes];
 }

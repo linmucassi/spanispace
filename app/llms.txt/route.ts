@@ -13,9 +13,15 @@ Spanispace is built for South African youth (18–35), with a focus on Gauteng a
 
 - [Home](https://spanispace.com/): Overview, featured jobs, training programs, academic deadlines, success stories.
 - [Job Board](https://spanispace.com/jobs): Vetted job listings — remote, hybrid, on-site, learnerships. All listings are verified before being published.
-- [Training & Bootcamps](https://spanispace.com/training): Expert-led bootcamps and short courses, plus partner terminal training from Terminal School (vim, awk, sed, jq). Beginner courses are free, advanced courses are paid.
-- [Academy](https://spanispace.com/academy): Free self-paced AI and Tech Careers programme. A 12 module bootcamp, a short course, career tracks, a South African salary guide, certifications and company case studies.
-- [Academic Deadlines](https://spanispace.com/academic): Late university applications, learnerships, and vocational training dates across SA institutions.
+- [Training](https://spanispace.com/training): Every course in one place. Our own self-paced AI courses, plus partner terminal training from Terminal School (vim, awk, sed, jq). Beginner courses are free, advanced courses are paid.
+- [AI Foundations](https://spanispace.com/training/ai-foundations): Free 5 lesson short course. What AI is, prompting, hallucinations and privacy, real South African uses, and where to go next. One lesson per page.
+- [AI and Tech Careers Bootcamp](https://spanispace.com/training/ai-careers-bootcamp): Free 12 lesson bootcamp from zero to job ready. One lesson per page.
+- [Career tracks](https://spanispace.com/training/career-tracks): Five tracks and twelve roles in AI, data, software, cloud and security, with what each does and how to break in.
+- [Salary guide](https://spanispace.com/training/salaries): Monthly gross ranges in rands for twelve South African tech roles, intern to lead, verified July 2026.
+- [Certifications](https://spanispace.com/training/certifications): Free and low cost certifications reachable from South Africa, with official links.
+- [Case studies](https://spanispace.com/training/case-studies): How South African companies turn AI, cloud and data into money.
+- [Free resources](https://spanispace.com/training/resources): Hand picked free videos, guides and docs.
+- [University Deadlines](https://spanispace.com/university): Late university applications, learnerships, and vocational training dates across SA institutions.
 - [Events](https://spanispace.com/events): Workshops, webinars, hackathons, and career fairs.
 - [Post a Job (Free)](https://spanispace.com/post-job): Any employer can post a job for free; jobs are reviewed before going live.
 - [Success Stories](https://spanispace.com/success-stories): Real candidates placed via the platform.
