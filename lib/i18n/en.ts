@@ -17,10 +17,9 @@ const en = {
       'The ultimate platform for fresh graduates and job hunters. Get expert-led training, vetted job opportunities, and professional CV curation to stand out in the AI era.',
     browseJobs: 'Browse Opportunities',
     joinBootcamp: 'Join a Bootcamp',
-    statJobs: 'jobs open now',
-    statCourses: 'free courses',
-    statPrice: 'to job seekers, always',
-    statPriceValue: 'Free',
+    statVerifiedJobs: 'Verified Jobs',
+    statCandidates: 'Active Candidates',
+    statPrograms: 'Training Programs',
   },
   jobs: {
     title: 'Vetted Job Opportunities',

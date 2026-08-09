@@ -17,10 +17,9 @@ const zu = {
       'Inkundla ehamba phambili yabafundi abasanda kuphothula nabafuna imisebenzi. Thola ukuqeqeshwa okuholwa yizingcweti, amathuba omsebenzi aqinisekisiwe, nokulungiswa kwe-CV yakho ukuze ugqame.',
     browseJobs: 'Bheka Amathuba',
     joinBootcamp: 'Joyina I-Bootcamp',
-    statJobs: 'imisebenzi evulekile manje',
-    statCourses: 'izifundo zamahhala',
-    statPrice: 'kwabafuna umsebenzi, njalo',
-    statPriceValue: 'Mahhala',
+    statVerifiedJobs: 'Imisebenzi Eqinisekisiwe',
+    statCandidates: 'Abafuna Umsebenzi Abasebenzayo',
+    statPrograms: 'Izinhlelo Zokuqeqeshwa',
   },
   jobs: {
     title: 'Amathuba Omsebenzi Aqinisekisiwe',

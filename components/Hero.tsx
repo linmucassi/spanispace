@@ -6,26 +6,31 @@ import { useTranslation } from '../lib/i18n/context';
 import SpaceBackdrop from './SpaceBackdrop';
 
 /**
- * The hero used to claim 2,400+ verified jobs, 12K+ active candidates and 30+
- * training programs. None of those were real. The database holds 105 jobs, 15
- * of them active and verified. On a platform whose entire proposition is that
- * a listing here is not a scam, inventing the numbers is the most expensive
- * possible lie, so the counts are now passed in from the actual data and the
- * other two claims are things that are simply true and checkable.
- *
  * It also had white-to-violet-to-cyan gradient text, gradient buttons and a
  * backdrop-blur glass button, which is the exact costume every generated
  * landing page wears. Solid brand colour instead.
  */
 
-export interface HeroStats {
-  /** Live, verified, unexpired listings. Counted from the same data the board renders. */
-  openJobs: number;
-  /** Free courses with lessons on this site. */
-  courses: number;
-}
+/**
+ * MARKETING FIGURES, NOT MEASUREMENTS. Do not wire these to the database and
+ * do not treat them as counts.
+ *
+ * These are aspirational headline numbers Brendon asked for on 9 August 2026,
+ * after they were briefly replaced with live counts. The live counts at that
+ * point were 15 verified unexpired jobs and 13 courses, against 105 job rows
+ * in total, so the figures below are not what the platform currently holds.
+ *
+ * Recorded here so nobody later reads them as data and builds on them. If they
+ * are ever challenged, the real numbers are one query away and this comment is
+ * the honest account of where these came from.
+ */
+const STATS: { value: string; labelKey: string }[] = [
+  { value: '2,400+', labelKey: 'hero.statVerifiedJobs' },
+  { value: '12K+', labelKey: 'hero.statCandidates' },
+  { value: '30+', labelKey: 'hero.statPrograms' },
+];
 
-const Hero: React.FC<{ stats?: HeroStats }> = ({ stats }) => {
+const Hero: React.FC = () => {
   const { t } = useTranslation();
 
   return (
@@ -60,30 +65,16 @@ const Hero: React.FC<{ stats?: HeroStats }> = ({ stats }) => {
           </Link>
         </div>
 
-        {/* Real numbers or none. */}
-        <dl className="mt-14 flex flex-wrap gap-x-10 gap-y-6">
-          {stats && stats.openJobs > 0 && (
-            <div>
-              <dt className="text-sm text-ink-400 order-2">{t('hero.statJobs')}</dt>
+        {/* See the note on STATS above. These are headline figures, not counts. */}
+        <dl className="mt-14 flex flex-wrap gap-x-10 gap-y-6 sm:gap-x-14">
+          {STATS.map(({ value, labelKey }) => (
+            <div key={labelKey}>
+              <dt className="text-sm text-ink-400 order-2">{t(labelKey)}</dt>
               <dd className="font-display text-3xl font-extrabold text-white tabular-nums">
-                {stats.openJobs}
+                {value}
               </dd>
             </div>
-          )}
-          {stats && stats.courses > 0 && (
-            <div>
-              <dt className="text-sm text-ink-400 order-2">{t('hero.statCourses')}</dt>
-              <dd className="font-display text-3xl font-extrabold text-white tabular-nums">
-                {stats.courses}
-              </dd>
-            </div>
-          )}
-          <div>
-            <dt className="text-sm text-ink-400 order-2">{t('hero.statPrice')}</dt>
-            <dd className="font-display text-3xl font-extrabold text-white">
-              {t('hero.statPriceValue')}
-            </dd>
-          </div>
+          ))}
         </dl>
       </div>
     </section>
