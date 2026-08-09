@@ -71,7 +71,7 @@ const Footer: React.FC = () => {
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
         <div className="col-span-1 md:col-span-1">
           <div className="mb-6">
-            <img src="/assets/new-logo.png" alt="Spanispace" className="h-10 w-auto brightness-0 invert" />
+            <img src="/assets/logo-wordmark.png" alt="Spanispace" className="h-10 w-auto brightness-0 invert" />
           </div>
           <p className="text-sm leading-relaxed">{t('footer.tagline')}</p>
         </div>

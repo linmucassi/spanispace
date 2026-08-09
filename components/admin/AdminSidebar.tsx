@@ -28,7 +28,7 @@ export default function AdminSidebar() {
       {/* Mobile top bar */}
       <div className="md:hidden fixed top-0 left-0 right-0 h-14 bg-slate-900 text-white flex items-center justify-between px-4 z-40">
         <Link href="/admin/dashboard" className="flex items-center">
-          <img src="/assets/new-logo.png" alt="Spanispace" className="h-8 w-auto brightness-0 invert" />
+          <img src="/assets/logo-wordmark.png" alt="Spanispace" className="h-8 w-auto brightness-0 invert" />
         </Link>
         <button
           onClick={() => setMobileOpen(true)}
@@ -55,7 +55,7 @@ export default function AdminSidebar() {
         {/* Logo */}
         <div className="px-6 py-5 border-b border-slate-800 flex items-center justify-between">
           <Link href="/admin/dashboard" className="flex items-center">
-            <img src="/assets/new-logo.png" alt="Spanispace" className="h-10 w-auto" />
+            <img src="/assets/logo-wordmark.png" alt="Spanispace" className="h-10 w-auto" />
             <span className="block text-[10px] text-slate-400 uppercase tracking-widest ml-2 mt-1">Admin</span>
           </Link>
           <button

@@ -121,9 +121,9 @@ const Navbar: React.FC = () => {
           {/* Logo */}
           <Link href="/" className="flex items-center h-full">
             <img
-              src="/assets/new-logo.png"
+              src="/assets/logo-wordmark.png"
               alt="Spanispace Logo"
-              className="h-10 w-auto md:h-12 transition-transform hover:scale-105"
+              className="h-7 w-auto md:h-8 transition-transform hover:scale-105"
             />
           </Link>
 

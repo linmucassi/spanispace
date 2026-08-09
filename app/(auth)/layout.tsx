@@ -12,9 +12,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <div className="pt-8 pb-4 flex justify-center">
         <Link href="/">
           <img
-            src="/assets/new-logo.png"
+            src="/assets/logo-wordmark.png"
             alt="Spanispace"
-            className="h-50 w-auto"
+            className="h-10 w-auto md:h-12"
           />
         </Link>
       </div>
