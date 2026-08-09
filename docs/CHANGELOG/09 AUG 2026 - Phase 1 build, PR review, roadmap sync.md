@@ -163,3 +163,11 @@ User asked to improve `components/HeroCanvas.tsx` (the Three.js particle field b
 **Also hit and fixed, unrelated to the code change:** Turbopack's persistent build cache panicked (`turbo-persistence` slice-range error) after a dev server was force-killed mid-run during testing — cleared `.next` and restarted, which resolved it. Not a HeroCanvas bug, but worth knowing if it recurs: force-killing `next dev` can corrupt the Turbopack cache.
 
 Files changed: `components/HeroCanvas.tsx` only, across all four passes.
+
+## Logo shrinking bug (reported by Williamson, via Brendon)
+- The navbar logo looked tiny and "kept shrinking". It was not shrinking: `new-logo.png` is a 500x500 canvas where the SPAN SPACE wordmark fills only the middle 26% of the height (measured content box 384x128), the rest transparent padding. At the navbar's `h-12` the visible mark was ~12px tall, and the auth screen had over-compensated with `h-50` (200px).
+- Fixed by cropping the wordmark to its content box with a small even margin, saved as `public/assets/logo-wordmark.png` (416x160, 2.6:1). Repointed all six usages (Navbar, auth layout, Footer, and the candidate/company/admin sidebars). Navbar now `h-7 md:h-8`, auth `h-10 md:h-12`. Verified in the navbar and login screen at 393px width.
+
+## Retest of Linda's Phase 1 (in progress)
+- Pulled and rebuilt Linda's merged Phase 1 (notifications, data freshness, Google OAuth, profile nudges) plus the roadmap and BETA ops checklist. Build green, 81 pages.
+- **Admin escalation (issue #8):** Linda reports all SQL was run. Not re-tested here on purpose, a live signup with `role: admin` would either create an unremovable production admin (if the fix had not applied) or an unconfirmed candidate row (signup emails still do not send, issue #9), and this machine has no direct DB access to clean up either. Confirmation needs the one-line audit query in `fix-security-hardening.sql` section 1 run against prod, see issue #8.
