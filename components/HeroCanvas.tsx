@@ -3,14 +3,41 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 
-// Dust, not a network — no connecting lines, no hard square points.
-const PARTICLE_COUNT = 400;
+// Dust with a school/flock behaviour: separation + alignment + cohesion
+// (Craig Reynolds' boids model), computed on the CPU each frame because each
+// particle needs to know where its neighbours are and which way they're
+// heading — a per-vertex GPU shader can't see other vertices, so this part
+// can't live in the shader the way the earlier noise-warp did.
+const PARTICLE_COUNT = 260;
 
 // How close a particle gets to the camera before it's recycled to the back —
 // this is what makes it read as "travelling through space" rather than a
 // static field: particles drift toward the viewer, then loop.
 const NEAR_RECYCLE_Z  = 22;
 const FAR_RESPAWN_Z   = -55;
+
+// ── Boid tuning ──────────────────────────────────────────────────────────
+const PERCEPTION_RADIUS    = 16;   // "notice a neighbour" range for align + cohesion
+const PERCEPTION_RADIUS_SQ = PERCEPTION_RADIUS * PERCEPTION_RADIUS;
+const SEPARATION_RADIUS    = 6;    // "too close, back off" range
+const SEPARATION_RADIUS_SQ = SEPARATION_RADIUS * SEPARATION_RADIUS;
+const MAX_SPEED   = 0.15;
+const MAX_FORCE   = 0.012;         // per-frame steering clamp — keeps turns smooth, not instant
+const W_SEPARATION = 1.7;
+const W_ALIGNMENT  = 1.0;
+const W_COHESION   = 0.9;
+const W_BOUNDARY   = 4.0;
+const FORWARD_ACCEL = 0.0009;      // gentle constant pull toward the camera, so the school still travels
+const BOUNDARY_MARGIN_FRAC = 0.82; // start steering inward at 82% of the visible frustum
+
+// A "startle" every few seconds gives one particle a hard kick; alignment
+// propagates that new heading to its neighbours over the following frames,
+// which is what reads as a school suddenly turning together rather than
+// each particle just wandering on its own.
+const STARTLE_MIN_INTERVAL = 3.5;
+const STARTLE_MAX_INTERVAL = 8;
+const STARTLE_COUNT = 3;
+const STARTLE_STRENGTH = MAX_SPEED * 2.2;
 
 // RGB triples matching brand palette
 const PALETTE: [number, number, number][] = [
@@ -20,102 +47,17 @@ const PALETTE: [number, number, number][] = [
   [0.231, 0.510, 0.965], // blue-500
 ];
 
-// Classic Ashima Arts / Ian McEwan simplex noise (MIT), the same building
-// block used for the noise-driven "flow field" motion described in
-// https://blog.maximeheckel.com/posts/the-magical-world-of-particles-with-react-three-fiber-and-shaders/ —
-// this is what makes particles warp and drift on their own instead of
-// moving along a fixed path. Runs entirely on the GPU per-vertex, every
-// frame, driven by uTime.
-const NOISE_GLSL = `
-vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
-vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
-vec4 permute(vec4 x) { return mod289(((x * 34.0) + 1.0) * x); }
-vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
-
-float snoise(vec3 v) {
-  const vec2 C = vec2(1.0 / 6.0, 1.0 / 3.0);
-  const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
-
-  vec3 i  = floor(v + dot(v, C.yyy));
-  vec3 x0 = v - i + dot(i, C.xxx);
-
-  vec3 g = step(x0.yzx, x0.xyz);
-  vec3 l = 1.0 - g;
-  vec3 i1 = min(g.xyz, l.zxy);
-  vec3 i2 = max(g.xyz, l.zxy);
-
-  vec3 x1 = x0 - i1 + C.xxx;
-  vec3 x2 = x0 - i2 + C.yyy;
-  vec3 x3 = x0 - D.yyy;
-
-  i = mod289(i);
-  vec4 p = permute(permute(permute(
-             i.z + vec4(0.0, i1.z, i2.z, 1.0))
-           + i.y + vec4(0.0, i1.y, i2.y, 1.0))
-           + i.x + vec4(0.0, i1.x, i2.x, 1.0));
-
-  float n_ = 0.142857142857;
-  vec3 ns = n_ * D.wyz - D.xzx;
-
-  vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
-
-  vec4 x_ = floor(j * ns.z);
-  vec4 y_ = floor(j - 7.0 * x_);
-
-  vec4 x = x_ * ns.x + ns.yyyy;
-  vec4 y = y_ * ns.x + ns.yyyy;
-  vec4 h = 1.0 - abs(x) - abs(y);
-
-  vec4 b0 = vec4(x.xy, y.xy);
-  vec4 b1 = vec4(x.zw, y.zw);
-
-  vec4 s0 = floor(b0) * 2.0 + 1.0;
-  vec4 s1 = floor(b1) * 2.0 + 1.0;
-  vec4 sh = -step(h, vec4(0.0));
-
-  vec4 a0 = b0.xzyw + s0.xzyw * sh.xxyy;
-  vec4 a1 = b1.xzyw + s1.xzyw * sh.zzww;
-
-  vec3 p0 = vec3(a0.xy, h.x);
-  vec3 p1 = vec3(a0.zw, h.y);
-  vec3 p2 = vec3(a1.xy, h.z);
-  vec3 p3 = vec3(a1.zw, h.w);
-
-  vec4 norm = taylorInvSqrt(vec4(dot(p0, p0), dot(p1, p1), dot(p2, p2), dot(p3, p3)));
-  p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
-
-  vec4 m = max(0.6 - vec4(dot(x0, x0), dot(x1, x1), dot(x2, x2), dot(x3, x3)), 0.0);
-  m = m * m;
-  return 42.0 * dot(m * m, vec4(dot(p0, x0), dot(p1, x1), dot(p2, x2), dot(p3, x3)));
-}
-`;
-
 const VERTEX_SHADER = `
-uniform float uTime;
 uniform float uSize;
 uniform float uPixelRatio;
-uniform float uWarpStrength;
 
 attribute vec3 color;
 varying vec3 vColor;
 
-${NOISE_GLSL}
-
 void main() {
-  vec3 pos = position;
-
-  // Three offset noise samples (one per axis) so the warp isn't just a
-  // single scalar pushing every particle the same way — each axis drifts on
-  // its own slow, organic path, like dust caught in an invisible current.
-  float nx = snoise(pos * 0.035 + vec3(0.0,   0.0,  uTime * 0.06));
-  float ny = snoise(pos * 0.035 + vec3(37.2, 17.1,  uTime * 0.06));
-  float nz = snoise(pos * 0.035 + vec3(-11.4, 5.6,  uTime * 0.06));
-  pos += vec3(nx, ny, nz) * uWarpStrength;
-
-  vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+  vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
   gl_Position = projectionMatrix * mvPosition;
   gl_PointSize = uSize * uPixelRatio * (150.0 / -mvPosition.z);
-
   vColor = color;
 }
 `;
@@ -125,7 +67,7 @@ varying vec3 vColor;
 
 void main() {
   // Soft circular falloff from the point's centre — a glowing dust mote
-  // instead of PointsMaterial's default hard square.
+  // instead of the default hard square.
   float d = distance(gl_PointCoord, vec2(0.5));
   float strength = 1.0 - smoothstep(0.0, 0.5, d);
   gl_FragColor = vec4(vColor, strength * 0.8);
@@ -165,30 +107,22 @@ export default function HeroCanvas() {
     }
 
     // ── Particles ──────────────────────────────────────────────────────────
-    // These CPU-side positions are the particles' "anchor" points — travel
-    // (drift toward camera, recycle, edge bounce) still happens here, in JS,
-    // once a frame. The GPU-side noise warp in the vertex shader then
-    // displaces each anchor a little every frame for the organic self-motion,
-    // without needing per-particle JS work for that part.
     const positions  = new Float32Array(PARTICLE_COUNT * 3);
+    const velocities = new Float32Array(PARTICLE_COUNT * 3);
     const colors     = new Float32Array(PARTICLE_COUNT * 3);
-    const driftXY: [number, number][] = [];
-    const driftZ: number[] = [];
 
     function spawnParticle(i: number, z: number) {
       const { halfWidth, halfHeight } = frustumHalfExtentsAtZ(z);
-      // 0.92 margin so particles drift a touch past the edge before
-      // bouncing, instead of visibly reversing right at the boundary.
-      positions[i * 3]     = (Math.random() * 2 - 1) * halfWidth * 0.92;
-      positions[i * 3 + 1] = (Math.random() * 2 - 1) * halfHeight * 0.92;
+      positions[i * 3]     = (Math.random() * 2 - 1) * halfWidth * 0.85;
+      positions[i * 3 + 1] = (Math.random() * 2 - 1) * halfHeight * 0.85;
       positions[i * 3 + 2] = z;
+      velocities[i * 3]     = (Math.random() - 0.5) * 0.03;
+      velocities[i * 3 + 1] = (Math.random() - 0.5) * 0.03;
+      velocities[i * 3 + 2] = 0.03 + Math.random() * 0.03;
     }
 
     for (let i = 0; i < PARTICLE_COUNT; i++) {
       spawnParticle(i, FAR_RESPAWN_Z + Math.random() * (NEAR_RECYCLE_Z - FAR_RESPAWN_Z));
-
-      driftXY.push([(Math.random() - 0.5) * 0.016, (Math.random() - 0.5) * 0.013]);
-      driftZ.push(0.012 + Math.random() * 0.026);
 
       const c = PALETTE[Math.floor(Math.random() * PALETTE.length)];
       colors[i * 3]     = c[0];
@@ -201,10 +135,8 @@ export default function HeroCanvas() {
     pointsGeo.setAttribute('color',    new THREE.BufferAttribute(colors,    3));
 
     const uniforms = {
-      uTime:         { value: 0 },
-      uSize:         { value: 1.6 },
-      uPixelRatio:   { value: pixelRatio },
-      uWarpStrength: { value: 3.5 },
+      uSize:       { value: 1.6 },
+      uPixelRatio: { value: pixelRatio },
     };
 
     const shaderMaterial = new THREE.ShaderMaterial({
@@ -247,26 +179,115 @@ export default function HeroCanvas() {
     // ── Animation loop ──────────────────────────────────────────────────────
     const clock = new THREE.Clock();
     let raf: number;
+    let nextStartleAt = STARTLE_MIN_INTERVAL + Math.random() * (STARTLE_MAX_INTERVAL - STARTLE_MIN_INTERVAL);
 
     function animate() {
       raf = requestAnimationFrame(animate);
 
-      uniforms.uTime.value = clock.getElapsedTime();
+      const elapsed = clock.getElapsedTime();
+      if (elapsed > nextStartleAt) {
+        for (let k = 0; k < STARTLE_COUNT; k++) {
+          const i = Math.floor(Math.random() * PARTICLE_COUNT) * 3;
+          const dirX = Math.random() - 0.5;
+          const dirY = Math.random() - 0.5;
+          const dirZ = (Math.random() - 0.5) * 0.4;
+          const len = Math.sqrt(dirX * dirX + dirY * dirY + dirZ * dirZ) || 1;
+          velocities[i]     += (dirX / len) * STARTLE_STRENGTH;
+          velocities[i + 1] += (dirY / len) * STARTLE_STRENGTH;
+          velocities[i + 2] += (dirZ / len) * STARTLE_STRENGTH;
+        }
+        nextStartleAt = elapsed + STARTLE_MIN_INTERVAL + Math.random() * (STARTLE_MAX_INTERVAL - STARTLE_MIN_INTERVAL);
+      }
 
+      // Naive O(n^2) neighbour scan — at this particle count (260, ~67k
+      // pairs) it's a fraction of a millisecond, well inside frame budget,
+      // so no spatial partitioning needed.
       for (let i = 0; i < PARTICLE_COUNT; i++) {
-        const zi = i * 3 + 2;
-        positions[i * 3]     += driftXY[i][0];
-        positions[i * 3 + 1] += driftXY[i][1];
-        positions[zi]        += driftZ[i];
+        const ix = i * 3, iy = ix + 1, iz = ix + 2;
+        const pix = positions[ix], piy = positions[iy], piz = positions[iz];
 
-        if (positions[zi] > NEAR_RECYCLE_Z) {
-          spawnParticle(i, FAR_RESPAWN_Z);
-          continue;
+        let sepX = 0, sepY = 0, sepZ = 0;
+        let avgVelX = 0, avgVelY = 0, avgVelZ = 0;
+        let avgPosX = 0, avgPosY = 0, avgPosZ = 0;
+        let neighborCount = 0;
+
+        for (let j = 0; j < PARTICLE_COUNT; j++) {
+          if (j === i) continue;
+          const jx = j * 3, jy = jx + 1, jz = jx + 2;
+          const dx = pix - positions[jx];
+          const dy = piy - positions[jy];
+          const dz = piz - positions[jz];
+          const distSq = dx * dx + dy * dy + dz * dz;
+          if (distSq > PERCEPTION_RADIUS_SQ || distSq < 0.0001) continue;
+
+          avgVelX += velocities[jx]; avgVelY += velocities[jy]; avgVelZ += velocities[jz];
+          avgPosX += positions[jx];  avgPosY += positions[jy];  avgPosZ += positions[jz];
+          neighborCount++;
+
+          if (distSq < SEPARATION_RADIUS_SQ) {
+            // Inverse-square push: strong right up close, negligible near
+            // the edge of the separation radius.
+            sepX += dx / distSq; sepY += dy / distSq; sepZ += dz / distSq;
+          }
         }
 
-        const { halfWidth, halfHeight } = frustumHalfExtentsAtZ(positions[zi]);
-        if (Math.abs(positions[i * 3]) > halfWidth)  driftXY[i][0] *= -1;
-        if (Math.abs(positions[i * 3 + 1]) > halfHeight) driftXY[i][1] *= -1;
+        let ax = 0, ay = 0, az = 0;
+
+        if (neighborCount > 0) {
+          // Alignment — steer toward the neighbourhood's average heading.
+          const alignX = avgVelX / neighborCount - velocities[ix];
+          const alignY = avgVelY / neighborCount - velocities[iy];
+          const alignZ = avgVelZ / neighborCount - velocities[iz];
+          ax += alignX * W_ALIGNMENT; ay += alignY * W_ALIGNMENT; az += alignZ * W_ALIGNMENT;
+
+          // Cohesion — steer toward the neighbourhood's average position.
+          const cohX = avgPosX / neighborCount - pix;
+          const cohY = avgPosY / neighborCount - piy;
+          const cohZ = avgPosZ / neighborCount - piz;
+          ax += cohX * 0.02 * W_COHESION; ay += cohY * 0.02 * W_COHESION; az += cohZ * 0.02 * W_COHESION;
+        }
+
+        // Separation
+        ax += sepX * W_SEPARATION; ay += sepY * W_SEPARATION; az += sepZ * W_SEPARATION;
+
+        // Steer back in before particles reach the edge of what's visible at
+        // their depth, so the school curves away from the boundary instead
+        // of popping/bouncing off it.
+        const { halfWidth, halfHeight } = frustumHalfExtentsAtZ(piz);
+        const marginX = halfWidth * BOUNDARY_MARGIN_FRAC;
+        const marginY = halfHeight * BOUNDARY_MARGIN_FRAC;
+        if (pix > marginX) ax -= W_BOUNDARY * (pix - marginX) * 0.01;
+        else if (pix < -marginX) ax -= W_BOUNDARY * (pix + marginX) * 0.01;
+        if (piy > marginY) ay -= W_BOUNDARY * (piy - marginY) * 0.01;
+        else if (piy < -marginY) ay -= W_BOUNDARY * (piy + marginY) * 0.01;
+
+        // Gentle constant pull toward the camera so the school keeps
+        // travelling overall, rather than just milling in place.
+        az += FORWARD_ACCEL;
+
+        // Clamp the steering force, then apply and clamp resulting speed —
+        // both clamps are what keep turns smooth instead of snapping.
+        const forceMag = Math.sqrt(ax * ax + ay * ay + az * az);
+        if (forceMag > MAX_FORCE) {
+          const s = MAX_FORCE / forceMag;
+          ax *= s; ay *= s; az *= s;
+        }
+
+        let vx = velocities[ix] + ax;
+        let vy = velocities[iy] + ay;
+        let vz = velocities[iz] + az;
+        const speed = Math.sqrt(vx * vx + vy * vy + vz * vz);
+        if (speed > MAX_SPEED) {
+          const s = MAX_SPEED / speed;
+          vx *= s; vy *= s; vz *= s;
+        }
+        velocities[ix] = vx; velocities[iy] = vy; velocities[iz] = vz;
+
+        positions[ix] += vx; positions[iy] += vy; positions[iz] += vz;
+
+        if (positions[iz] > NEAR_RECYCLE_Z) {
+          spawnParticle(i, FAR_RESPAWN_Z);
+        }
       }
       pointsGeo.attributes.position.needsUpdate = true;
 
@@ -286,7 +307,7 @@ export default function HeroCanvas() {
     }
 
     if (reduceMotion) {
-      // One still frame: no drift, no travel, no warp, no mouse response.
+      // One still frame: no boid simulation, no travel, no mouse response.
       renderer.render(scene, camera);
     } else {
       animate();
