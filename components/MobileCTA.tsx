@@ -21,7 +21,11 @@ import { useTranslation } from '../lib/i18n/context';
 // browsing. Screenshots showed it sitting on top of a course card and on top of
 // a university deadline. So it now lives only where "go and see the jobs" is
 // genuinely the next step: the home page and events.
-const SHOWN_ON = new Set(['/', '/events', '/success-stories']);
+// Not on the landing page. The hero is full height again, so its own
+// Browse Opportunities and Join a Bootcamp buttons sit exactly where this bar
+// floats, and it covered them. The hero already sends you to /jobs, so this
+// was a second copy of a button that was on screen anyway.
+const SHOWN_ON = new Set(['/events', '/success-stories']);
 
 function isHidden(pathname: string): boolean {
   return !SHOWN_ON.has(pathname);

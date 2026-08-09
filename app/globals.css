@@ -90,23 +90,3 @@
   }
 }
 
-/* The slow drift behind the hero. Two to four minutes for a full pass, which
-   reads as alive when you look at it and vanishes while you read over it.
-   Layers run at different speeds so the field has depth instead of sliding as
-   one sheet. See components/SpaceBackdrop.tsx. */
-@keyframes spani-drift {
-  from {
-    translate: 0 0;
-  }
-  to {
-    translate: -2.5% 1.5%;
-  }
-}
-
-/* Anyone who has asked their phone to stop animating things gets a still sky.
-   The parallax listeners bail out on the same query. */
-@media (prefers-reduced-motion: reduce) {
-  [style*='spani-drift'] {
-    animation: none !important;
-  }
-}
