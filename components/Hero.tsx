@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { useTranslation } from '../lib/i18n/context';
-import HeroCanvas from './HeroCanvas';
+import SpaceBackdrop from './SpaceBackdrop';
 
 /**
  * The hero used to claim 2,400+ verified jobs, 12K+ active candidates and 30+
@@ -30,11 +30,7 @@ const Hero: React.FC<{ stats?: HeroStats }> = ({ stats }) => {
 
   return (
     <section className="relative flex items-center justify-center overflow-hidden bg-ink-950">
-      {/* Desktop only. It is a Three.js scene, and a large share of this
-          audience is on a mid range phone paying for its own data. */}
-      <div className="hidden md:block absolute inset-0">
-        <HeroCanvas />
-      </div>
+      <SpaceBackdrop />
 
       <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32">
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-brand-500/30 bg-brand-500/10 text-brand-200 text-xs font-bold mb-8 tracking-wide">

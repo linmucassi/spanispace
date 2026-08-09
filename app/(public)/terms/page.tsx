@@ -165,7 +165,7 @@ export default function TermsOfServicePage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-ink-800 mb-3">12. AI CV Audit — Accuracy Disclaimer</h2>
+            <h2 className="text-xl font-semibold text-ink-800 mb-3">12. AI CV Audit, Accuracy Disclaimer</h2>
             <p className="text-ink-600 leading-relaxed">
               The AI-Driven CV Audit feature uses large language model technology to generate
               automated feedback on CV text submitted by candidates. By using this feature, you

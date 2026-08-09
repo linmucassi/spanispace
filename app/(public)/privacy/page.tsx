@@ -225,7 +225,7 @@ export default function PrivacyPolicyPage() {
               Some job listings displayed on Spanispace are sourced automatically from third-party
               job boards (including RemoteOK, Remotive, and Adzuna) via automated scraping. These
               listings are curated and filtered before display but originate from external sources.
-              Spanispace does not collect any personal information through this process — we only
+              Spanispace does not collect any personal information through this process, we only
               retrieve publicly available job posting data such as job title, description, location,
               and application link. We are not responsible for the accuracy or completeness of
               third-party job listings.

@@ -68,9 +68,9 @@ export async function POST(request: NextRequest) {
           role: 'user',
           content: `You are an expert South African career coach and CV reviewer specialising in the local job market.
 
-Analyse the CV below and return ONLY a valid JSON object — no markdown, no explanation, no code fences. Use this exact shape:
+Analyse the CV below and return ONLY a valid JSON object. No markdown, no explanation, no code fences. Use this exact shape:
 {
-  "score": <integer 1–10>,
+  "score": <integer 1 to 10>,
   "headline": "<one sentence overall verdict>",
   "strengths": ["<strength 1>", "<strength 2>", "<strength 3>"],
   "improvements": [
@@ -93,14 +93,14 @@ ${cvText.trim()}`,
 
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      return NextResponse.json({ error: 'Analysis failed — could not parse response.' }, { status: 502 });
+      return NextResponse.json({ error: 'Analysis failed, could not parse the response.' }, { status: 502 });
     }
 
     try {
       const parsed = JSON.parse(jsonMatch[0]);
       return NextResponse.json(parsed);
     } catch {
-      return NextResponse.json({ error: 'Analysis failed — invalid JSON in response.' }, { status: 502 });
+      return NextResponse.json({ error: 'Analysis failed, the response was not valid JSON.' }, { status: 502 });
     }
   } catch (err) {
     console.error('[cv-audit] provider error:', err instanceof Error ? err.message : err);

@@ -50,7 +50,7 @@ const faqSchema = {
       name: 'Is Spanispace free for job seekers?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Yes. Spanispace is completely free for candidates — no subscription, no paywall. You can browse vetted jobs, apply directly, enrol in training programs, and register for events without paying anything.',
+        text: 'Yes. Spanispace is completely free for candidates, no subscription and no paywall. You can browse vetted jobs, apply directly, enrol in training programs, and register for events without paying anything.',
       },
     },
     {
@@ -74,7 +74,7 @@ const faqSchema = {
       name: 'How much does it cost to post a job?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Posting a job on Spanispace is free. Any employer — including informal businesses without a registered company — can post a job at spanispace.com/post-job and reach thousands of South African job seekers.',
+        text: 'Posting a job on Spanispace is free. Any employer, including informal businesses without a registered company, can post a job at spanispace.com/post-job and reach thousands of South African job seekers.',
       },
     },
     {
@@ -90,7 +90,7 @@ const faqSchema = {
       name: 'Who is Spanispace for?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Spanispace is built for South African graduates, matriculants, and job seekers aged 18–35, with a focus on Gauteng and nationwide remote opportunities. The platform also serves employers (free job posting) and training partners.',
+        text: 'Spanispace is built for South African graduates, matriculants, and job seekers aged 18 to 35, with a focus on Gauteng and nationwide remote opportunities. The platform also serves employers (free job posting) and training partners.',
       },
     },
   ],

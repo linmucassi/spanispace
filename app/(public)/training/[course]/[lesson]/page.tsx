@@ -28,7 +28,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const lesson = course && getLesson(course, lessonParam);
   if (!course || !lesson) return {};
   return {
-    title: `${lesson.title} — ${course.title}`,
+    title: `${lesson.title}, ${course.title}`,
     // The hook is one plain sentence, which is exactly what a search result wants.
     description: lesson.hookHtml.replace(/<[^>]+>/g, ''),
     alternates: { canonical: lessonHref(course, lesson) },

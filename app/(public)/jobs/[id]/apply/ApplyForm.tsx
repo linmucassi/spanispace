@@ -202,7 +202,7 @@ export default function ApplyForm({ jobId, jobRole, jobCompany, jobSource }: Pro
     // `static` fallback jobs this is the only channel, so its result decides
     // success.
     const docsSummary = selectedDocs
-      .map((d) => `${DOC_LABELS[d.doc_type] ?? d.doc_type}: ${d.name} — ${d.file_url}`)
+      .map((d) => `${DOC_LABELS[d.doc_type] ?? d.doc_type}: ${d.name}: ${d.file_url}`)
       .join('\n');
     const netlifyOk = await submitNetlifyForm('job-application', {
       'job-id': jobId,

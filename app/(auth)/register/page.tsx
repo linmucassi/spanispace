@@ -81,7 +81,14 @@ export default function RegisterPage() {
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: metadata },
+      options: {
+        data: metadata,
+        // Without this, the link in the confirmation email points at whatever
+        // Site URL the Supabase project has configured, which is still the
+        // default on this project. app/(auth)/callback/route.ts is what knows
+        // how to exchange the code and route by role, so send them there.
+        emailRedirectTo: `${window.location.origin}/callback`,
+      },
     });
 
     if (signUpError) {

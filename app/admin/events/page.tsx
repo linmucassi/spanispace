@@ -44,7 +44,7 @@ export default function AdminEvents() {
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900">Events</h1>
           <p className="text-slate-500 text-sm">
-            Review events — sourced from the daily scraper (auto-verified) and company submissions (pending review)
+            Review events, sourced from the daily scraper (auto-verified) and company submissions (pending review)
           </p>
         </div>
       </div>

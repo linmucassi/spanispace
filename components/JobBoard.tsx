@@ -176,7 +176,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ initialJobs }) => {
       {totalPages > 1 && (
         <div className="flex items-center justify-between mt-6 px-1">
           <p className="text-sm text-ink-500">
-            Showing {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, sortedJobs.length)} of {sortedJobs.length} jobs
+            Showing {(currentPage - 1) * PAGE_SIZE + 1} to {Math.min(currentPage * PAGE_SIZE, sortedJobs.length)} of {sortedJobs.length} jobs
           </p>
           <div className="flex items-center gap-2">
             <button

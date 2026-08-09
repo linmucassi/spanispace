@@ -10,17 +10,37 @@ interface AcademicPortalProps {
   updates?: UniversityUpdate[];
 }
 
+/**
+ * A monogram is the designed state, not the failure state.
+ *
+ * Three of these files turned out to be 2 KB Wikipedia error pages saved with
+ * .png and .svg extensions, which rendered as the browser's broken image glyph.
+ * The old onError only covered a request that failed outright, so a 200 response
+ * carrying HTML slipped through. onLoad now also rejects anything that decodes
+ * to nothing, and the monogram is styled to look deliberate either way.
+ */
 function InstitutionLogo({ logo, name, isPast }: { logo?: string; name: string; isPast: boolean }) {
   const [failed, setFailed] = useState(false);
-  const initial = name.charAt(0);
+  // 'University of Cape Town (UCT)' gives U, 'Wits University' gives W.
+  const initials = name
+    .replace(/\(.*?\)/g, '')
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w.charAt(0).toUpperCase())
+    .join('');
 
   if (logo && !failed) {
     return (
-      <div className={`w-10 h-10 rounded-full flex-shrink-0 overflow-hidden border ${isPast ? 'border-ink-200 bg-ink-50' : 'border-ink-200 bg-white'}`}>
+      <div className={`w-10 h-10 rounded-lg flex-shrink-0 overflow-hidden border ${isPast ? 'border-ink-200 bg-ink-50' : 'border-ink-200 bg-white'}`}>
         <img
           src={logo}
           alt={name}
           onError={() => setFailed(true)}
+          onLoad={(e) => {
+            const img = e.currentTarget;
+            if (!img.naturalWidth || !img.naturalHeight) setFailed(true);
+          }}
           className="w-full h-full object-contain p-1"
         />
       </div>
@@ -28,8 +48,13 @@ function InstitutionLogo({ logo, name, isPast }: { logo?: string; name: string; 
   }
 
   return (
-    <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center font-bold text-sm ${isPast ? 'bg-ink-100 text-ink-400' : 'bg-brand-50 text-brand-600'}`}>
-      {initial}
+    <div
+      aria-hidden
+      className={`w-10 h-10 rounded-lg flex-shrink-0 flex items-center justify-center font-display font-extrabold text-xs tracking-tight ${
+        isPast ? 'bg-ink-100 text-ink-400' : 'bg-brand-500 text-white'
+      }`}
+    >
+      {initials}
     </div>
   );
 }
@@ -109,9 +134,9 @@ const AcademicPortal: React.FC<AcademicPortalProps> = ({ updates }) => {
                       href={update.applyLink}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs bg-brand-600 text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-brand-700 transition-colors"
+                      className="text-xs bg-brand-600 text-white px-4 py-1.5 rounded-lg font-semibold hover:bg-brand-700 transition-colors"
                     >
-                      Apply →
+                      {t('academic.apply')}
                     </Link>
                   )}
                 </div>

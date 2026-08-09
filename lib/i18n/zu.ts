@@ -108,6 +108,7 @@ const zu = {
     subtitle:
       'Uphuthwa yizikhathi zokufaka izicelo? I-Spanispace ilandelela izicelo zamuva, ubufundiswa, nezikhathi zokuqeqeshwa kwamakhono ukuze ungasali ngemuva.',
     deadline: 'Umkhawulo',
+    apply: 'Faka isicelo',
     deadlinePassed: 'Umkhawulo Udlulile',
     closesIn: 'Kusele izinsuku ezingu-{n}',
     closesToday: 'Ivalwa namuhla',

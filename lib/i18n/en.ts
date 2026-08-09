@@ -107,6 +107,7 @@ const en = {
     subtitle:
       'Missing out on standard application windows? Spanispace tracks late applications, learnerships, and vocational training dates so you never fall behind.',
     deadline: 'Deadline',
+    apply: 'Apply',
     deadlinePassed: 'Deadline Passed',
     closesIn: 'Closes in {n} days',
     closesToday: 'Closes today',

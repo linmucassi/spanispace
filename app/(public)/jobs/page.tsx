@@ -5,7 +5,7 @@ import { fetchPublicJobs } from '@/lib/publicJobs';
 export const metadata: Metadata = {
   title: 'Vetted Jobs in South Africa',
   description:
-    'Browse vetted job listings across South Africa — remote, hybrid, on-site, and learnership opportunities for graduates and job seekers.',
+    'Browse vetted job listings across South Africa. Remote, hybrid, on site and learnership opportunities for graduates and job seekers.',
   alternates: { canonical: '/jobs' },
 };
 

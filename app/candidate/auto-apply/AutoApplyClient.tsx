@@ -355,7 +355,7 @@ export default function AutoApplyClient({
           <div className="p-6 space-y-5">
             {!preferences && (
               <p className="text-sm text-slate-500">
-                We&apos;ve pre-filled fields of interest from your profile skills — edit anything below, then save to turn on auto-apply.
+                We&apos;ve pre-filled fields of interest from your profile skills. Edit anything below, then save to turn on auto-apply.
               </p>
             )}
 
@@ -397,7 +397,7 @@ export default function AutoApplyClient({
               placeholder="e.g. Johannesburg, Remote"
               values={preferredLocations}
               onChange={setPreferredLocations}
-              helperText="Optional — leave empty to match any location."
+              helperText="Optional. Leave empty to match any location."
             />
 
             <TagInput
@@ -437,7 +437,7 @@ export default function AutoApplyClient({
               Matches for you {matches.length > 0 && `(${matches.length})`}
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              New matches are found daily. Review each one — nothing is submitted until you click Apply.
+              New matches are found daily. Review each one, nothing is submitted until you click Apply.
             </p>
           </div>
 

@@ -63,4 +63,29 @@
     font-family: var(--font-display), system-ui, sans-serif;
     letter-spacing: -0.022em;
   }
+
+}
+
+/* Deliberately outside every @layer.
+   ---------------------------------------------------------------------------
+   iOS Safari zooms the whole page in the moment you focus a form control whose
+   font is under 16px, and it does not zoom back out when you blur it. Every
+   input here was text-sm, which is 14px, so tapping the email field on /login
+   left the page permanently wider than the screen. That is the "not fitting on
+   the phone" report. It is a platform rule, not a layout bug, so no max-width
+   fixes it.
+
+   The other way to stop it is maximum-scale=1 on the viewport, which also takes
+   pinch zoom away from anyone who needs it and fails WCAG 1.4.4. Meeting the
+   size the platform asks for is the honest fix.
+
+   Unlayered on purpose: Tailwind's utilities live in a cascade layer, and
+   unlayered rules outrank every layer, so this beats text-sm without !important.
+   Above 767px the designed 14px comes back, since desktop Safari does not zoom. */
+@media (max-width: 767px) {
+  input:not([type='checkbox']):not([type='radio']),
+  select,
+  textarea {
+    font-size: 16px;
+  }
 }

@@ -44,7 +44,7 @@ export default function AdminTrainings() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-extrabold text-slate-900">Trainings</h1>
-          <p className="text-slate-500 text-sm">Manage bootcamps, short courses, and events — including company submissions</p>
+          <p className="text-slate-500 text-sm">Manage bootcamps, short courses, and events, including company submissions</p>
         </div>
         <Link href="/admin/trainings/new" className="bg-brand-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-brand-700 transition-all">
           + Add Training

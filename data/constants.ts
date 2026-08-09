@@ -392,7 +392,7 @@ export const ACADEMIC_UPDATES: UniversityUpdate[] = [
     deadline: '2026-10-15',
     type: 'Standard',
     applyLink: 'https://www.unisa.ac.za/sites/corporate/default/Apply-for-admission',
-    notes: 'Distance learning — second semester and 2027 first semester applications open.',
+    notes: 'Distance learning. Second semester and 2027 first semester applications open.',
     logo: '/assets/logos/unisa.svg',
   },
   {
@@ -424,7 +424,7 @@ export const ACADEMIC_UPDATES: UniversityUpdate[] = [
     deadline: '2026-08-31',
     type: 'Standard',
     applyLink: 'https://www.cput.ac.za/study/apply',
-    notes: '2027 applications — engineering and built environment open early.',
+    notes: '2027 applications. Engineering and built environment open early.',
     logo: '/assets/logos/cput.png',
   },
   {
@@ -432,7 +432,7 @@ export const ACADEMIC_UPDATES: UniversityUpdate[] = [
     deadline: '2026-08-31',
     type: 'Standard',
     applyLink: 'https://www.up.ac.za/apply',
-    notes: '2027 applications. Some faculties close earlier — check per-programme.',
+    notes: '2027 applications. Some faculties close earlier, so check per programme.',
     logo: '/assets/logos/up.png',
   },
   {
@@ -441,14 +441,18 @@ export const ACADEMIC_UPDATES: UniversityUpdate[] = [
     type: 'Standard',
     applyLink: 'https://www.wits.ac.za/apply/',
     notes: '2027 undergraduate applications open. Commerce and Science fill fast.',
-    logo: '/assets/logos/wits.png',
+    // No logo on purpose. The file here was a 2 KB Wikipedia error page, and the
+    // only image on Wikimedia filed as "WITS logo" is the Wisconsin Institute
+    // for Torah Study, so shipping it would put a different institution's mark
+    // on a Wits listing. The monogram fallback is the honest answer until
+    // someone supplies the real one.
   },
   {
     institution: 'University of Cape Town (UCT)',
     deadline: '2026-07-31',
     type: 'Standard',
     applyLink: 'https://www.uct.ac.za/apply',
-    notes: '2027 applications open. Highly competitive — apply before the deadline.',
+    notes: '2027 applications open. Highly competitive, so apply before the deadline.',
     logo: '/assets/logos/uct.svg',
   },
   {
@@ -456,7 +460,7 @@ export const ACADEMIC_UPDATES: UniversityUpdate[] = [
     deadline: '2026-08-15',
     type: 'Learnership',
     applyLink: 'https://www.studentroom.co.za/south-african-breweries-sab-sales-and-marketing-learnerships-2026/',
-    notes: 'NQF Level 4. Open to matriculants aged 18–35. Stipend included.',
+    notes: 'NQF Level 4. Open to matriculants aged 18 to 35. Stipend included.',
     logo: '/assets/logos/sab.jpg',
   },
   {
@@ -465,7 +469,7 @@ export const ACADEMIC_UPDATES: UniversityUpdate[] = [
     type: 'Learnership',
     applyLink: 'https://www.capitecbank.co.za/careers/',
     notes: '12-month banking learnership, R6 500/month stipend. Nationwide.',
-    logo: '/assets/logos/capitec.svg',
+    logo: '/assets/logos/capitec.png',
   },
 ];
 

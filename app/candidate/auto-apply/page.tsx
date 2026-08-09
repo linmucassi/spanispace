@@ -82,7 +82,7 @@ export default async function AutoApplyPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900">Auto-Apply</h1>
         <p className="text-slate-500 mt-1">
-          Set your criteria once — we&apos;ll surface matching jobs here for you to review and apply with one click.
+          Set your criteria once and we&apos;ll surface matching jobs here for you to review and apply with one click.
         </p>
       </div>
 

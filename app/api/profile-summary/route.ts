@@ -67,8 +67,8 @@ export async function POST() {
         `(${e.work_type.replace('_', ' ')})`,
         e.location ? `in ${e.location}` : null,
         e.duration_text ? `lasting ${e.duration_text}` : null,
-        e.duties ? `— duties: ${e.duties}` : null,
-        e.skills_gained?.length ? `— skills: ${e.skills_gained.join(', ')}` : null,
+        e.duties ? `duties: ${e.duties}` : null,
+        e.skills_gained?.length ? `skills: ${e.skills_gained.join(', ')}` : null,
       ];
       return parts.filter(Boolean).join(' ');
     })

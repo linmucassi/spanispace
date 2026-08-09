@@ -261,7 +261,7 @@ export default function DocumentLibrary() {
 
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">
-              File — PDF, DOC, DOCX (max 10 MB)
+              File, PDF, DOC or DOCX, max 10 MB
             </label>
             <input
               ref={fileRef}

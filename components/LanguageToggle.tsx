@@ -25,7 +25,11 @@ const LanguageToggle: React.FC = () => {
     >
       <span className="text-base leading-none">{showingZulu ? '🇬🇧' : '🇿🇦'}</span>
       <span>{showingZulu ? 'English' : 'isiZulu'}</span>
-      {showingZulu && (
+      {/* The button always names the language you would switch TO, so the badge
+          only belongs here when that word is isiZulu. It was rendering on the
+          isiZulu view, where the label reads English, which said the exact
+          opposite of what is true: the English is the finished translation. */}
+      {!showingZulu && (
         <span className="ml-0.5 rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-amber-800">
           Beta
         </span>

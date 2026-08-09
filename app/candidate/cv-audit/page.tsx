@@ -85,7 +85,7 @@ export default function CVAuditPage() {
             onChange={(e) => setCvText(e.target.value)}
             rows={16}
             maxLength={8000}
-            placeholder="Paste your full CV here — including work experience, education, skills, and any other sections..."
+            placeholder="Paste your full CV here, including work experience, education, skills, and any other sections..."
             className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent resize-y"
             required
           />
