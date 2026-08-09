@@ -3,13 +3,13 @@
 **Platform:** Talent Bridge for South African Job Seekers
 **Founders:** Linda & Percy | **Location:** Gauteng, South Africa
 **Mission:** Empower 100,000+ SA youth with job-ready skills and direct employment pathways by 2030
-**Last Updated:** 9 July 2026
+**Last Updated:** 9 August 2026
 
 ---
 
-## Current State (as of 9 July 2026)
+## Current State (as of 9 August 2026)
 
-The platform is live on Netlify with a full Next.js 16 + React 19 + Supabase stack. This audit found and fixed several load-bearing bugs in the company portal (applications never reaching the database, companies unable to read/edit their own closed jobs, company signup dead-ending at "Profile Not Found") and shipped the four company features named as priorities: job posting (already worked), job view/drop-off analytics, company-created events & training, and candidate↔company messaging. **All of this is code-complete and passes typecheck/lint/build, but six SQL migrations still need to be run against the production Supabase project before any of it is live** — see [Outstanding: Production Migrations](#outstanding-production-migrations) below.
+The platform is live on Netlify with a full Next.js 16 + React 19 + Supabase stack. The 9 July company-portal audit (applications pipeline, company profile self-service, job management RLS, view/drop-off analytics, company events & training, messaging) is code-complete; whether it's actually live depends on migrations that may still not have been run — see [Outstanding: Production Migrations](#outstanding-production-migrations). A month of further shipping since then went undocumented here: South African jobs/informal work as a first-class candidate profile (PR #3), an applications-visibility fix (PR #5), a training catalogue with paid course levels and the first Terminal School / SpaniSpace Academy courses (PR #7), an isiZulu number-agreement checker (beta), a landing-page redesign, and a candidate auto-apply queue. Separately, **PR #10 is open and unmerged**: a pre-launch security/UX audit that adds a CSP header, fixes broken install icons, corrects a false claim in the cookie notice, and completes `.env.example` — see [PR #10: Pre-Launch Audit](#pr-10-pre-launch-audit-open-unmerged) below for that and the three launch blockers it surfaced that no PR can close.
 
 ### What's Built
 
@@ -30,6 +30,13 @@ The platform is live on Netlify with a full Next.js 16 + React 19 + Supabase sta
 | Mobile portal navigation | ✅ Live | All three portal sidebars (candidate/company/admin) now collapse to a hamburger drawer on mobile |
 | Error boundaries | ✅ Live | `error.tsx` present for public, candidate, company, and admin sections |
 | Loading skeletons | ✅ Live | Present on most dashboard/list routes across all portals |
+| SA jobs & informal work as a profile | 🟢 Code-complete, migration status unverified | PR #3 (20 Jul 2026): `Piece Job`/`Temporary` job types, job `duration`, candidate `professional_summary`, and a `work_experiences` table so informal/piece work becomes a real work history, not just a CV line. Needs `supabase/add-informal-jobs.sql`. Issue #1 says SA/informal jobs still don't surface near the top of the public board — ranking/sort work may remain even if this migration is applied. Not previously documented. |
+| Applications visibility & duplicate-apply fix | 🟢 Code-complete, migration status unverified | PR #5 (22 Jul 2026, closes issue #4): candidates and companies could not see applications they were party to, and candidates could apply to the same job repeatedly. Needs `supabase/fix-application-visibility.sql` (and depends on `supabase/fix-candidate-profile-rls.sql`). Not previously documented. |
+| Training catalogue: paid levels + Terminal School courses | 🟢 Code-complete, migration status unverified | PR #7 (7 Aug 2026, closes issues #6/#7): `trainings.level` (Beginner/Advanced) with `is_free` derived by trigger, not a free-standing checkbox; first Terminal School / SpaniSpace Academy course content added. Needs `supabase/add-training-levels.sql`. Not previously documented. |
+| Candidate documents table + storage bucket | 🟢 Code-complete, migration status unverified | Backs the multi-document library row above. Needs `supabase/add-documents-table.sql` and `supabase/create-documents-bucket.sql`. Not previously documented as separate migrations. |
+| Candidate auto-apply queue | 🟢 Built, migration status unverified | `/candidate/auto-apply`: candidates set preferences (fields, excluded companies, work type, location); a daily service-role matcher stages qualifying jobs in `application_matches` for the candidate to review and click-apply — not a silent auto-submit. Needs `supabase/add-auto-apply.sql`. Not previously documented. |
+| isiZulu number-agreement checker | ✅ Live, labelled beta | Checks isiZulu concord (subject/number agreement) against a reference table; four issues fixed 8 Aug 2026. Explicitly labelled beta pending sign-off from a first-language isiZulu speaker. Not previously documented. |
+| Landing page redesign | ✅ Live | Moved off a generic template look toward a job-board layout; several iterations on the hero (space/galaxy theme, headline stats, institution logos) through 8–9 Aug 2026. Not previously documented. |
 | Job application pipeline | 🟢 Fixed, needs deploy | Public apply form only wrote to Netlify Forms, never to `applications` — company/candidate application views were always empty for real users. Fixed 9 Jul 2026; needs `supabase/fix-applications-pipeline.sql` run against production. |
 | Company profile self-service | 🟢 Fixed, needs deploy | `company_profiles` had no INSERT RLS policy and the signup trigger never created the row — companies could get stuck at "Profile Not Found." Fixed 9 Jul 2026; needs `supabase/fix-company-profile-creation.sql`. |
 | Company job management | 🟢 Fixed, needs deploy | `jobs` had no SELECT/UPDATE RLS policy for the owning company — closed/draft jobs didn't show in `/company/jobs`, and both Close/Reopen and Edit Job silently saved nothing. Fixed 9 Jul 2026; needs `supabase/fix-company-jobs-rls.sql`. |
@@ -42,16 +49,45 @@ The platform is live on Netlify with a full Next.js 16 + React 19 + Supabase sta
 
 ### Outstanding: Production Migrations
 
-Run these in the Supabase SQL Editor, in this order (each is idempotent / safe to re-run):
+`supabase/` now has 16 files and this roadmap can no longer tell you from the repo alone which have actually been run against the live project (`rssuacaedvihhpcakuvm`) — that state lives only in Supabase, not in git. Treat every migration below as **unverified** until someone runs the audit query from issue #8 (see [PR #10: Pre-Launch Audit](#pr-10-pre-launch-audit-open-unmerged)) and confirms against the dashboard.
 
-1. `supabase/fix-company-profile-creation.sql`
-2. `supabase/fix-applications-pipeline.sql`
-3. `supabase/fix-company-jobs-rls.sql`
-4. `supabase/add-job-analytics.sql`
-5. `supabase/add-company-events-training.sql`
-6. `supabase/add-messaging.sql`
+**Highest priority — closes a live privilege-escalation hole (issue #8):**
+1. `supabase/fix-security-hardening.sql` — anyone can currently sign up with `role: "admin"` and get full RLS access to every table; the anon key needed to do this is public in every page bundle by design. Read the note at the top of the file before running: an earlier version of this migration dropped candidate profile creation, which the current version restores. Run the audit query at the end of section 1 afterward and demote any admin account that isn't a founder.
 
-`supabase/schema.sql` has been updated to match, for anyone provisioning a fresh environment — it no longer needs any of the six patch files on top of it.
+**From the 9 July company-portal audit, in dependency order:**
+2. `supabase/fix-company-profile-creation.sql`
+3. `supabase/fix-applications-pipeline.sql`
+4. `supabase/fix-company-jobs-rls.sql`
+5. `supabase/add-job-analytics.sql`
+6. `supabase/add-company-events-training.sql`
+7. `supabase/add-messaging.sql`
+
+**From work shipped between 9 July and 9 August, not previously tracked here:**
+8. `supabase/fix-rls-recursion.sql` — admin RLS policies recursed on every query; likely already applied, since the admin panel is marked live and functional, but unconfirmed
+9. `supabase/fix-candidate-profile-rls.sql` — candidates had no INSERT policy on their own profile
+10. `supabase/fix-application-visibility.sql` — candidates/companies couldn't see applications they were party to; depends on #9
+11. `supabase/add-informal-jobs.sql` — SA/informal jobs schema (PR #3)
+12. `supabase/add-training-levels.sql` — paid course levels (PR #7)
+13. `supabase/add-documents-table.sql` and `supabase/create-documents-bucket.sql` — candidate document library
+14. `supabase/add-auto-apply.sql` — auto-apply matching queue
+
+`supabase/schema.sql` is described as updated to match all of the above for fresh environments — worth spot-checking next time someone provisions one, since it hasn't been re-verified against files 8–14 as part of this update.
+
+### PR #10: Pre-Launch Audit (open, unmerged)
+
+Full pre-launch audit of the live site, 9 Aug 2026. Branch `fix/ship-check-launch-blockers`, opened by BrendonM96. Fixes everything fixable in code; three items need a founder because they need database/DNS access, not a PR.
+
+**In the PR, ready to merge:**
+- [ ] Review and merge PR #10 — adds a Content-Security-Policy header (`connect-src`/`img-src`/`frame-ancestors`/`base-uri`/`object-src`/`form-action`, no `script-src` yet — see the comment in `next.config.ts` for why), a real app-icon set (192/512/maskable PNG + Apple touch icon), a corrected cookie/analytics claim in the privacy policy, an Information Officer line + Information Regulator complaint link in the privacy policy, and a completed `.env.example` (was missing 8 of 11 vars the code reads). Author flags the CSP specifically as worth a manual render-check before merging — a wrong CSP can blank the page.
+- [ ] **Gap found while reviewing this PR, not caught by it:** `app/layout.tsx` and `app/manifest.ts` both reference `/favicon.ico`, but no `favicon.ico` exists anywhere in the repo (`public/` has no favicon at all, tracked or otherwise) — this is issue #2. Confirm whether a favicon is served in production some other way (e.g. dropped straight into the Netlify build output); if not, the icon set PR #10 ships still 404s on the one icon every browser tab actually uses.
+
+**Blockers — code cannot fix these, only a founder with Supabase/DNS access can:**
+- [ ] **Issue #8 — privilege escalation via signup.** Anyone can `POST` to the signup endpoint with `role: "admin"` and get a full admin account; the anon key needed is public by design. Run `supabase/fix-security-hardening.sql` section 1 against `rssuacaedvihhpcakuvm`, then run the audit query at the end of that section and demote any admin that isn't Linda or Brendon. See row 1 in [Outstanding: Production Migrations](#outstanding-production-migrations).
+- [ ] **Issue #9 — signup confirmation emails never arrive.** Supabase's built-in mailer only delivers to project team members and caps at 2 emails/hour, so no outside user can currently finish creating an account. Fix in the Supabase dashboard: Project `rssuacaedvihhpcakuvm` → Authentication → Emails → SMTP Settings → point at Resend (same account already used for application-confirmation emails via `RESEND_API_KEY`/`EMAIL_FROM`). App code already sends `emailRedirectTo` pointing at `/callback`, so no further code change is needed.
+- [ ] **Issue #11 — POPIA Information Officer + DMARC.** Name and register a POPIA Information Officer with the Information Regulator (free) — PR #10's privacy-policy text is written to reference one but a name still needs to be filled in and registered. Add a DNS TXT record: name `_dmarc`, value `v=DMARC1; p=quarantine; rua=mailto:privacy@spanispace.com`.
+
+**Open issues PR #10 didn't touch:**
+- [ ] Issue #1 — SA/informal jobs still surface at the end of the pager rather than being prioritised on the public jobs board; testers report it undercuts the platform's stated differentiator. Related to the `add-informal-jobs.sql` migration above but is a ranking/sort problem on top of it, not solved by that migration alone.
 
 ### Tech Stack
 
