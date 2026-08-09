@@ -81,9 +81,14 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: '/assets/new-logo.ico', type: 'image/x-icon' },
+      { url: '/favicon.ico', sizes: '48x48', type: 'image/x-icon' },
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
     ],
-    apple: [{ url: '/assets/new-logo.ico' }],
+    // iOS never reads the manifest, so this PNG is the only thing between an
+    // iPhone home-screen install and a screenshot of the page. Must be a square
+    // opaque PNG, which .ico is not, which is why installs looked broken.
+    apple: [{ url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
   },
   manifest: '/manifest.webmanifest',
   robots: {
