@@ -1,0 +1,66 @@
+name: Email Notifications
+
+# Three schedules in one workflow, branching on which one fired:
+#   - hourly: drain the outbox (application status / new message / event
+#     registration alerts land here within the hour of the real event)
+#   - daily: populate expiry alerts + profile nudges, then drain
+#   - weekly (Monday): populate the digest, then drain
+on:
+  schedule:
+    - cron: '0 * * * *'
+    - cron: '0 5 * * *'
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+jobs:
+  notify:
+    name: Populate and send
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run expiry alerts (daily schedule only)
+        if: github.event.schedule == '0 5 * * *' || github.event_name == 'workflow_dispatch'
+        run: npx tsx scripts/run-expiry-alerts.ts
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      - name: Run profile nudges (daily schedule only)
+        if: github.event.schedule == '0 5 * * *' || github.event_name == 'workflow_dispatch'
+        run: npx tsx scripts/run-profile-nudges.ts
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      - name: Run weekly digest (Monday schedule only)
+        if: github.event.schedule == '0 6 * * 1' || github.event_name == 'workflow_dispatch'
+        run: npx tsx scripts/run-weekly-digest.ts
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+
+      - name: Send queued notifications
+        run: npx tsx scripts/run-notification-sender.ts
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "Notification run failed on $(date). Check logs above."

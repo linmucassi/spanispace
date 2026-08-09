@@ -103,16 +103,6 @@ export interface DbEvent {
   updated_at: string;
 }
 
-export interface DbWaitlist {
-  id: string;
-  name: string;
-  email: string;
-  phone: string | null;
-  interests: string | null;
-  source: string;
-  created_at: string;
-}
-
 export interface DbNewsletter {
   id: string;
   email: string;
@@ -213,7 +203,6 @@ export interface AdminStats {
   pendingJobs: number;
   totalApplications: number;
   weekApplications: number;
-  totalWaitlist: number;
   totalTrainings: number;
   totalLearnerships: number;
 }

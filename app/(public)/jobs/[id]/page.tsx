@@ -37,7 +37,11 @@ export default async function JobDetailPage({ params }: Props) {
     title: job.role,
     description:
       job.description || `${job.role} at ${job.company}. ${job.vettedStatus} listing on Spanispace.`,
-    datePosted: new Date().toISOString().split('T')[0],
+    // job.postedDate/updatedDate are absent on the static fallback listings
+    // (no `jobs` row), which is the one case where "today" is an honest
+    // stand-in — those are edited straight in data/constants.ts.
+    datePosted: job.postedDate ?? new Date().toISOString().split('T')[0],
+    dateModified: job.updatedDate ?? job.postedDate ?? new Date().toISOString().split('T')[0],
     validThrough: job.expiryDate,
     employmentType: employmentTypeMap[job.type] ?? 'FULL_TIME',
     hiringOrganization: {

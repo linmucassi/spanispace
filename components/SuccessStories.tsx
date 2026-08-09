@@ -39,10 +39,10 @@ const CTASection: React.FC = () => {
         <p className="text-lg text-ink-600 max-w-2xl mx-auto mb-10">{t('cta.subtitle')}</p>
         <div className="flex flex-col sm:flex-row justify-center gap-4">
           <Link
-            href="/join-waitlist"
+            href="/register"
             className="px-8 py-4 bg-brand-600 text-white rounded-2xl font-bold shadow-xl hover:bg-brand-700 transition-all"
           >
-            {t('cta.joinWaitlist')}
+            {t('cta.getStarted')}
           </Link>
           <Link
             href={postJobHref}

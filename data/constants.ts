@@ -349,41 +349,6 @@ export const TRAININGS: Training[] = [
       'Reshape JSON instead of just reading it.',
     tags: ['Jq', 'Terminal', 'JSON'],
   },
-
-  // Announced SpaniSpace courses. No enrolment flow yet, so these send people
-  // to the waitlist rather than pretending a seat can be booked.
-  {
-    id: 't1',
-    title: 'Modern AI for Devs',
-    category: 'Bootcamp',
-    level: 'Advanced',
-    provider: 'SpaniSpace',
-    href: '/join-waitlist',
-    description: 'Build with LLMs and RAG in 12 weeks.',
-    tags: ['AI', 'Python', 'DevOps'],
-  },
-  {
-    id: 't2',
-    title: 'CV Mastery & Interview Prep',
-    category: 'Event',
-    level: 'Beginner',
-    provider: 'SpaniSpace',
-    href: '/join-waitlist',
-    // No date until one is actually booked. It carried 'Dec 10, 2024', which
-    // rendered a live waitlist card as a greyed out Past Event.
-    description: 'Real feedback on your CV, and a live mock interview.',
-    tags: ['Soft Skills', 'Careers'],
-  },
-  {
-    id: 't3',
-    title: 'Cloud Foundations (AWS/Azure)',
-    category: 'Short Course',
-    level: 'Advanced',
-    provider: 'SpaniSpace',
-    href: '/join-waitlist',
-    description: 'Deploy to the cloud and write infrastructure as code.',
-    tags: ['Cloud', 'AWS', 'Azure'],
-  },
 ];
 
 export const ACADEMIC_UPDATES: UniversityUpdate[] = [

@@ -11,6 +11,8 @@ type DbJob = {
   job_type: string;
   duration?: string | null;
   expiry_date: string;
+  created_at: string;
+  updated_at: string | null;
   vetted_status: string;
   status: string;
   apply_link: string | null;
@@ -44,6 +46,8 @@ function mapDbJob(row: DbJob): Job {
     duration: row.duration ?? undefined,
     applyLink: row.apply_link ?? '',
     expiryDate: row.expiry_date,
+    postedDate: row.created_at,
+    updatedDate: row.updated_at ?? row.created_at,
     // Pay is the first thing a job seeker decides on, so the card needs it, not
     // just the detail page. Plenty of scraped listings have no salary at all,
     // hence optional, and the card simply omits the line rather than inventing one.

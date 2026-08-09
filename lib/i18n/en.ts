@@ -45,6 +45,8 @@ const en = {
     action: 'Action',
     applyNow: 'Apply Now',
     expired: 'Expired',
+    expiringSoon: 'Expiring soon',
+    updated: 'Updated',
     noJobs: 'No jobs found for this filter.',
     verified: 'Spanispace Verified',
     skillsAssessed: 'Skills Assessed',
@@ -117,8 +119,8 @@ const en = {
   cta: {
     title: 'Join the Movement',
     subtitle:
-      'Be among the first to bridge the gap between your skills and your dream career.',
-    joinWaitlist: 'Join the Waitlist',
+      'Bridge the gap between your skills and your dream career. It only takes a minute to sign up.',
+    getStarted: 'Get Started Free',
     postJob: 'Post a Job',
   },
   betaNote: {
@@ -244,6 +246,9 @@ const en = {
     backToLogin: 'Back to Sign In',
     tabCandidate: "I'm looking for work",
     tabCompany: "I'm hiring",
+    continueWithGoogle: 'Continue with Google',
+    googleCandidateNote: 'Google sign-in is for candidate accounts. Companies register with email and password.',
+    orDivider: 'or',
     fullName: 'Full Name',
     fullNamePlaceholder: 'John Doe',
     companyName: 'Company Name',

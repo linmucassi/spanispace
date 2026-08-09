@@ -15,6 +15,10 @@ export interface Job {
   location: string;
   applyLink: string;
   expiryDate: string;
+  /** ISO date the listing was created. Absent on the static fallback data. */
+  postedDate?: string;
+  /** ISO date of the last edit. Falls back to postedDate when unchanged. */
+  updatedDate?: string;
   vettedStatus: VettedStatus;
   duration?: string; // e.g. '3 months', 'Weekends' — how long the work lasts
   /**

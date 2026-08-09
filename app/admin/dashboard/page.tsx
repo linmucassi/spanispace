@@ -30,13 +30,12 @@ export default function AdminDashboard() {
       const now = new Date();
       const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-      const [jobs, pendingJobs, apps, weekApps, waitlist, trainings, learnerships, recent] =
+      const [jobs, pendingJobs, apps, weekApps, trainings, learnerships, recent] =
         await Promise.all([
           supabase.from('jobs').select('id', { count: 'exact', head: true }),
           supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('vetted_status', 'pending'),
           supabase.from('applications').select('id', { count: 'exact', head: true }),
           supabase.from('applications').select('id', { count: 'exact', head: true }).gte('created_at', weekAgo),
-          supabase.from('waitlist').select('id', { count: 'exact', head: true }),
           supabase.from('trainings').select('id', { count: 'exact', head: true }),
           supabase.from('learnerships').select('id', { count: 'exact', head: true }),
           supabase.from('applications').select('*, job:jobs(title)').order('created_at', { ascending: false }).limit(10),
@@ -48,7 +47,6 @@ export default function AdminDashboard() {
         pendingJobs: pendingJobs.count ?? 0,
         totalApplications: apps.count ?? 0,
         weekApplications: weekApps.count ?? 0,
-        totalWaitlist: waitlist.count ?? 0,
         totalTrainings: trainings.count ?? 0,
         totalLearnerships: learnerships.count ?? 0,
       });
@@ -100,7 +98,6 @@ export default function AdminDashboard() {
         <StatsCard label="Active Jobs" value={stats.activeJobs} color="text-slate-900" />
         <StatsCard label="Pending Approval" value={stats.pendingJobs} color="text-amber-600" />
         <StatsCard label="Applications (7d)" value={stats.weekApplications} color="text-brand-600" />
-        <StatsCard label="Waitlist Signups" value={stats.totalWaitlist} color="text-emerald-600" />
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">

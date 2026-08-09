@@ -4,11 +4,15 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import type { DbJob } from '@/types/database';
+import { isExpiringSoon } from '@/lib/listingFreshness';
 
 export default function AdminJobs() {
   const [jobs, setJobs] = useState<DbJob[]>([]);
   const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [extendDays, setExtendDays] = useState(30);
+  const [extending, setExtending] = useState(false);
 
   const loadJobs = async () => {
     const supabase = createClient();
@@ -43,6 +47,41 @@ export default function AdminJobs() {
     loadJobs();
   };
 
+  const toggleSelect = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    setSelected((prev) => (prev.size === jobs.length ? new Set() : new Set(jobs.map((j) => j.id))));
+  };
+
+  // Bulk expiry extension — before this, extending an expiring listing meant
+  // deleting and recreating it, since there was no edit page for `jobs` at
+  // all beyond vetting status.
+  const extendSelectedExpiry = async () => {
+    if (selected.size === 0 || extendDays <= 0) return;
+    const supabase = createClient();
+    if (!supabase) return;
+    setExtending(true);
+    for (const job of jobs) {
+      if (!selected.has(job.id)) continue;
+      const newExpiry = new Date(job.expiry_date);
+      newExpiry.setDate(newExpiry.getDate() + extendDays);
+      await supabase
+        .from('jobs')
+        .update({ expiry_date: newExpiry.toISOString().split('T')[0] })
+        .eq('id', job.id);
+    }
+    setExtending(false);
+    setSelected(new Set());
+    loadJobs();
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
@@ -73,6 +112,29 @@ export default function AdminJobs() {
         ))}
       </div>
 
+      {/* Bulk expiry extension */}
+      {selected.size > 0 && (
+        <div className="flex items-center gap-3 mb-4 px-4 py-3 bg-brand-50 border border-brand-200 rounded-xl text-sm">
+          <span className="font-medium text-brand-800">{selected.size} selected</span>
+          <span className="text-brand-700">Extend expiry by</span>
+          <input
+            type="number"
+            min={1}
+            value={extendDays}
+            onChange={(e) => setExtendDays(Number(e.target.value))}
+            className="w-16 rounded-lg border border-brand-300 px-2 py-1 text-sm"
+          />
+          <span className="text-brand-700">days</span>
+          <button
+            onClick={extendSelectedExpiry}
+            disabled={extending}
+            className="ml-auto bg-brand-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-brand-700 disabled:opacity-50"
+          >
+            {extending ? 'Extending…' : 'Apply'}
+          </button>
+        </div>
+      )}
+
       {/* Table */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         {loading ? (
@@ -86,6 +148,14 @@ export default function AdminJobs() {
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-slate-50 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 w-10">
+                    <input
+                      type="checkbox"
+                      checked={jobs.length > 0 && selected.size === jobs.length}
+                      onChange={toggleSelectAll}
+                      aria-label="Select all"
+                    />
+                  </th>
                   <th className="px-6 py-3">Title</th>
                   <th className="px-6 py-3">Location</th>
                   <th className="px-6 py-3">Type</th>
@@ -98,12 +168,27 @@ export default function AdminJobs() {
                 {jobs.map((job) => (
                   <tr key={job.id} className="hover:bg-slate-50/50">
                     <td className="px-6 py-4">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(job.id)}
+                        onChange={() => toggleSelect(job.id)}
+                        aria-label={`Select ${job.title}`}
+                      />
+                    </td>
+                    <td className="px-6 py-4">
                       <span className="block text-sm font-bold text-slate-900">{job.title}</span>
                       <span className="text-xs text-slate-500">{job.poster_name || 'Company'}</span>
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-600">{job.location}</td>
                     <td className="px-6 py-4 text-sm text-slate-600">{job.job_type}</td>
-                    <td className="px-6 py-4 text-sm text-slate-600 font-mono">{job.expiry_date}</td>
+                    <td className="px-6 py-4 text-sm text-slate-600 font-mono">
+                      {job.expiry_date}
+                      {isExpiringSoon(job.expiry_date) && (
+                        <span className="ml-2 inline-flex px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-orange-100 text-orange-700 font-sans">
+                          Expiring soon
+                        </span>
+                      )}
+                    </td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-bold ${
                         job.vetted_status === 'verified' ? 'bg-green-100 text-green-700' :

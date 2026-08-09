@@ -7,6 +7,7 @@ import { VettedStatus, type Job } from '../types';
 import { isSouthAfricanJob } from '../lib/jobLocation';
 import { useTranslation } from '../lib/i18n/context';
 import { WORK_KIND_CHIP, WORK_KIND_EDGE, workKind } from '../lib/work-type';
+import { isExpiringSoon, relativeDaysAgo } from '../lib/listingFreshness';
 
 const PAGE_SIZE = 15;
 
@@ -126,9 +127,16 @@ const JobBoard: React.FC<JobBoardProps> = ({ initialJobs }) => {
                       {verified ? t('jobs.verified') : job.vettedStatus}
                     </span>
                   )}
-                  {job.duration && (
-                    <span className="shrink-0 text-[11px] text-ink-400">{job.duration}</span>
-                  )}
+                  <span className="flex shrink-0 items-center gap-1.5">
+                    {!isExpired && isExpiringSoon(job.expiryDate) && (
+                      <span className="rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-orange-100 text-orange-700">
+                        {t('jobs.expiringSoon')}
+                      </span>
+                    )}
+                    {job.duration && (
+                      <span className="text-[11px] text-ink-400">{job.duration}</span>
+                    )}
+                  </span>
                 </div>
 
                 <h3 className="font-display text-lg font-bold leading-snug text-ink-900 group-hover:text-brand-600">
@@ -143,6 +151,11 @@ const JobBoard: React.FC<JobBoardProps> = ({ initialJobs }) => {
                     </svg>
                     {job.location}
                   </p>
+                  {job.updatedDate && (
+                    <p className="mt-1 text-[11px] text-ink-400">
+                      {t('jobs.updated')} {relativeDaysAgo(job.updatedDate)}
+                    </p>
+                  )}
                   <div className="mt-2.5 flex items-center justify-between gap-2">
                     {/* Pay only appears when the listing actually published one. */}
                     {job.payRange ? (

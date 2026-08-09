@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { createServerSupabase } from '@/lib/supabase/server';
+import ProfileCompletenessCard from '@/components/candidate/ProfileCompletenessCard';
 
 const statusColors: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-800',
@@ -44,7 +45,7 @@ export default async function CandidateDashboard() {
   // Fetch candidate profile
   const { data: profile } = await supabase
     .from('candidate_profiles')
-    .select('id, full_name, profile_score')
+    .select('id, full_name, profile_score, phone, location, skills, cv_url, portfolio_url, professional_summary')
     .eq('user_id', user.id)
     .maybeSingle();
 
@@ -164,6 +165,12 @@ export default async function CandidateDashboard() {
           </div>
         ))}
       </div>
+
+      <ProfileCompletenessCard
+        profileScore={profileScore}
+        profile={profile ?? {}}
+        hasApplied={totalApplications > 0}
+      />
 
       {/* Recent Applications */}
       <div className="bg-white rounded-xl border border-slate-200">

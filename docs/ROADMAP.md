@@ -9,7 +9,7 @@
 
 ## Current State (as of 9 August 2026)
 
-The platform is live on Netlify with a full Next.js 16 + React 19 + Supabase stack. The 9 July company-portal audit (applications pipeline, company profile self-service, job management RLS, view/drop-off analytics, company events & training, messaging) is code-complete; whether it's actually live depends on migrations that may still not have been run — see [Outstanding: Production Migrations](#outstanding-production-migrations). A month of further shipping since then went undocumented here: South African jobs/informal work as a first-class candidate profile (PR #3), an applications-visibility fix (PR #5), a training catalogue with paid course levels and the first Terminal School / SpaniSpace Academy courses (PR #7), an isiZulu number-agreement checker (beta), a landing-page redesign, and a candidate auto-apply queue. Separately, **PR #10 is open and unmerged**: a pre-launch security/UX audit that adds a CSP header, fixes broken install icons, corrects a false claim in the cookie notice, and completes `.env.example` — see [PR #10: Pre-Launch Audit](#pr-10-pre-launch-audit-open-unmerged) below for that and the three launch blockers it surfaced that no PR can close.
+The platform is live on Netlify with a full Next.js 16 + React 19 + Supabase stack. The 9 July company-portal audit (applications pipeline, company profile self-service, job management RLS, view/drop-off analytics, company events & training, messaging) is code-complete; whether it's actually live depends on migrations that may still not have been run — see [Outstanding: Production Migrations](#outstanding-production-migrations). A month of further shipping since then went undocumented here: South African jobs/informal work as a first-class candidate profile (PR #3), an applications-visibility fix (PR #5), a training catalogue with paid course levels and the first Terminal School / SpaniSpace Academy courses (PR #7), an isiZulu number-agreement checker (beta), a landing-page redesign, and a candidate auto-apply queue. Separately, **PR #10 is open and unmerged**: a pre-launch security/UX audit that adds a CSP header, fixes broken install icons, corrects a false claim in the cookie notice, and completes `.env.example` — see [PR #10: Pre-Launch Audit](#pr-10-pre-launch-audit-open-unmerged) below for that and the three launch blockers it surfaced that no PR can close. Also same day: [Phase 1](#phase-1--growth--retention-q3q4-2026) items 1.1 (email notifications), 1.2 (data freshness), 1.4 (profile-completeness nudges) went from roadmap entries to code-complete, and 1.3 (Google OAuth) shipped scoped to candidates — all four still need the new migration below applied before they do anything live. Also fixed: issue #2 (missing favicon) and confirmed issue #1 (SA jobs sorting) already resolved in code — see [PR #10: Pre-Launch Audit](#pr-10-pre-launch-audit-open-unmerged). And the pre-registration ["waitlist" flow was removed entirely](#waitlist-removed-9-aug-2026) now that real login exists.
 
 ### What's Built
 
@@ -24,18 +24,20 @@ The platform is live on Netlify with a full Next.js 16 + React 19 + Supabase sta
 | i18n | ✅ Live | English + isiZulu, 157+ strings |
 | File uploads | ✅ Live | Multi-document library (CV, certificates, cover/motivational letters) via Supabase Storage |
 | Legal | ✅ Live | POPIA-compliant Privacy Policy + SA Terms of Service |
-| Waitlist | ✅ Live | Netlify Forms integration |
+| Waitlist | ❌ Removed 9 Aug 2026 | Real registration/login replaced it — see below |
 | Job/event auto-refresh | ✅ Live | Daily GitHub Actions scraper (RemoteOK, Remotive, Adzuna, Eventbrite → Supabase) — not previously documented |
 | AI CV Audit | ✅ Live | Claude-powered CV review at `/candidate/cv-audit` — not previously documented |
+| AI profile-summary builder | ✅ Live | `POST /api/profile-summary`: turns a candidate's piece-job/informal `work_experiences` entries into a professional summary via Claude, auth-gated to the caller's own rows. Shipped alongside PR #3. Not previously documented. |
 | Mobile portal navigation | ✅ Live | All three portal sidebars (candidate/company/admin) now collapse to a hamburger drawer on mobile |
 | Error boundaries | ✅ Live | `error.tsx` present for public, candidate, company, and admin sections |
 | Loading skeletons | ✅ Live | Present on most dashboard/list routes across all portals |
 | SA jobs & informal work as a profile | 🟢 Code-complete, migration status unverified | PR #3 (20 Jul 2026): `Piece Job`/`Temporary` job types, job `duration`, candidate `professional_summary`, and a `work_experiences` table so informal/piece work becomes a real work history, not just a CV line. Needs `supabase/add-informal-jobs.sql`. Issue #1 says SA/informal jobs still don't surface near the top of the public board — ranking/sort work may remain even if this migration is applied. Not previously documented. |
 | Applications visibility & duplicate-apply fix | 🟢 Code-complete, migration status unverified | PR #5 (22 Jul 2026, closes issue #4): candidates and companies could not see applications they were party to, and candidates could apply to the same job repeatedly. Needs `supabase/fix-application-visibility.sql` (and depends on `supabase/fix-candidate-profile-rls.sql`). Not previously documented. |
-| Training catalogue: paid levels + Terminal School courses | 🟢 Code-complete, migration status unverified | PR #7 (7 Aug 2026, closes issues #6/#7): `trainings.level` (Beginner/Advanced) with `is_free` derived by trigger, not a free-standing checkbox; first Terminal School / SpaniSpace Academy course content added. Needs `supabase/add-training-levels.sql`. Not previously documented. |
+| Training catalogue: paid levels + Terminal School courses | 🟢 Code-complete, migration status unverified | PR #7 (7 Aug 2026, closes issue #6): `trainings.level` (Beginner/Advanced) with `is_free` derived by trigger, not a free-standing checkbox; 8 Terminal School tracks (external links) plus the SpaniSpace Academy AI/Tech Careers Bootcamp and AI Foundations course, hosted in-platform at `/training/ai-careers-bootcamp` and `/training/ai-foundations` (the PR description says `/academy` — that route doesn't exist, content actually lives under `/training`). Needs `supabase/add-training-levels.sql`. Not previously documented. |
 | Candidate documents table + storage bucket | 🟢 Code-complete, migration status unverified | Backs the multi-document library row above. Needs `supabase/add-documents-table.sql` and `supabase/create-documents-bucket.sql`. Not previously documented as separate migrations. |
 | Candidate auto-apply queue | 🟢 Built, migration status unverified | `/candidate/auto-apply`: candidates set preferences (fields, excluded companies, work type, location); a daily service-role matcher stages qualifying jobs in `application_matches` for the candidate to review and click-apply — not a silent auto-submit. Needs `supabase/add-auto-apply.sql`. Not previously documented. |
-| isiZulu number-agreement checker | ✅ Live, labelled beta | Checks isiZulu concord (subject/number agreement) against a reference table; four issues fixed 8 Aug 2026. Explicitly labelled beta pending sign-off from a first-language isiZulu speaker. Not previously documented. |
+| URL-field validation bug | ✅ Fixed 10 Jul 2026 | Company profile Website/Logo URL and admin Learnerships/Late-Uni-Apps "Apply Link" fields used `type="url"`, so a scheme-less value (`linkedin.com/x` instead of `https://linkedin.com/x`) triggered native browser validation and silently blocked the whole form's submit — presented as "details wouldn't save" / "keeps saying enter url and doesn't continue". Fixed by switching all four fields to `type="text"` + `lib/normalizeUrl.ts`, which auto-prepends `https://` on save instead of blocking. Sourced from `docs/BETA_LAUNCH_OPS_CHECKLIST.md`, not previously in this table. |
+| isiZulu translations | ✅ Live, labelled beta | Not an automated checker — `docs/ISIZULU-REVIEW.md` is a hand-review sheet. Of the 52 isiZulu strings added 8 Aug 2026, every one was checked against dictionaries and a noun-class concord table (catching 4 wrong number forms), and the process separately caught a half-English string (`course.read` rendered "49 min yokufunda") that shipped code never surfaced. None of it has been read by a first-language speaker yet — that's the actual outstanding step, not further automated checking. **Next action:** hand `docs/ISIZULU-REVIEW.md` to a first-language isiZulu speaker (Percy?), get corrections written into its last column, apply them to `lib/i18n/zu.ts`, remove the BETA marker in `components/LanguageToggle.tsx`. Course lesson content itself (`data/academy.ts`, ~18,000 words) is deliberately English-only — translating it is a separate, much larger, not-yet-decided piece of work. |
 | Landing page redesign | ✅ Live | Moved off a generic template look toward a job-board layout; several iterations on the hero (space/galaxy theme, headline stats, institution logos) through 8–9 Aug 2026. Not previously documented. |
 | Job application pipeline | 🟢 Fixed, needs deploy | Public apply form only wrote to Netlify Forms, never to `applications` — company/candidate application views were always empty for real users. Fixed 9 Jul 2026; needs `supabase/fix-applications-pipeline.sql` run against production. |
 | Company profile self-service | 🟢 Fixed, needs deploy | `company_profiles` had no INSERT RLS policy and the signup trigger never created the row — companies could get stuck at "Profile Not Found." Fixed 9 Jul 2026; needs `supabase/fix-company-profile-creation.sql`. |
@@ -43,9 +45,15 @@ The platform is live on Netlify with a full Next.js 16 + React 19 + Supabase sta
 | Job view / drop-off analytics | 🟢 Built, needs deploy | `job_views` + `application_starts` tables, instrumented on the job detail and apply pages, surfaced as a funnel on `/company/dashboard` and per-job columns on `/company/jobs`. Needs `supabase/add-job-analytics.sql`. |
 | Company-created events & training | 🟢 Built, needs deploy | `/company/events` and `/company/training` (list/new/edit), submitted as `vetted_status = 'pending'` and reviewed via `/admin/trainings` and the new `/admin/events`. Needs `supabase/add-company-events-training.sql`. |
 | Candidate ↔ company messaging | 🟢 Built, needs deploy | One thread per company↔candidate pair, inbox UI in both portals (`/company/messages`, `/candidate/messages`), entry points from candidate search and the applications list. Needs `supabase/add-messaging.sql`. |
-| Email notifications | ❌ Not built | No Resend/SendGrid/Edge Function wiring found |
-| Google OAuth | ❌ Not built | Email/password only |
+| Email notifications | 🟢 Code-complete, migration pending | See [1.1](#11-email-notifications--code-done-migration-pending). Outbox + triggers + GitHub Actions cron via Resend, built 9 Aug 2026. |
+| Google OAuth | 🟢 Live for candidates | See [1.3](#13-social-authentication--shipped-for-candidates-companies-still-emailpassword). Companies still email/password by design. |
 | Payments (Stripe) | ❌ Not built | `subscription_tier`/`subscription_status` columns exist but are unused/manual |
+
+### Waitlist removed (9 Aug 2026)
+
+The pre-registration "join the waitlist" flow no longer makes sense now that real registration/login exists, so it was removed rather than kept as a second front door: `/join-waitlist` and the orphaned, never-linked `/coming-soon` page are both deleted, along with their nav/CTA links, the `waitlist` Netlify form, the admin dashboard's "Waitlist Signups" stat, the `DbWaitlist` type, and the sitemap/llms.txt entries. Three placeholder training-catalogue courses whose only destination was `/join-waitlist` (`t1`/`t2`/`t3` — announced-but-never-built SpaniSpace courses) were removed with it rather than repointed, since there's nowhere real for them to go. The `SuccessStories.tsx` CTA button now goes to `/register` instead.
+
+**Deliberately left untouched:** the `waitlist` table, its RLS policies, and `supabase/fix-rls-recursion.sql` (a historical migration patch referencing it). Dropping a live table is a separate, more destructive decision than removing the UI that fed it — this only stops new signups and existing historical data stays intact. `supabase/schema.sql` (the fresh-install baseline) still creates the table too, for the same reason.
 
 ### Outstanding: Production Migrations
 
@@ -71,23 +79,31 @@ The platform is live on Netlify with a full Next.js 16 + React 19 + Supabase sta
 13. `supabase/add-documents-table.sql` and `supabase/create-documents-bucket.sql` — candidate document library
 14. `supabase/add-auto-apply.sql` — auto-apply matching queue
 
+**From Phase 1 (Email notifications, data freshness, profile scoring), shipped 9 Aug 2026:**
+15. `supabase/add-notifications-and-profile-scoring.sql` — must run after #6 (`add-messaging.sql`, the new-message trigger reads `message_threads`/`messages`). Safe to run before or after #11 (`add-informal-jobs.sql`) — the scoring trigger reads `professional_summary` dynamically so a not-yet-existing column just scores as missing rather than erroring (this was caught live: the first version of this migration read the column directly and failed with `record "new" has no field "professional_summary"` on a database that hadn't run #11 yet). Without this migration, `.github/workflows/notifications.yml` runs but every send is silently a no-op (empty outbox), and `candidate_profiles.profile_score` stays stuck at 0.
+
 `supabase/schema.sql` is described as updated to match all of the above for fresh environments — worth spot-checking next time someone provisions one, since it hasn't been re-verified against files 8–14 as part of this update.
+
+**Post-migration smoke test** (from `docs/BETA_LAUNCH_OPS_CHECKLIST.md`): apply for a job as a candidate and confirm it appears in `/company/applications`; sign up as a new company and confirm the dashboard loads without redirect looping; close/reopen and edit a job; post a training/event as a company and approve it as admin; message a candidate from search and reply as that candidate.
 
 ### PR #10: Pre-Launch Audit (open, unmerged)
 
 Full pre-launch audit of the live site, 9 Aug 2026. Branch `fix/ship-check-launch-blockers`, opened by BrendonM96. Fixes everything fixable in code; three items need a founder because they need database/DNS access, not a PR.
 
 **In the PR, ready to merge:**
-- [ ] Review and merge PR #10 — adds a Content-Security-Policy header (`connect-src`/`img-src`/`frame-ancestors`/`base-uri`/`object-src`/`form-action`, no `script-src` yet — see the comment in `next.config.ts` for why), a real app-icon set (192/512/maskable PNG + Apple touch icon), a corrected cookie/analytics claim in the privacy policy, an Information Officer line + Information Regulator complaint link in the privacy policy, and a completed `.env.example` (was missing 8 of 11 vars the code reads). Author flags the CSP specifically as worth a manual render-check before merging — a wrong CSP can blank the page.
-- [ ] **Gap found while reviewing this PR, not caught by it:** `app/layout.tsx` and `app/manifest.ts` both reference `/favicon.ico`, but no `favicon.ico` exists anywhere in the repo (`public/` has no favicon at all, tracked or otherwise) — this is issue #2. Confirm whether a favicon is served in production some other way (e.g. dropped straight into the Netlify build output); if not, the icon set PR #10 ships still 404s on the one icon every browser tab actually uses.
+- [ ] Review and merge PR #10 — adds a Content-Security-Policy header (`connect-src`/`img-src`/`frame-ancestors`/`base-uri`/`object-src`/`form-action`, no `script-src` yet — see the comment in `next.config.ts` for why), a real app-icon set (192/512/maskable PNG + Apple touch icon), a corrected cookie/analytics claim in the privacy policy, an Information Officer line + Information Regulator complaint link in the privacy policy, and a completed `.env.example` (was missing 8 of 11 vars the code reads). Author flags the CSP specifically as worth a manual render-check before merging — a wrong CSP can blank the page. Still open/unmerged as of this update — merging it is a deploy decision, not something done as part of a code fix.
+- [x] **Issue #2 — favicon.** `app/layout.tsx` and `app/manifest.ts` both referenced `/favicon.ico`, but no such file existed anywhere in the repo. Fixed 9 Aug 2026 by adding `public/favicon.ico`, sourced from the existing `public/assets/new-logo.ico` brand asset. If the specific visual complaint behind issue #2 was about something other than a missing/broken icon, it needs a fresh look — the original issue referenced a screenshot that wasn't visible when this was resolved.
 
 **Blockers — code cannot fix these, only a founder with Supabase/DNS access can:**
 - [ ] **Issue #8 — privilege escalation via signup.** Anyone can `POST` to the signup endpoint with `role: "admin"` and get a full admin account; the anon key needed is public by design. Run `supabase/fix-security-hardening.sql` section 1 against `rssuacaedvihhpcakuvm`, then run the audit query at the end of that section and demote any admin that isn't Linda or Brendon. See row 1 in [Outstanding: Production Migrations](#outstanding-production-migrations).
 - [ ] **Issue #9 — signup confirmation emails never arrive.** Supabase's built-in mailer only delivers to project team members and caps at 2 emails/hour, so no outside user can currently finish creating an account. Fix in the Supabase dashboard: Project `rssuacaedvihhpcakuvm` → Authentication → Emails → SMTP Settings → point at Resend (same account already used for application-confirmation emails via `RESEND_API_KEY`/`EMAIL_FROM`). App code already sends `emailRedirectTo` pointing at `/callback`, so no further code change is needed.
 - [ ] **Issue #11 — POPIA Information Officer + DMARC.** Name and register a POPIA Information Officer with the Information Regulator (free) — PR #10's privacy-policy text is written to reference one but a name still needs to be filled in and registered. Add a DNS TXT record: name `_dmarc`, value `v=DMARC1; p=quarantine; rua=mailto:privacy@spanispace.com`.
 
-**Open issues PR #10 didn't touch:**
-- [ ] Issue #1 — SA/informal jobs still surface at the end of the pager rather than being prioritised on the public jobs board; testers report it undercuts the platform's stated differentiator. Related to the `add-informal-jobs.sql` migration above but is a ranking/sort problem on top of it, not solved by that migration alone.
+**Issue #1 — SA/informal jobs buried at the end of the pager:**
+- [x] **Sorting fix, code-complete since 18 Jul 2026 (predates this update).** `lib/publicJobs.ts` sorts South African jobs before international ones, and `JobBoard.tsx`'s stable sort preserves that order — SA jobs are already page-1 material, not something newly fixed here, just newly confirmed and documented.
+- [ ] **Volume, migration-gated.** The other half of issue #1 — "we haven't posted any jobs [for] a normal South African person... looking for a waitering job" — is addressed by PR #3's 12 seeded informal-work listings, but only once `supabase/add-informal-jobs.sql` (row 11 in Outstanding Migrations) actually runs against production.
+
+**Note on closing these on GitHub:** this environment has no `gh` CLI and no GitHub API write access — issues can be fixed here but not marked Closed from here. Closing #1 and #2 (and merging #10) on GitHub itself is a manual step.
 
 ### Tech Stack
 
@@ -95,7 +111,7 @@ Full pre-launch audit of the live site, 9 Aug 2026. Branch `fix/ship-check-launc
 - **Backend/DB:** Supabase (PostgreSQL + Auth + Storage + RLS)
 - **AI:** Anthropic Claude (CV audit today; interview simulator/matching planned)
 - **Hosting:** Netlify
-- **Forms:** Netlify Forms (waitlist, newsletter — **not** job applications, see above)
+- **Forms:** Netlify Forms (newsletter — **not** job applications, see above; waitlist removed 9 Aug 2026)
 - **Automation:** GitHub Actions daily scraper job (`.github/workflows/daily-scraper.yml`)
 - **Validation:** react-hook-form + zod
 
@@ -136,38 +152,41 @@ Full pre-launch audit of the live site, 9 Aug 2026. Branch `fix/ship-check-launc
 
 ### Phase 1 — Growth & Retention (Q3–Q4 2026)
 > Goal: Convert waitlist signups into active users. Reach 1,000 registered candidates.
+>
+> 1.1, 1.2 and 1.4 are code-complete (9 Aug 2026) pending `supabase/add-notifications-and-profile-scoring.sql`; 1.3 shipped scoped to candidates only. 1.5 is not started.
 
-#### 1.1 Email Notifications
-- Application status updates (pending → shortlisted → hired/rejected)
-- New message notification (once 0.5 ships)
-- Event registration confirmations
-- Learnership/deadline expiry alerts (7-day and 1-day warnings)
-- Weekly digest of new jobs/learnerships matching candidate skills
+#### 1.1 Email Notifications — code done, migration pending
+- Application status updates, new message notification, event registration confirmations — all instant, via a DB-trigger-populated `email_notifications` outbox (not Supabase Edge Functions — this repo's actual cron pattern is GitHub Actions + `tsx` scripts, see `.github/workflows/daily-scraper.yml`, reused here as `notifications.yml`)
+- Learnership/deadline expiry alerts (7-day and 1-day) — targets the `jobs` table (learnerships live there as `job_type = 'Learnership'`, not the separate admin-only `learnerships` table), notifying the posting company or `poster_email`
+- Weekly digest of new jobs matching candidate skills — plain case-insensitive keyword matching against job title/description/requirements, not embeddings (that's Phase 4)
+- New templates in `lib/email.ts`, sender in `scripts/run-notification-sender.ts`, producers in `scripts/run-expiry-alerts.ts` / `run-profile-nudges.ts` / `run-weekly-digest.ts`
+- No unsubscribe/email-preferences mechanism yet — worth revisiting under [Security & Compliance](#security--compliance) before this reaches meaningful volume
 
-**Tech:** Supabase Edge Functions + Resend or SendGrid
+**Tech:** GitHub Actions cron (hourly drain, daily periodic checks, weekly digest) + Resend, matching the existing scraper pattern
 
-#### 1.2 Data Freshness System
-- The daily GitHub Actions scraper already auto-refreshes jobs (RemoteOK/Remotive/Adzuna) and events (Eventbrite) — this phase is about the parts it doesn't cover
-- Admin tooling to bulk-update learnership expiry dates (learnerships/late-uni are still hand-curated)
-- Automated flag for listings expiring within 7 days
-- Public "Last Updated" timestamp on Jobs Board and Learnerships table
+#### 1.2 Data Freshness System — code done, migration pending
+- Admin: `/admin/jobs` gained multi-select + "extend expiry by N days" (previously the only way to change a job's expiry was delete-and-recreate); explicitly scoped to the `jobs` table only, not the separate `learnerships` table, which has no public consumer today
+- Expiring-within-7-days flag, shared between the admin badge, the public Jobs Board badge, and the 1.1 email-alert threshold (`lib/listingFreshness.ts`)
+- Public "Last Updated" on the Jobs Board — also fixed a live bug where the JobPosting JSON-LD `datePosted` was `new Date()` on every request instead of the job's real date; added `dateModified` too
+- No public Learnerships page — learnerships are filtered from `/jobs` (`job_type = 'Learnership'`), there's no separate learnerships table/page to add a timestamp to
 
-#### 1.3 Social Authentication
-- Google OAuth (priority — most accessible for SA youth)
-- Reduces registration friction significantly
+#### 1.3 Social Authentication — shipped for candidates, companies still email/password
+- Google OAuth via `supabase.auth.signInWithOAuth`, "Continue with Google" on `/register` (candidate tab only) and `/login`
+- Deliberately candidate-only: the roadmap's own reason for wanting this was "most accessible for SA youth" (candidates), and Google OAuth carries no `role`/`company_name` metadata — building it for companies too would mean inventing a first-of-its-kind self-service role-upgrade RPC right next to the exact area issue #8 (admin privilege escalation via signup role) was about. New Google signups fall through the existing hardened trigger's default, landing as `role = 'candidate'` — no trigger changes needed.
+- **You still need to**: create an OAuth client in Google Cloud Console, then paste the Client ID/Secret into Supabase Dashboard → Authentication → Providers → Google. Not something achievable from code.
 
-**Tech:** Supabase Auth providers config
+#### 1.4 Profile Completeness Nudges — code done, migration pending
+- `candidate_profiles.profile_score` existed in the schema since before this roadmap but was **never written by anything** — read in 3 places (candidate dashboard, company candidate search sort + badge) while permanently 0. Now computed by a DB trigger (`compute_profile_score`) on every insert/update, weighted: skills 20, CV 25, name 15, phone 10, location 10, portfolio 10, summary 10
+- Dashboard checklist card (`components/candidate/ProfileCompletenessCard.tsx`) below 70%, shared scoring logic in `lib/profileCompleteness.ts` so the on-page checklist and the 48h nudge email never disagree on what's missing
+- 48h-minimum-age, once-a-week-max nudge email via `scripts/run-profile-nudges.ts`
 
-#### 1.4 Profile Completeness Nudges
-- Candidate dashboard prompt when profile score < 70%
-- Step-by-step onboarding checklist (add skills → upload CV → apply to first job)
-- Email nudge after 48h if profile is incomplete
-
-#### 1.5 Public Landing Page Improvements
+#### 1.5 Public Landing Page Improvements — not started
 - Add real learnership and late uni data (not seed data) — sourced weekly from SETA sites
 - Add "Spanispace Verified" badge visual to job/learnership tables
 - Improve SEO: meta tags, OG images, structured data for job postings (Google Jobs schema — JobPosting JSON-LD already implemented for job detail pages, extend to learnerships/trainings)
+  - Specifically: the current logo is wide-format and renders poorly as a link preview on WhatsApp/Twitter/LinkedIn — needs a square or 1200×630 OG image, a design task, not just a meta-tag wiring task. From `docs/BETA_LAUNCH_OPS_CHECKLIST.md`, not previously in this roadmap.
 - Add WhatsApp share button on job/learnership listings
+- Decide whether the static fallback job listings in `data/constants.ts` are still needed now that the daily scraper populates real jobs, or can be retired. From `docs/BETA_LAUNCH_OPS_CHECKLIST.md`, not previously in this roadmap.
 
 ---
 

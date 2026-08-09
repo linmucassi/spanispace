@@ -92,7 +92,6 @@ A listing is published only after a human reviews its vetted_status as "verified
 - Events: https://spanispace.com/events
 - Post a Job: https://spanispace.com/post-job
 - Success Stories: https://spanispace.com/success-stories
-- Join Waitlist: https://spanispace.com/join-waitlist
 - Sign Up: https://spanispace.com/register
 - Sign In: https://spanispace.com/login
 - Privacy: https://spanispace.com/privacy

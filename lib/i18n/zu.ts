@@ -45,6 +45,8 @@ const zu = {
     action: 'Isenzo',
     applyNow: 'Faka Isicelo',
     expired: 'Isikhathi Siphelile',
+    expiringSoon: 'Iphelelwa maduze',
+    updated: 'Kubuyekeziwe',
     noJobs: 'Ayikho imisebenzi etholiwe ngalesi sihlungi.',
     verified: 'Kuqinisekiswe yi-Spanispace',
     skillsAssessed: 'Amakhono Ahlolwe',
@@ -118,8 +120,8 @@ const zu = {
   cta: {
     title: 'Joyina Inqubo',
     subtitle:
-      'Yiba phakathi kwabantu bokuqala abavala igebe phakathi kwamakhono akho nomsebenzi owuphupho lakho.',
-    joinWaitlist: 'Joyina Uhlu Lokulinda',
+      'Vala igebe phakathi kwamakhono akho nomsebenzi owuphupho lakho. Kuthatha umzuzu nje ukubhalisa.',
+    getStarted: 'Qala Mahhala',
     postJob: 'Faka Umsebenzi',
   },
   betaNote: {
@@ -248,6 +250,9 @@ const zu = {
     backToLogin: 'Buyela Ekungeneni',
     tabCandidate: 'Ngifuna umsebenzi',
     tabCompany: 'Ngiqasha abantu',
+    continueWithGoogle: 'Qhubeka nge-Google',
+    googleCandidateNote: 'Ukungena nge-Google kungabafuna umsebenzi. Izinkampani zibhalisa nge-imeyili nephasiwedi.',
+    orDivider: 'noma',
     fullName: 'Igama Eligcwele',
     fullNamePlaceholder: 'Sipho Dlamini',
     companyName: 'Igama Lenkampani',
