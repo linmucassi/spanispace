@@ -12,6 +12,7 @@ import {
 import { accessLabel } from '@/lib/training-level';
 import { Inline, Prose } from '@/components/Prose';
 import T from '@/components/T';
+import { createServerSupabase } from '@/lib/supabase/server';
 
 type Props = { params: Promise<{ course: string }> };
 
@@ -37,6 +38,24 @@ export default async function CoursePage({ params }: Props) {
 
   const first = course.lessons[0];
 
+  // Full lesson content requires signing in (see [lesson]/page.tsx). This page
+  // still shows the same teaser it always has -- title, lesson titles, blurb
+  // -- for everyone, but the CTA and the per-lesson checkmarks are only
+  // meaningful once we know who is reading.
+  const supabase = await createServerSupabase();
+  const user = supabase ? (await supabase.auth.getUser()).data.user : null;
+
+  let completedLessons = new Set<number>();
+  if (user && supabase) {
+    const { data: progress } = await supabase
+      .from('academy_lesson_progress')
+      .select('lesson_number')
+      .eq('user_id', user.id)
+      .eq('course_slug', course.slug);
+    completedLessons = new Set((progress ?? []).map((p) => p.lesson_number));
+  }
+  const completedCount = completedLessons.size;
+
   return (
     <div className="pt-16">
       {/* Everything a reader needs to decide, above the fold, in five lines. */}
@@ -61,12 +80,27 @@ export default async function CoursePage({ params }: Props) {
             · <T k="course.selfPaced" />
           </p>
 
-          {first && (
+          {user && completedCount > 0 && (
+            <p className="text-sm text-emerald-400 mt-2">
+              <T k="course.lessonsComplete" vars={{ n: completedCount, total: course.lessons.length }} />
+            </p>
+          )}
+
+          {user ? (
+            first && (
+              <Link
+                href={lessonHref(course, first)}
+                className="inline-block mt-7 bg-brand-600 hover:bg-brand-500 transition-colors text-white font-bold px-7 py-3.5 rounded-xl"
+              >
+                <T k="course.start" />
+              </Link>
+            )
+          ) : (
             <Link
-              href={lessonHref(course, first)}
+              href="/login"
               className="inline-block mt-7 bg-brand-600 hover:bg-brand-500 transition-colors text-white font-bold px-7 py-3.5 rounded-xl"
             >
-              <T k="course.start" />
+              <T k="course.signInToStart" />
             </Link>
           )}
         </div>
@@ -85,8 +119,20 @@ export default async function CoursePage({ params }: Props) {
                   {String(lesson.number).padStart(2, '0')}
                 </span>
                 <span className="flex-1 min-w-0">
-                  <span className="block font-semibold text-ink-900 leading-snug group-hover:text-brand-600">
-                    {lesson.title}
+                  {lesson.eyebrow && (
+                    <span className="block text-[11px] font-mono font-bold uppercase tracking-wider text-brand-600 mb-0.5">
+                      {lesson.eyebrow}
+                    </span>
+                  )}
+                  <span className="flex items-center gap-2">
+                    <span className="font-semibold text-ink-900 leading-snug group-hover:text-brand-600">
+                      {lesson.title}
+                    </span>
+                    {completedLessons.has(lesson.number) && (
+                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
+                        <T k="course.done" />
+                      </span>
+                    )}
                   </span>
                   <span className="block text-sm text-ink-500 mt-1">
                     <Inline html={lesson.hookHtml} />

@@ -250,6 +250,17 @@ export const TRAININGS: Training[] = [
     description: 'Start at zero. Finish job ready.',
     tags: ['AI', 'Careers', 'Self paced'],
   },
+  {
+    id: 'academy-mentorship',
+    title: 'Engineering Mentorship Program',
+    category: 'Bootcamp',
+    level: 'Beginner',
+    provider: 'SpaniSpace',
+    href: '/training/engineering-mentorship',
+    courseSlug: 'engineering-mentorship',
+    description: 'A 12 week, DevSecOps-first path from graduate to industry-ready engineer.',
+    tags: ['Software Engineering', 'DevSecOps', 'Careers', 'Self paced'],
+  },
 
   // Terminal School (terminal.school), interactive terminal training.
   // Track and lesson names taken from their own sitemap, verified 7 August 2026.

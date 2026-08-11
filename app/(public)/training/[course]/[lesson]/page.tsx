@@ -13,6 +13,8 @@ import {
 } from '@/data/courses';
 import { Inline, Prose } from '@/components/Prose';
 import T from '@/components/T';
+import { createServerSupabase } from '@/lib/supabase/server';
+import LessonCompleteButton from '@/components/training/LessonCompleteButton';
 
 type Props = { params: Promise<{ course: string; lesson: string }> };
 
@@ -46,6 +48,24 @@ export default async function LessonPage({ params }: Props) {
   const position = index + 1;
   const total = course.lessons.length;
 
+  // Full lesson content (bodyHtml, keyTerms, activityHtml) is only for signed
+  // in readers. Everyone else sees the same teaser the course page already
+  // shows: title, hook and outcomes, then a locked panel instead of the body.
+  const supabase = await createServerSupabase();
+  const user = supabase ? (await supabase.auth.getUser()).data.user : null;
+
+  let completed = false;
+  if (user && supabase) {
+    const { data: progress } = await supabase
+      .from('academy_lesson_progress')
+      .select('lesson_number')
+      .eq('user_id', user.id)
+      .eq('course_slug', course.slug)
+      .eq('lesson_number', lesson.number)
+      .maybeSingle();
+    completed = !!progress;
+  }
+
   return (
     <article className="pt-16">
       {/* The only chrome on the page: where you are, and the way back. */}
@@ -73,8 +93,9 @@ export default async function LessonPage({ params }: Props) {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 py-10 md:py-14">
-        <p className="font-mono text-sm font-bold text-brand-600 tabular-nums">
+        <p className="font-mono text-sm font-bold text-brand-600 tabular-nums uppercase tracking-wider">
           {String(lesson.number).padStart(2, '0')}
+          {lesson.eyebrow && <> &middot; {lesson.eyebrow}</>}
         </p>
         <h1 className="text-3xl md:text-4xl font-bold text-ink-900 tracking-tight leading-tight mt-2">
           {lesson.title}
@@ -99,94 +120,132 @@ export default async function LessonPage({ params }: Props) {
           </ul>
         </div>
 
-        {/* Held to a comfortable measure with generous spacing, because the same
-            words on a narrower line with room to breathe read as half as long. */}
-        <Prose
-          html={lesson.bodyHtml}
-          className="mt-8 text-[17px] leading-8 text-ink-700 [&_p]:mb-6 [&_strong]:text-ink-900 [&_a]:text-brand-600 [&_a]:underline"
-        />
+        {user ? (
+          <>
+            <div className="mt-6">
+              <LessonCompleteButton
+                courseSlug={course.slug}
+                lessonNumber={lesson.number}
+                initialCompleted={completed}
+              />
+            </div>
 
-        {lesson.keyTerms.length > 0 && (
-          <div className="mt-10 pt-6 border-t border-ink-200">
-            <p className="text-[11px] font-mono font-bold uppercase tracking-wider text-ink-400 mb-4">
-              <T k="course.keyTerms" />
-            </p>
-            <dl className="space-y-3">
-              {lesson.keyTerms.map((term, i) => (
-                <div key={i}>
-                  <dt className="font-semibold text-ink-900 text-sm">{term.term}</dt>
-                  <dd className="text-sm text-ink-600">
-                    <Inline html={term.planHtml} />
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-        )}
-
-        {lesson.activityHtml && (
-          <div className="mt-8 bg-brand-50 border border-brand-100 rounded-2xl p-5">
-            <p className="text-[10px] font-mono font-bold uppercase tracking-wider text-brand-600 mb-1.5">
-              <T k="course.activity" />
-            </p>
-            <p className="text-sm text-ink-700 leading-relaxed">
-              <Inline html={lesson.activityHtml} />
-            </p>
-          </div>
-        )}
-
-        {/* The closing letter used to sit at the bottom of the one long page,
-            where almost nobody reached it. It belongs here, at the finish. */}
-        {!next && (
-          <div className="mt-12 bg-ink-900 text-white rounded-3xl p-7 md:p-10">
-            <p className="text-xs font-mono font-bold uppercase tracking-[0.16em] text-brand-400 mb-4">
-              <T k="course.finished" vars={{ course: course.title }} />
-            </p>
-            <div
-              className="text-ink-200 leading-relaxed [&_p]:mb-4 [&_strong]:text-white"
-              dangerouslySetInnerHTML={{ __html: academy.spine.closingHtml }}
+            {/* Held to a comfortable measure with generous spacing, because the same
+                words on a narrower line with room to breathe read as half as long. */}
+            <Prose
+              html={lesson.bodyHtml}
+              className="mt-8 text-[17px] leading-8 text-ink-700 [&_p]:mb-6 [&_strong]:text-ink-900 [&_a]:text-brand-600 [&_a]:underline"
             />
-            <div className="flex flex-wrap gap-3 mt-7">
+
+            {lesson.keyTerms.length > 0 && (
+              <div className="mt-10 pt-6 border-t border-ink-200">
+                <p className="text-[11px] font-mono font-bold uppercase tracking-wider text-ink-400 mb-4">
+                  <T k="course.keyTerms" />
+                </p>
+                <dl className="space-y-3">
+                  {lesson.keyTerms.map((term, i) => (
+                    <div key={i}>
+                      <dt className="font-semibold text-ink-900 text-sm">{term.term}</dt>
+                      <dd className="text-sm text-ink-600">
+                        <Inline html={term.planHtml} />
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            )}
+
+            {lesson.activityHtml && (
+              <div className="mt-8 bg-brand-50 border border-brand-100 rounded-2xl p-5">
+                <p className="text-[10px] font-mono font-bold uppercase tracking-wider text-brand-600 mb-1.5">
+                  <T k="course.activity" />
+                </p>
+                <p className="text-sm text-ink-700 leading-relaxed">
+                  <Inline html={lesson.activityHtml} />
+                </p>
+              </div>
+            )}
+
+            {/* The closing letter used to sit at the bottom of the one long page,
+                where almost nobody reached it. It belongs here, at the finish. */}
+            {!next && (
+              <div className="mt-12 bg-ink-900 text-white rounded-3xl p-7 md:p-10">
+                <p className="text-xs font-mono font-bold uppercase tracking-[0.16em] text-brand-400 mb-4">
+                  <T k="course.finished" vars={{ course: course.title }} />
+                </p>
+                <div
+                  className="text-ink-200 leading-relaxed [&_p]:mb-4 [&_strong]:text-white"
+                  dangerouslySetInnerHTML={{ __html: academy.spine.closingHtml }}
+                />
+                <div className="flex flex-wrap gap-3 mt-7">
+                  <Link
+                    href="/training/career-tracks"
+                    className="bg-white text-ink-900 font-bold px-5 py-3 rounded-xl hover:bg-brand-50 transition-colors"
+                  >
+                    <T k="course.pickTrack" />
+                  </Link>
+                  <Link
+                    href="/jobs"
+                    className="border border-white/20 text-white font-bold px-5 py-3 rounded-xl hover:bg-white/10 transition-colors"
+                  >
+                    <T k="course.browseJobs" />
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            <nav className="flex items-stretch gap-3 mt-10" aria-label="Lesson navigation">
+              {previous ? (
+                <Link
+                  href={lessonHref(course, previous)}
+                  className="flex-1 border border-ink-200 rounded-2xl p-4 hover:border-brand-400 transition-colors"
+                >
+                  <span className="block text-xs text-ink-400">&larr; <T k="course.previous" /></span>
+                  <span className="block text-sm font-semibold text-ink-800 mt-1 line-clamp-2">
+                    {previous.title}
+                  </span>
+                </Link>
+              ) : (
+                <span className="flex-1" />
+              )}
+              {next && (
+                <Link
+                  href={lessonHref(course, next)}
+                  className="flex-1 bg-ink-900 text-white rounded-2xl p-4 hover:bg-ink-800 transition-colors text-right"
+                >
+                  <span className="block text-xs text-ink-400"><T k="course.next" /> &rarr;</span>
+                  <span className="block text-sm font-semibold mt-1 line-clamp-2">{next.title}</span>
+                </Link>
+              )}
+            </nav>
+          </>
+        ) : (
+          // Full lesson content is a signed-in benefit. A logged-out reader
+          // gets the title, hook and outcomes above, then this instead of the
+          // body, key terms and activity.
+          <div className="mt-8 bg-ink-50 border border-ink-200 rounded-2xl p-7 text-center">
+            <p className="font-semibold text-ink-900">
+              <T k="course.lockedTitle" />
+            </p>
+            <p className="text-sm text-ink-500 mt-2 max-w-sm mx-auto">
+              <T k="course.lockedBody" />
+            </p>
+            <div className="flex flex-wrap justify-center gap-3 mt-5">
               <Link
-                href="/training/career-tracks"
-                className="bg-white text-ink-900 font-bold px-5 py-3 rounded-xl hover:bg-brand-50 transition-colors"
+                href="/login"
+                className="bg-brand-600 hover:bg-brand-500 transition-colors text-white font-bold px-6 py-3 rounded-xl"
               >
-                <T k="course.pickTrack" />
+                <T k="course.signIn" />
               </Link>
               <Link
-                href="/jobs"
-                className="border border-white/20 text-white font-bold px-5 py-3 rounded-xl hover:bg-white/10 transition-colors"
+                href="/register"
+                className="border border-ink-200 text-ink-700 font-bold px-6 py-3 rounded-xl hover:border-brand-400 transition-colors"
               >
-                <T k="course.browseJobs" />
+                <T k="course.createAccount" />
               </Link>
             </div>
           </div>
         )}
-
-        <nav className="flex items-stretch gap-3 mt-10" aria-label="Lesson navigation">
-          {previous ? (
-            <Link
-              href={lessonHref(course, previous)}
-              className="flex-1 border border-ink-200 rounded-2xl p-4 hover:border-brand-400 transition-colors"
-            >
-              <span className="block text-xs text-ink-400">&larr; <T k="course.previous" /></span>
-              <span className="block text-sm font-semibold text-ink-800 mt-1 line-clamp-2">
-                {previous.title}
-              </span>
-            </Link>
-          ) : (
-            <span className="flex-1" />
-          )}
-          {next && (
-            <Link
-              href={lessonHref(course, next)}
-              className="flex-1 bg-ink-900 text-white rounded-2xl p-4 hover:bg-ink-800 transition-colors text-right"
-            >
-              <span className="block text-xs text-ink-400"><T k="course.next" /> &rarr;</span>
-              <span className="block text-sm font-semibold mt-1 line-clamp-2">{next.title}</span>
-            </Link>
-          )}
-        </nav>
       </div>
     </article>
   );

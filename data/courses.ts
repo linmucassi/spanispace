@@ -45,6 +45,14 @@ export const COURSES: Course[] = [
     level: 'Beginner',
     lessons: academy.bootcamp,
   },
+  {
+    slug: 'engineering-mentorship',
+    title: 'Engineering Mentorship Program',
+    promise: 'From graduate to industry-ready engineer in 12 weeks.',
+    forWho: 'For CS graduates ready to build a real, DevSecOps-first portfolio.',
+    level: 'Beginner',
+    lessons: academy.mentorship,
+  },
 ];
 
 /**

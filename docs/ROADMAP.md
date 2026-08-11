@@ -3,7 +3,7 @@
 **Platform:** Talent Bridge for South African Job Seekers
 **Founders:** Linda & Percy | **Location:** Gauteng, South Africa
 **Mission:** Empower 100,000+ SA youth with job-ready skills and direct employment pathways by 2030
-**Last Updated:** 9 August 2026
+**Last Updated:** 11 August 2026
 
 ---
 
@@ -50,6 +50,8 @@ The platform is live on Netlify with a full Next.js 16 + React 19 + Supabase sta
 | Email notifications | 🟢 Code-complete, migration pending | See [1.1](#11-email-notifications--code-done-migration-pending). Outbox + triggers + GitHub Actions cron via Resend, built 9 Aug 2026. |
 | Google OAuth | 🟢 Live for candidates | See [1.3](#13-social-authentication--shipped-for-candidates-companies-still-emailpassword). Companies still email/password by design. |
 | Payments (Stripe) | ❌ Not built | `subscription_tier`/`subscription_status` columns exist but are unused/manual |
+| Engineering Mentorship Program course | ✅ Live | New SpaniSpace Academy course at `/training/engineering-mentorship`, 6 lessons transcribed from a supplied 12-week DevSecOps-first mentoring curriculum (standards, 4 phases, 4 project portfolios, career-prep phase). Added `academy.mentorship` to `data/academy.ts`, registered in `data/courses.ts` and `data/constants.ts`. Two same-day follow-ups: (1) each project lesson (3, 4, 5) now closes with a "before you call this done" requirement to push a public GitHub repo, write a LinkedIn post, and share on one other platform, codified as a named standard and outcome in lesson 1 too; (2) lesson titles no longer run the timeline and heading into one sentence ("Weeks 4 to 6, Project 1, the personalization and events engine") — a new optional `eyebrow` field on `AcademyModule` carries the week range separately, shown as a small label above the title on the course page and inline with the lesson number on the lesson page. `eyebrow` is optional so the two pre-existing courses are unaffected. 11 Aug 2026. |
+| Training content gated behind login + lesson progress | 🟢 Code-complete, migration pending | Lesson pages (`/training/[course]/[lesson]`) previously rendered full `bodyHtml`/`keyTerms`/`activityHtml` to anyone, logged in or not — no auth check existed anywhere on that route. Now: signed-out readers see only the existing teaser (title, hook, outcomes) plus a locked panel with sign-in/register links; full content and a "mark complete" toggle require a session. Completion persists per-user in the new `academy_lesson_progress` table (keyed on `auth.uid()`, not `candidate_profiles.id`, so it works for any role), surfaced as a per-course completed-count on the course page and a "Training Progress" card on `/candidate/dashboard`. Forces `/training/[course]` and `/training/[course]/[lesson]` to render dynamically instead of statically (confirmed in the build output — both flipped from `○` to `ƒ`), which is required for the per-request auth check to actually run. Needs `supabase/add-academy-progress.sql`. 11 Aug 2026. |
 
 ### Waitlist removed (9 Aug 2026)
 
@@ -59,7 +61,7 @@ The pre-registration "join the waitlist" flow no longer makes sense now that rea
 
 ### Outstanding: Production Migrations
 
-`supabase/` now has 16 files and this roadmap can no longer tell you from the repo alone which have actually been run against the live project (`rssuacaedvihhpcakuvm`) — that state lives only in Supabase, not in git. Treat every migration below as **unverified** until someone runs the audit query from issue #8 (see [PR #10: Pre-Launch Audit](#pr-10-pre-launch-audit-open-unmerged)) and confirms against the dashboard.
+`supabase/` now has 17 files and this roadmap can no longer tell you from the repo alone which have actually been run against the live project (`rssuacaedvihhpcakuvm`) — that state lives only in Supabase, not in git. Treat every migration below as **unverified** until someone runs the audit query from issue #8 (see [PR #10: Pre-Launch Audit](#pr-10-pre-launch-audit-open-unmerged)) and confirms against the dashboard.
 
 **Highest priority — closes a live privilege-escalation hole (issue #8):**
 1. `supabase/fix-security-hardening.sql` — anyone can currently sign up with `role: "admin"` and get full RLS access to every table; the anon key needed to do this is public in every page bundle by design. Read the note at the top of the file before running: an earlier version of this migration dropped candidate profile creation, which the current version restores. Run the audit query at the end of section 1 afterward and demote any admin account that isn't a founder.
@@ -83,6 +85,9 @@ The pre-registration "join the waitlist" flow no longer makes sense now that rea
 
 **From Phase 1 (Email notifications, data freshness, profile scoring), shipped 9 Aug 2026:**
 15. `supabase/add-notifications-and-profile-scoring.sql` — must run after #6 (`add-messaging.sql`, the new-message trigger reads `message_threads`/`messages`). Safe to run before or after #11 (`add-informal-jobs.sql`) — the scoring trigger reads `professional_summary` dynamically so a not-yet-existing column just scores as missing rather than erroring (this was caught live: the first version of this migration read the column directly and failed with `record "new" has no field "professional_summary"` on a database that hadn't run #11 yet). Without this migration, `.github/workflows/notifications.yml` runs but every send is silently a no-op (empty outbox), and `candidate_profiles.profile_score` stays stuck at 0.
+
+**From the training-content auth gate, shipped 11 Aug 2026:**
+16. `supabase/add-academy-progress.sql` — new `academy_lesson_progress` table backing the "mark lesson complete" toggle on gated lesson pages. Independent of every other migration in this list (only references `auth.users`). Without it, `POST /api/academy-progress` returns a 500 and the lesson page's complete button silently fails to persist.
 
 `supabase/schema.sql` is described as updated to match all of the above for fresh environments — worth spot-checking next time someone provisions one, since it hasn't been re-verified against files 8–14 as part of this update.
 

@@ -5,7 +5,10 @@
 // Regenerate rather than hand-edit.
 
 export interface AcademyModule {
-  number: number; title: string; hookHtml: string; outcomes: string[];
+  number: number; title: string;
+  /** A short timeline label ("Weeks 1-3") kept apart from the title so the two never run together as one cluttered sentence. Optional -- most lessons are not tied to a week range. */
+  eyebrow?: string;
+  hookHtml: string; outcomes: string[];
   bodyHtml: string; keyTerms: { term: string; planHtml: string }[]; activityHtml: string;
 }
 export interface AcademyRole {
@@ -19,7 +22,7 @@ export interface AcademyUseCase { company: string; sector: string; whatHtml: str
 export interface AcademyLink { title: string; url: string; kind: string; note: string; }
 export interface AcademyData {
   spine: { programIntroHtml: string; howToUseHtml: string; salaryCaveatsHtml: string; closingHtml: string };
-  bootcamp: AcademyModule[]; shortcourse: AcademyModule[];
+  bootcamp: AcademyModule[]; shortcourse: AcademyModule[]; mentorship: AcademyModule[];
   tracksIntroHtml: string; tracks: AcademyTrack[];
   salaries: AcademySalary[]; certs: AcademyCertGroup[]; usecases: AcademyUseCase[]; links: AcademyLink[];
 }
@@ -563,6 +566,180 @@ export const academy: AcademyData = {
         }
       ],
       "activityHtml": "Enrol in Elements of AI or Google AI Essentials today, it is free, and complete the first lesson before you close your laptop. Then write one sentence on where you want AI to take you, at school, at work, or in a side hustle. That sentence is the start of your path into the full bootcamp."
+    }
+  ],
+  "mentorship": [
+    {
+      "number": 1,
+      "title": "Program foundations and engineering standards",
+      "eyebrow": "Before Week 1",
+      "hookHtml": "Before a single line of feature code gets written, this program sets the engineering standards every repository must meet, because the habits you form in week one are the habits that end up in production for the rest of your career.",
+      "outcomes": [
+        "List the mandatory engineering standards every repo in this program must meet before work begins",
+        "Explain GitHub Flow and why nobody, ever, commits straight to main",
+        "Describe what DevSecOps first means in practice, not just as a buzzword",
+        "Read the 12 week roadmap and know which phase you are in at any point",
+        "Explain why a finished project ships with a public repo, a LinkedIn post and a presence on other platforms, not just working code"
+      ],
+      "bodyHtml": "<p class=\"mb-3\">This is a 12 week mentoring framework built to move a graduate from academic foundation to industry ready engineer. It is DevSecOps first, it uses enterprise software patterns, and every deliverable is built to double as a real portfolio piece, something you can point a hiring manager to and say, I built that, here is why I made these choices.</p><p class=\"mb-3\">Before week one starts, every repository created during the program has to meet the same baseline, no exceptions, because a standard you only sometimes apply is not a standard, it is a suggestion.</p><ul class=\"list-disc pl-5 my-3 space-y-1\"><li><strong class=\"font-semibold text-slate-900\">Version control and flow.</strong> GitHub Flow, meaning a main branch, a develop branch, and feature branches. No direct commits to main, ever. Every change lands through a Pull Request with a mandatory review, commit messages follow a lint standard, and releases are tagged with semantic versioning like v1.0.0.</li><li><strong class=\"font-semibold text-slate-900\">DevSecOps first.</strong> Secret scanning runs on every push, through GitHub Advanced Security or TruffleHog. Snyk or Dependabot watches your dependencies. Docker images are scanned for vulnerabilities with Trivy, wired into CI/CD, not run by hand afterwards.</li><li><strong class=\"font-semibold text-slate-900\">Agile management.</strong> Progress lives on a GitHub Projects Kanban board, in weekly sprints, with story point estimates and a weekly pull request review, so work is visible before it is finished, not only after.</li><li><strong class=\"font-semibold text-slate-900\">Documentation standard.</strong> Every project ships an architecture diagram in Mermaid.js or Draw.io, a README that stays true as the project changes, an OpenAPI or Swagger spec for any API, and a one command setup, a Makefile or a docker-compose up.</li><li><strong class=\"font-semibold text-slate-900\">Ship publicly, every time.</strong> No task or project in this program is finished the moment the code works. Every repository is pushed to a public GitHub, never left sitting private on your laptop. Every completed project or milestone gets a LinkedIn post walking through what you built and why, written for a reader who is not technical. And every project gets a mention on at least one other platform, a personal portfolio site, X, Dev.to, an OfferZen profile, wherever the people who might hire you actually look. A brilliant project nobody sees does nothing for your career. Visibility is graded the same as the code.</li></ul><p class=\"mb-3\">The 12 weeks break into five phases. Weeks 1 to 3 build the DevSecOps, Agile and cloud foundation, no product work yet, just the pipeline and the discipline. Weeks 4 to 6 deliver Project 1, a personalization and events engine. Weeks 7 to 9 deliver Project 2, a full multi tenant enterprise system. Weeks 10 and 11 add production scale, real time systems and one more project of your choosing. Week 12 is career engineering, turning three months of work into a GitHub profile, a LinkedIn presence and interview readiness that a recruiter takes seriously on sight.</p><p class=\"mb-3\">Notice what is missing from that list, a week for tutorials. This program assumes you can already write code. What it teaches is the layer most bootcamps skip, the standards, the pipeline, and the professional habits that separate a working prototype from something a company would actually let into production.</p>",
+      "keyTerms": [
+        {
+          "term": "GitHub Flow",
+          "planHtml": "a lightweight branching model, main plus develop plus short lived feature branches, merged only through a reviewed Pull Request"
+        },
+        {
+          "term": "DevSecOps",
+          "planHtml": "security folded into the development pipeline itself, secret scanning and dependency and container checks on every push, not a separate step done later"
+        },
+        {
+          "term": "Semantic versioning",
+          "planHtml": "a version number like v1.0.0 where each part tells you whether a change is a fix, a new feature, or a breaking change"
+        },
+        {
+          "term": "Build in public",
+          "planHtml": "sharing your work as you build it, a public repo, a LinkedIn post, a portfolio update, instead of only revealing it once it is finished"
+        }
+      ],
+      "activityHtml": "Before you write a single feature, stand up the scaffolding. Create a GitHub organisation, protect the main branch so it rejects direct commits and requires a PR review, turn on Dependabot, and open a GitHub Projects Kanban board with your weeks 1 to 3 tasks already on it. Do this first, every time, for every project in this program."
+    },
+    {
+      "number": 2,
+      "title": "DevSecOps, Agile and cloud foundation",
+      "eyebrow": "Weeks 1-3",
+      "hookHtml": "The first three weeks build no product at all, they build the pipeline, the container and the cloud account that every later week depends on, and a shaky foundation here means rebuilding it under pressure in week eight.",
+      "outcomes": [
+        "Stand up a CI/CD pipeline that lints, tests and builds on every pull request",
+        "Containerise an application with Docker and scan it for vulnerabilities with Trivy",
+        "Provision cloud infrastructure on a free tier without leaving a security hole open",
+        "Fold an AI coding workflow into your daily engineering habits, deliberately, not by accident"
+      ],
+      "bodyHtml": "<p class=\"mb-3\">Phase 1 runs weeks 1 through 3, and its whole job is foundation, not features. The focus areas are CI/CD pipelines, containerisation, cloud infrastructure on the free tier, code quality gates, and folding AI tools into your actual workflow rather than using them as a novelty.</p><p class=\"mb-3\">The milestones for this phase are concrete and checkable. Set up the GitHub organisation for the cohort. Establish the PR review rules, at minimum one approving review before merge, and branch protection on main. Configure automated testing, linting and vulnerability scanning so they run on push, not on demand. By the end of week 3, nobody should be able to merge a broken, unlinted, unscanned change into main, because the pipeline will not let them.</p><p class=\"mb-3\">This is deliberately the least glamorous phase of the program, and that is the point. A pipeline that catches a leaked API key or an outdated dependency on day one is worth more than a slick feature shipped on top of a foundation that cannot be trusted. Every project after this phase, the RSVP platform, the Sunday School system, the capstone, inherits whatever discipline gets built here. Skimp on it now and you pay for it in week nine, under a deadline, with a real bug in front of you.</p><p class=\"mb-3\">Practically, that means every graduate leaves this phase with a working GitHub Actions workflow that runs on every pull request, a Dockerfile for at least one service, a Trivy scan wired into that same workflow, and a cloud account, AWS, Render or Fly.io on its free tier, provisioned with least privilege access rather than a single all powerful key.</p>",
+      "keyTerms": [
+        {
+          "term": "CI/CD pipeline",
+          "planHtml": "an automated sequence that lints, tests, builds and deploys your code every time you push, so a human never has to remember to do it"
+        },
+        {
+          "term": "Container security scanning",
+          "planHtml": "checking a Docker image for known vulnerabilities, with a tool like Trivy, before it ever reaches a server"
+        },
+        {
+          "term": "Secret scanning",
+          "planHtml": "automatically catching an API key, password or token accidentally committed to a repository, before it becomes a public leak"
+        }
+      ],
+      "activityHtml": "On a throwaway repository, build a GitHub Actions pipeline that lints, runs tests, builds a Docker image and scans that image with Trivy on every pull request, and configure branch protection so a PR cannot merge unless every one of those checks passes."
+    },
+    {
+      "number": 3,
+      "title": "Project 1: the personalization and events engine",
+      "eyebrow": "Weeks 4-6",
+      "hookHtml": "Project 1 is a high throughput RSVP and event platform, the kind of system that has to survive a thousand guests opening their personalised invite at the same moment, and building it is how you learn caching, tokens and mobile first design for real.",
+      "outcomes": [
+        "Build tokenised, personalised landing pages instead of one generic page for everyone",
+        "Generate a verifiable QR code and a real time check in dashboard",
+        "Add rate limiting and basic anti bot protection to a public facing endpoint",
+        "Ship a mobile first Progressive Web App that a guest can use from a browser, no app store",
+        "Publish the finished platform: a public GitHub repo, a LinkedIn post, and a mention on at least one other platform"
+      ],
+      "bodyHtml": "<p class=\"mb-3\">Project 1 is the Hyper Personalized RSVP and Event Platform, a high throughput event management engine built to handle dynamic guest invitations, customised QR entry, and personalised attendee dashboards. Organisers create custom events, send multi channel invitations by email, SMS or WhatsApp, and let guests RSVP with dynamic preferences, dietary needs, seating requests, custom questions. The platform then generates a branded calendar invite and a secure, verifiable QR code for on site check in.</p><p class=\"mb-3\">The key features to build are dynamic, personalised guest landing pages driven by unique tokenised URLs, so no two guests see a generic form, they see their own name and their own event context the moment the page loads. Automated pass generation follows, a PDF, an Apple Wallet pass, or a dynamic branded image card. A real time check in dashboard uses the mobile browser's own camera to scan QR codes as guests arrive. And because this endpoint is public by design, it needs rate limiting and basic anti bot protection from day one, not bolted on after the first abuse report.</p><p class=\"mb-3\">The suggested stack: Next.js and Tailwind on the frontend, built mobile first as a PWA, Node.js in TypeScript or Go on the backend, PostgreSQL for storage and Redis for caching and rate limiting. For infrastructure, AWS Lambda or Vercel serverless functions, Resend or SendGrid for the invitation emails, and Supabase or Neon on their free tiers for the database. DevOps and security follow the same pattern as phase 1, GitHub Actions, Snyk, Docker, with Cloudflare's free tier in front for basic protection.</p><p class=\"mb-3\">What you actually learn building this: token based authentication that does not rely on a login form, dynamic image and file rendering on demand, edge caching so a page loads fast even under a spike of guests all opening their invite in the same ten minutes, rate limiting, and mobile first responsive design that has to work on a guest's phone at the door, not just on your laptop during development.</p><p class=\"mb-3\"><strong class=\"font-semibold text-slate-900\">Before you call Project 1 done.</strong> Push the repository to a public GitHub with the README standard from module one, not code sitting only on your laptop. Write a LinkedIn post that walks a non-technical reader through what the platform does, a screenshot or a short screen recording helps enormously, and tag the technologies you used. Then put it in front of people who are not already following you, a relevant developer group, your portfolio site, or X. Recognition compounds. The graduate who posts after every project is the one a recruiter has half met by week twelve.</p>",
+      "keyTerms": [
+        {
+          "term": "Tokenised URL",
+          "planHtml": "a link containing a unique, hard to guess code that identifies one specific guest, used instead of a login for a low friction personalised page"
+        },
+        {
+          "term": "Rate limiting",
+          "planHtml": "capping how many requests one source can make in a given window, so a public endpoint cannot be hammered or scraped without limit"
+        },
+        {
+          "term": "Progressive Web App",
+          "planHtml": "a website built to behave like an app on a phone, installable, fast, and usable without going through an app store"
+        }
+      ],
+      "activityHtml": "Before moving on to phase 3, build the RSVP flow end to end for one fake event, tokenised link, dynamic landing page, QR generation, and check it into a live check in dashboard, deployed on a free tier host, not just running on localhost. Then push it to a public GitHub repo, write the LinkedIn post, and share it on one other platform before you call it done."
+    },
+    {
+      "number": 4,
+      "title": "Project 2: the multi tenant enterprise system",
+      "eyebrow": "Weeks 7-9",
+      "hookHtml": "Project 2 trades a single fast feature for a genuinely complex domain, a Sunday School library and management platform with real RBAC, real parental consent, and an AI moderation pipeline that has to catch a problem before it ever reaches the database.",
+      "outcomes": [
+        "Design role based access control for a system with several distinct user types",
+        "Model an age based lifecycle, automatic flags and transitions, in a relational schema",
+        "Wire an AI moderation pipeline into a form so unsafe content never gets saved in the first place",
+        "Build a secure parent facing dashboard linked to one or more dependents",
+        "Publish the finished platform: a public GitHub repo, a LinkedIn post, and a mention on at least one other platform"
+      ],
+      "bodyHtml": "<p class=\"mb-3\">Project 2 is the Multi Tenant Sunday School Library and Management Platform, an enterprise grade, domain driven system combining user administration, learning management, event scheduling and parental controls, with strict data handling because real children's data runs through it.</p><p class=\"mb-3\">It is a complete administrative and educational portal for a youth organisation. It handles child onboarding, age based automatic progression, parental consent capture, resource distribution, and a community forum with safety moderation built in from the start, not added after an incident.</p><p class=\"mb-3\">The key features: a youth and student lifecycle that auto registers a young person, manages their age group, and automatically flags a student for a transition workflow once they turn 16. A learning and resources portal that streams media and documents restricted by age group, with progressive tracking of completed modules. A parent space, a secure dashboard linked to their own dependents, handling consent forms, attendance records and direct messaging. And a safety and moderation forum, peer support with automated AI moderation filtering inappropriate content and personal information before it ever reaches the database.</p><p class=\"mb-3\">Suggested stack: React or Next.js on the frontend, or Flutter if you want one codebase across mobile and web. Backend in Spring Boot, Python FastAPI or NestJS, whichever you have not tried yet, this program rewards stretching. PostgreSQL for the relational hierarchies this domain needs, plus Firebase Cloud Messaging for push notifications. AI integration through the OpenAI or Anthropic API for real time text moderation and automated resource tagging. Infrastructure on Render, Supabase or AWS free tier, with Cloudflare R2 or AWS S3 for resource storage.</p><p class=\"mb-3\">What this project actually teaches: advanced RBAC across several distinct roles, relational schema design for genuine hierarchies, not just a flat users table, scheduled jobs for the age based transitions, a content moderation pipeline that runs before a write, not after, and child data protection patterns that you cannot fake your way through, because the consequences of getting them wrong are real.</p><p class=\"mb-3\"><strong class=\"font-semibold text-slate-900\">Before you call Project 2 done.</strong> This is the most complex system you have built so far, so say so publicly. Push the repository to GitHub, write a LinkedIn post that explains the RBAC and moderation design decisions in plain language, and share it somewhere beyond your existing network, a portfolio site, a relevant community, X. A system this complex, explained clearly, is exactly the kind of post that gets a recruiter to click through to your profile.</p>",
+      "keyTerms": [
+        {
+          "term": "RBAC",
+          "planHtml": "role based access control, deciding what a user can see or do based on their assigned role, parent, admin, moderator, rather than checking each user individually"
+        },
+        {
+          "term": "Multi tenant",
+          "planHtml": "one system serving several separate organisations or groups, each with their own data kept apart from the others"
+        },
+        {
+          "term": "Content moderation pipeline",
+          "planHtml": "an automated check, often AI assisted, that screens submitted content for unsafe material before it is stored, not after"
+        }
+      ],
+      "activityHtml": "Before writing a single migration, design the relational schema on paper or in a tool like dbdiagram.io, users, dependents, age groups, consent records and forum posts, and get someone else to read it back to you and point out the relationship you missed. When the platform is finished, push it to a public GitHub repo, write the LinkedIn post, and share it on one other platform before you call it done."
+    },
+    {
+      "number": 5,
+      "title": "Production scale: choose your capstone",
+      "eyebrow": "Weeks 10-11",
+      "hookHtml": "The last technical stretch of the program is where you pick a direction, an AI powered code review bot that lives inside GitHub's own workflow, or a real time incident and status page system built for reliability, and either one forces you to think in systems, not screens.",
+      "outcomes": [
+        "Verify a GitHub webhook with an HMAC signature so only GitHub can trigger your automation",
+        "Orchestrate a static analysis plus AI review pipeline that comments directly on a pull request",
+        "Or, build a concurrent monitoring worker and push real time status updates over WebSocket or SSE",
+        "Export metrics in a standard, tool readable format such as Prometheus",
+        "Publish the finished capstone: a public GitHub repo, a LinkedIn post, and a mention on at least one other platform"
+      ],
+      "bodyHtml": "<p class=\"mb-3\">Weeks 10 and 11 focus on production scale, cloud native deployment, observability and, for this stretch, a choice between two new projects, an automated developer tooling bot or a real time monitoring system. Both are deliberately systems level, not another CRUD screen.</p><p class=\"mb-3\"><strong class=\"font-semibold text-slate-900\">Project 3, the AI Powered Smart Code Review and DevSecOps Assistant.</strong> An automated tool that listens to Pull Request webhooks, runs static analysis, ESLint, SonarQube, Trivy, passes the diff through an AI model for context aware review, and comments structured feedback straight onto the PR. Key features: GitHub webhook integration with HMAC signature validation, a multi stage pipeline combining static analysis with AI suggested improvements, automated PR summaries and changelog generation, and OWASP Top 10 style security flagging. Stack: Python or TypeScript, the GitHub REST or GraphQL API, Docker, the OpenAI or Claude API, LangChain or LlamaIndex for orchestration, deployed on AWS Lambda or Cloudflare Workers. Build this and you learn webhooks properly, OAuth apps, system automation, LLM orchestration, and parsing security tool output programmatically rather than just reading it in a terminal.</p><p class=\"mb-3\"><strong class=\"font-semibold text-slate-900\">Project 4, the Real Time Incident Management and Status Page System.</strong> A microservices based monitoring engine that pings HTTP or gRPC endpoints on an interval, records latency and uptime, auto detects outages, and pushes real time alerts to a public status dashboard and to notification channels. Key features: distributed synthetic monitoring workers, real time WebSocket or SSE updates to a public status page, a full incident lifecycle, investigating, identified, monitoring, resolved, and subscriber notifications through webhooks, email, Discord or Slack. Stack: Go or Node.js for the concurrent worker layer, React with Vite and Tailwind for a light, fast frontend, PostgreSQL or TimescaleDB plus Redis Pub/Sub for the data layer, deployed on Fly.io or Render, exporting metrics in the Prometheus format. Build this and you learn concurrency models, time series storage, real time communication, high availability design, and how to visualise system health so a non engineer can read it at a glance.</p><p class=\"mb-3\">Pick the one that matches the kind of engineer you want to become, tooling and automation, or infrastructure and reliability. Either is a legitimate, hireable specialism, and the program is built so both routes reach the same bar of production readiness by week 11.</p><p class=\"mb-3\"><strong class=\"font-semibold text-slate-900\">Before you call your capstone done.</strong> This is the most systems level thing you have built in the program, push it to a public GitHub repo, write a LinkedIn post explaining the architecture choice you are proudest of, webhooks and LLM orchestration, or the concurrency model, and share it on at least one other platform. This is the project a hiring manager will read closest, make sure they can actually find it.</p>",
+      "keyTerms": [
+        {
+          "term": "HMAC signature validation",
+          "planHtml": "checking a cryptographic signature on an incoming webhook to prove it genuinely came from GitHub and was not forged by someone else"
+        },
+        {
+          "term": "WebSocket versus SSE",
+          "planHtml": "two ways to push live updates to a browser, WebSocket is two way and always open, SSE is simpler and one way, server to client only"
+        },
+        {
+          "term": "Prometheus metrics format",
+          "planHtml": "a plain text, standard way of exposing numbers like latency and uptime so monitoring tools can read them without custom code"
+        }
+      ],
+      "activityHtml": "Before writing any code for whichever project you choose, sketch its full architecture in Mermaid.js, every service, queue, and data store it needs, and check that diagram into the repository's README before the first commit that is not scaffolding. When it is finished, push it to a public GitHub repo, write the LinkedIn post, and share it on one other platform before you call it done."
+    },
+    {
+      "number": 6,
+      "title": "Turn the portfolio into a job offer",
+      "eyebrow": "Week 12",
+      "hookHtml": "Three months of disciplined engineering counts for very little if a recruiter cannot see it in ninety seconds, so the final week is spent making sure your GitHub profile, your LinkedIn and your interview answers all tell the same, true, impressive story.",
+      "outcomes": [
+        "Rebuild your GitHub profile so a pinned repository sells itself in under a minute",
+        "Write a LinkedIn headline and three posts that read as engineering, not as a job search",
+        "Explain your architecture choices using the STAR method under real interview pressure",
+        "Walk through your own PR history and defend a decision you made weeks ago"
+      ],
+      "bodyHtml": "<p class=\"mb-3\">The final two weeks convert three completed projects into job offers, which is a different skill from building the projects in the first place, and it deserves its own dedicated attention rather than being squeezed in after the last commit.</p><p class=\"mb-3\">Start with the GitHub profile. Every pinned repository needs a professional README, an architecture diagram, a live demo link hosted on a free tier, Vercel, Render or Supabase, CI/CD badges showing build passing, coverage and security scanned, and clear how to run locally instructions with Docker. Underneath all of that, a clean, consistent green commit graph tells its own story, that you showed up and did the work, day after day, not in one panicked weekend.</p><p class=\"mb-3\">Next, LinkedIn positioning. The headline should say what you actually do, Software Engineer, React, TypeScript, Node.js, Go, DevSecOps and Cloud Native, not a generic Computer Science Graduate. The featured section should embed live project links with an architecture diagram attached. And write three posts that walk through a real technical challenge you solved, for example how you implemented AI moderation in a REST API using webhooks and Node.js, because a post like that is proof of thinking, not just a claim of skill.</p><p class=\"mb-3\">Finally, the interview readiness kit. Practise explaining every project with the STAR method, but aimed specifically at architecture choices, why PostgreSQL over MongoDB, why JWT over session cookies, because that is the question a senior interviewer actually asks. Run two mock interviews, one on data structures and practical problem solving, JSON manipulation, async handling, algorithms, and one on system design and code review, where you walk someone through your own PR history and defend the decisions in it.</p><p class=\"mb-3\">This is the whole point of the twelve weeks. Not three finished projects sitting quietly in a repository, but three finished projects you can stand behind, explain, and defend, in front of someone deciding whether to hire you.</p>",
+      "keyTerms": [
+        {
+          "term": "STAR method",
+          "planHtml": "a way of answering an interview question by covering the Situation, Task, Action and Result, kept concrete instead of vague"
+        },
+        {
+          "term": "System design interview",
+          "planHtml": "an interview that tests how you architect a system, not whether you can recite a specific algorithm from memory"
+        }
+      ],
+      "activityHtml": "Tonight, rewrite the README of your strongest project so a complete stranger can read it in 60 seconds and know exactly what it does, how to run it, and why you built it the way you did."
     }
   ],
   "tracksIntroHtml": "<h4 class=\"font-bold text-slate-900 mt-5 mb-2\">How to choose your track</h4><p class=\"mb-3\">Before you learn a single tool, get clear on one thing. What kind of work makes you lose track of time. The tech industry is not one job, it is a city of neighbourhoods, and you will do far better living in the one that suits your temperament than chasing the one with the loudest salary.</p><p class=\"mb-3\">Here is a simple way to find your street.</p><ul class=\"list-disc pl-5 my-3 space-y-1\"><li><strong class=\"font-semibold text-slate-900\">You love asking why and telling the story.</strong> You enjoy spreadsheets, patterns, and explaining what the numbers mean to a person who is not technical. Start in the <strong class=\"font-semibold text-slate-900\">Data track</strong>, most likely as a Data Analyst.</li><li><strong class=\"font-semibold text-slate-900\">You love making things look clear and clickable.</strong> You want a manager to open a dashboard and instantly understand the business. That is <strong class=\"font-semibold text-slate-900\">BI</strong>, still in the Data track.</li><li><strong class=\"font-semibold text-slate-900\">You love plumbing and reliability.</strong> You care that data or software arrives on time, every time, even during load shedding. Look at <strong class=\"font-semibold text-slate-900\">Data Engineering</strong> or <strong class=\"font-semibold text-slate-900\">DevOps</strong>.</li><li><strong class=\"font-semibold text-slate-900\">You love designing the whole system on a whiteboard.</strong> You think in boxes and arrows and trade offs. That is the <strong class=\"font-semibold text-slate-900\">Architect</strong> path, in either the Data or the Cloud track.</li><li><strong class=\"font-semibold text-slate-900\">You love building the thing people actually touch.</strong> Apps, websites, features. That is the <strong class=\"font-semibold text-slate-900\">Software track</strong>.</li><li><strong class=\"font-semibold text-slate-900\">You love the maths of prediction and experiments.</strong> You want to forecast churn or detect fraud. That is <strong class=\"font-semibold text-slate-900\">Data Science</strong>, and it opens the door to the <strong class=\"font-semibold text-slate-900\">AI track</strong>.</li><li><strong class=\"font-semibold text-slate-900\">You love protecting things and thinking like an attacker.</strong> That is the <strong class=\"font-semibold text-slate-900\">Security track</strong>.</li></ul><p class=\"mb-3\">A few honest truths for a South African beginner. You do not need a degree to start, you need proof that you can do the work, which means projects on GitHub and one or two starter certifications. Salaries in this guide come from the OfferZen 2026 Developer Salary and Benefits Report and PayScale South Africa, verified July 2026, and they move fast, so always check the live source before you quote a number to anyone. Entry level developer pay in Cape Town averaged around R23 846 per month in early 2026 per OfferZen, and it climbs steeply with skill and with remote work for overseas companies. Pick the track you enjoy, because the one you enjoy is the one you will practise long enough to get paid well for.</p><p class=\"mb-3\">Sources, verified July 2026: <a href=\"https://www.offerzen.com/resources/developer-salary-benefits-report\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"text-indigo-600 underline hover:text-indigo-800\">OfferZen Developer Salary and Benefits Report 2026</a>, <a href=\"https://www.offerzen.com/blog/software-developer-salary-south-africa\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"text-indigo-600 underline hover:text-indigo-800\">OfferZen software developer salary</a>, <a href=\"https://www.payscale.com/research/ZA/Job=Data_Engineer/Salary\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"text-indigo-600 underline hover:text-indigo-800\">PayScale South Africa Data Engineer</a>, <a href=\"https://admissions.explore.ai/home\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"text-indigo-600 underline hover:text-indigo-800\">ExploreAI Academy</a>, <a href=\"https://learn.microsoft.com/en-us/credentials/certifications/\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"text-indigo-600 underline hover:text-indigo-800\">Microsoft Learn certifications</a>, <a href=\"https://aws.amazon.com/certification/\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"text-indigo-600 underline hover:text-indigo-800\">AWS certification</a>.</p>",

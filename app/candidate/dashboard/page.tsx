@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { createServerSupabase } from '@/lib/supabase/server';
 import ProfileCompletenessCard from '@/components/candidate/ProfileCompletenessCard';
+import { COURSES } from '@/data/courses';
 
 const statusColors: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-800',
@@ -108,6 +109,20 @@ export default async function CandidateDashboard() {
     activeEnrollments = count ?? 0;
   }
 
+  // Training progress on the static Academy courses (data/courses.ts), keyed
+  // on the auth user directly rather than the candidate profile -- see
+  // supabase/add-academy-progress.sql. Grouped client-side since there are
+  // only ever a handful of courses.
+  const { data: academyRows } = await supabase
+    .from('academy_lesson_progress')
+    .select('course_slug, lesson_number')
+    .eq('user_id', user.id);
+
+  const trainingProgress = COURSES.map((course) => {
+    const completed = (academyRows ?? []).filter((r) => r.course_slug === course.slug).length;
+    return { course, completed };
+  }).filter((p) => p.completed > 0);
+
   const stats = [
     {
       label: 'Total Applications',
@@ -171,6 +186,47 @@ export default async function CandidateDashboard() {
         profile={profile ?? {}}
         hasApplied={totalApplications > 0}
       />
+
+      {/* Training progress */}
+      {trainingProgress.length > 0 && (
+        <div className="bg-white rounded-xl border border-slate-200">
+          <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-slate-900">Training Progress</h2>
+            <Link
+              href="/training"
+              className="text-sm font-medium text-brand-600 hover:text-brand-700"
+            >
+              Browse Training
+            </Link>
+          </div>
+          <div className="p-6 space-y-4">
+            {trainingProgress.map(({ course, completed }) => {
+              const percent = Math.round((completed / course.lessons.length) * 100);
+              return (
+                <div key={course.slug}>
+                  <div className="flex items-center justify-between text-sm mb-1.5">
+                    <Link
+                      href={`/training/${course.slug}`}
+                      className="font-medium text-slate-900 hover:text-brand-600"
+                    >
+                      {course.title}
+                    </Link>
+                    <span className="text-slate-500">
+                      {completed} of {course.lessons.length} lessons
+                    </span>
+                  </div>
+                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-brand-600 transition-all"
+                      style={{ width: `${percent}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Recent Applications */}
       <div className="bg-white rounded-xl border border-slate-200">
