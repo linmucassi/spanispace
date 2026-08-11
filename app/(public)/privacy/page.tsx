@@ -166,12 +166,12 @@ export default function PrivacyPolicyPage() {
           <section>
             <h2 className="text-xl font-semibold text-ink-800 mb-3">8. Cookies and Tracking</h2>
             <p className="text-ink-600 leading-relaxed">
-              We use cookies and similar tracking technologies to enhance your experience on our
-              platform. Cookies are small data files stored on your device that help us remember your
-              preferences, understand how you use our platform, and improve our services. You can
-              control cookie settings through your browser preferences. Essential cookies that are
-              necessary for the platform to function cannot be disabled. We use analytics cookies to
-              understand usage patterns and improve our services.
+              We use only the essential cookies the platform needs to work, such as keeping you
+              signed in and remembering whether you chose English or isiZulu. These are stored on
+              your device and cannot be switched off without breaking the site. We do not run
+              advertising or third party analytics cookies, and we do not track you across other
+              websites. If that ever changes we will ask for your consent first and update this
+              notice.
             </p>
           </section>
 
@@ -250,9 +250,24 @@ export default function PrivacyPolicyPage() {
             </p>
             <div className="mt-3 bg-ink-50 rounded-lg p-4 text-ink-600 text-sm space-y-1">
               <p><strong>Spanispace (Pty) Ltd</strong></p>
+              <p>Information Officer: reachable at the address below</p>
               <p>Email: privacy@spanispace.com</p>
               <p>South Africa</p>
             </div>
+            <p className="text-ink-500 leading-relaxed mt-3 text-sm">
+              Under POPIA our Information Officer is responsible for how your personal information is
+              handled and for responding to any request or complaint. You may also lodge a complaint
+              with the Information Regulator of South Africa at{' '}
+              <a
+                href="https://inforegulator.org.za"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-brand-600 hover:underline"
+              >
+                inforegulator.org.za
+              </a>
+              .
+            </p>
           </section>
         </div>
 

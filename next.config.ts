@@ -1,11 +1,36 @@
 import type { NextConfig } from "next";
 
+// A conservative Content-Security-Policy.
+//
+// It deliberately sets NO default-src and NO script-src. Next's App Router
+// injects inline bootstrap scripts for hydration and streaming, and a
+// default-src would become their fallback and blank the page. Locking scripts
+// down properly needs a per-request nonce, which is a separate change that
+// should ship report-only first.
+//
+// What is set here are the directives that carry real protection and zero risk
+// to a Next app, because none of them fall back to govern scripts:
+//   connect-src      every network call the app makes: itself, Supabase over
+//                    https and wss, and Resend. An injected exfil-to-evil.com
+//                    fetch is refused.
+//   img-src          self, data URIs, and the two image hosts next/image trusts
+//   frame-ancestors  nobody can iframe the site, the header twin of XFO
+//   base-uri/object  shut off two classic injection vectors
+//   form-action      a form may only post to us and to Netlify Forms
+const csp = [
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.resend.com",
+  "img-src 'self' data: https://upload.wikimedia.org https://picsum.photos",
+  "frame-ancestors 'none'",
+  "base-uri 'self'",
+  "object-src 'none'",
+  "form-action 'self'",
+  'upgrade-insecure-requests',
+].join('; ');
+
 // Baseline security headers, applied to every route including SSR and edge,
-// which a static Netlify [[headers]] block does not cover. A full
-// Content-Security-Policy is deliberately absent: Next's inline scripts need a
-// nonce or a hash, and a wrong CSP takes the site down. Add CSP separately, in
-// report only mode first.
+// which a static Netlify [[headers]] block does not cover.
 const securityHeaders = [
+  { key: 'Content-Security-Policy', value: csp },
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
