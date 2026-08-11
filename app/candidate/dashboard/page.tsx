@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { createServerSupabase } from '@/lib/supabase/server';
 import ProfileCompletenessCard from '@/components/candidate/ProfileCompletenessCard';
+import AvatarUpload from '@/components/candidate/AvatarUpload';
 import { COURSES } from '@/data/courses';
 
 const statusColors: Record<string, string> = {
@@ -46,7 +47,7 @@ export default async function CandidateDashboard() {
   // Fetch candidate profile
   const { data: profile } = await supabase
     .from('candidate_profiles')
-    .select('id, full_name, profile_score, phone, location, skills, cv_url, portfolio_url, professional_summary')
+    .select('id, full_name, profile_score, phone, location, skills, cv_url, portfolio_url, linkedin_url, github_url, avatar_url, professional_summary')
     .eq('user_id', user.id)
     .maybeSingle();
 
@@ -149,21 +150,38 @@ export default async function CandidateDashboard() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">
-            Welcome back, {fullName}
-          </h1>
-          <p className="text-slate-500 mt-1">
-            Here is what is happening with your job search.
-          </p>
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex items-center gap-4">
+          <AvatarUpload
+            userId={user.id}
+            avatarUrl={profile?.avatar_url ?? null}
+            fullName={fullName}
+            editable={false}
+            size="sm"
+          />
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">
+              Welcome back, {fullName}
+            </h1>
+            <p className="text-slate-500 mt-1">
+              Here is what is happening with your job search.
+            </p>
+          </div>
         </div>
-        <Link
-          href="/#jobs"
-          className="inline-flex items-center px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors"
-        >
-          Browse Jobs
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/candidate/profile/preview"
+            className="text-sm font-medium text-brand-600 hover:text-brand-700"
+          >
+            Preview my profile
+          </Link>
+          <Link
+            href="/#jobs"
+            className="inline-flex items-center px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors"
+          >
+            Browse Jobs
+          </Link>
+        </div>
       </div>
 
       {/* Stats */}

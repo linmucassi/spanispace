@@ -36,6 +36,8 @@ type CandidateRow = {
   skills: string[] | null
   cv_url: string | null
   portfolio_url: string | null
+  linkedin_url: string | null
+  github_url: string | null
   professional_summary: string | null
   profile_score: number
   created_at: string
@@ -47,7 +49,7 @@ async function main() {
 
   const { data: candidates, error } = await supabase
     .from('candidate_profiles')
-    .select('user_id, full_name, phone, location, skills, cv_url, portfolio_url, professional_summary, profile_score, created_at')
+    .select('user_id, full_name, phone, location, skills, cv_url, portfolio_url, linkedin_url, github_url, professional_summary, profile_score, created_at')
     .lt('profile_score', PROFILE_COMPLETE_THRESHOLD)
     .lte('created_at', cutoff)
     .not('user_id', 'is', null)

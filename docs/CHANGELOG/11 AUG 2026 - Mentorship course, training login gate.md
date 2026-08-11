@@ -64,3 +64,106 @@ M  data/academy.ts
 
 ## Still outstanding, this pass
 - Guide/reference pages (`career-tracks`, `salaries`, `certifications`, `case-studies`, `resources`) and the `spine` intro/closing text were not condensed — same "out of scope, separate future decision" status as their English-only translation state already noted above.
+
+---
+
+## Compulsory phone/name on signup, forced profile completion after Google (later same day)
+User report: some candidates end up with no display name or phone number. Wanted phone made compulsory at signup, and — specifically for "Continue with Google" — a forced step after a successful sign-in to add a phone number and confirm/update the display name Google provided, before the candidate can proceed anywhere else.
+
+Researched first (`handle_new_user()` trigger in `supabase/fix-security-hardening.sql:46-82`, `candidate_profiles` schema, the register form, the OAuth callback, and `lib/supabase/middleware.ts`) before touching anything, since this is auth-adjacent. Key finding that shaped the design: `candidate_profiles.phone` **must stay nullable in the DB** — the trigger creates the `candidate_profiles` row automatically for every new auth user including Google sign-ins, and Google never supplies a phone, so a `NOT NULL` constraint there would break Google sign-up outright. Enforcement had to live at the application layer, not the schema. Also found the trigger already does `COALESCE(NULLIF(TRIM(full_name), ''), email-local-part)`, so Google's real name is already picked up automatically when Google supplies one — the new onboarding step still surfaces it as an editable field so the candidate explicitly confirms/corrects it, rather than that happening silently.
+
+Asked one clarifying question before implementing: should the new hard gate also apply to existing candidates who already have no phone (since it was optional until now), or only to new signups going forward. User chose **everyone missing a phone** — simplest, and makes "compulsory" actually mean compulsory rather than grandfathering in a permanent exception.
+
+- `app/(auth)/register/page.tsx` — candidate-tab phone `&lt;input&gt;` now has `required` (full name already did).
+- New `app/candidate/onboarding/page.tsx` (client component, mirrors the load/save pattern already in `app/candidate/profile/page.tsx`) — pre-fills full name and phone from `candidate_profiles`, both required, saves via `.update(...).eq('user_id', user.id)` (existing `"Candidates update own profile"` RLS policy already allows this, no migration), then redirects to a same-origin-only `?next=` path or `/candidate/dashboard`.
+- `lib/supabase/middleware.ts` — after the existing candidate-route role check passes, one additional query for `candidate_profiles.phone`; if missing, redirects to `/candidate/onboarding?next=<original path>` (skipped for the onboarding route itself, to avoid a redirect loop). Runs for every authenticated `/candidate/*` request, old accounts and new alike.
+- New `onboarding.*` i18n keys in `lib/i18n/en.ts` and `lib/i18n/zu.ts`; field labels reuse the existing `auth.fullName`/`auth.phone` keys rather than duplicating them.
+- Deliberately used `window.location.search` instead of Next's `useSearchParams()` hook to read the `next` param — avoids the Suspense-boundary requirement that hook otherwise imposes on a client page, no functional difference here.
+
+**Out of scope, on purpose:** company signup (no phone/display-name concept there — companies have `company_name`, already required); any DB-level `NOT NULL` on `phone` (breaks Google sign-up, see above); public non-`/candidate` routes like applying for a job before ever visiting a dashboard (middleware has only ever covered `/admin`, `/candidate`, `/company`, extending that scope wasn't asked for).
+
+## Files changed, this pass
+```
+M  app/(auth)/register/page.tsx
+M  lib/supabase/middleware.ts
+M  lib/i18n/en.ts
+M  lib/i18n/zu.ts
+A  app/candidate/onboarding/page.tsx
+```
+`npm run build` and `npm run lint` both clean (`/candidate/onboarding` compiles as a static client shell like `/candidate/profile`; same 41 pre-existing lint problems as every prior pass today, none in touched files).
+
+## Still outstanding, this pass
+- Not tested against a live Supabase project from here (no DB access) — the manual verification steps in the plan (fresh Google signup lands on onboarding; existing candidate with `phone IS NULL` gets redirected on next visit; submitting returns to the original destination) still need to be run by hand once deployed.
+- Google OAuth itself is still not enabled in the Supabase dashboard (separate, earlier-reported blocker) — this pass makes the *post*-Google-signup flow correct, but signing in with Google at all is still blocked until that's turned on.
+
+---
+
+## Also confirmed: display name was already required (later same day)
+User asked whether display name was also compulsory on signup. It already was — `app/(auth)/register/page.tsx`'s full name field has always had `required`, and the onboarding page built earlier today also has `required` on its name field. No change needed, just confirmed by reading both files.
+
+## "Fill from my CV" profile autofill (later same day)
+User's actual ask was to let candidates populate their profile by "connecting/pulling from LinkedIn." Flagged a real constraint before writing any code: LinkedIn's self-serve OAuth ("Sign In with LinkedIn using OpenID Connect") only returns name, email and a profile photo — work history, headline and skills require LinkedIn's Partner Program, a manual approval process on LinkedIn's side, not something achievable by writing code. Asked the user to choose between basic-connect-only, waiting on Partner Program approval, or a manual "paste your LinkedIn URL" field. The user redirected instead: does CV upload already populate the profile? It didn't — `/candidate/cv-audit` is advisory only and explicitly never stores or writes back (per its own on-page disclaimer). Agreed replacement: Claude-powered CV parsing into a review-then-confirm form, available from both the onboarding step and the full profile page. Asked two follow-up scoping questions (entry points: both; CV source: file upload) before implementing.
+
+Researched first (`package.json` for any PDF/DOCX parsing library — none; `components/candidate/DocumentLibrary.tsx`'s exact upload/storage-path pattern; `WorkExperience.tsx`'s insert shape and `WORK_TYPE_LABELS`; both existing Claude routes' conventions) to reuse existing patterns rather than inventing new ones. Key decision: **PDF only for v1** — the repo has no PDF/DOCX text-extraction library, and legacy `.doc` parsing has no good library at all. Claude's Messages API accepts a PDF directly as a native `document` content block, so this needed **zero new npm dependencies** — the Anthropic SDK is already a dependency (`app/api/cv-audit`, `app/api/profile-summary`). DOCX/DOC still upload fine through the existing document library for storage, just not through this new autofill path.
+
+- New `app/api/cv-extract/route.ts` — auth-gated (`createServerSupabase` + `getUser`, matching every other API route in this app), loads a `candidate_documents` row through the RLS-scoped client (no separate ownership check needed — a row belonging to someone else simply doesn't come back, same trust boundary `app/api/applications/route.ts` already documents), rejects non-PDF with a clear message, fetches the file from the public `documents` bucket, base64-encodes it, and sends it to `claude-opus-4-8` as a `document` content block with an extraction prompt instructing it to never invent a name/employer/date/skill not actually present. Same JSON-extraction convention as the existing two Claude routes (regex + `JSON.parse` in try/catch), plus the `stop_reason === 'max_tokens'` guard copied from `profile-summary`. Its own rate limiter (5/hour/user, tighter than `cv-audit`'s 8/hour, since this call also attaches a full file). **Never writes to any table** — returns parsed JSON only.
+- New `components/candidate/CvAutofill.tsx` — self-contained like `DocumentLibrary.tsx`: collapsed behind a "Fill from my CV" button, uploads through the exact same storage path/bucket convention as `DocumentLibrary` (so the CV also shows up in the candidate's document library for free), calls the new endpoint, then renders the extracted fields as an **editable review form** — full name, phone, location, skills, summary, and each work-experience entry (editable/removable, using the existing `WORK_TYPE_LABELS`). Nothing is saved until the candidate clicks "Use these details," which fires an `onExtracted(result)` callback and nothing else — the component never talks to `candidate_profiles` or `work_experiences` directly, since onboarding and the full profile page need different handling of the result.
+- `app/candidate/onboarding/page.tsx` — renders `CvAutofill` above the existing name/phone form; the callback only pulls `full_name`/`phone` into the already-required fields, keeping the compulsory gate narrow and fast rather than turning it into a big form.
+- `app/candidate/profile/page.tsx` — renders `CvAutofill` near the top; the callback merges non-empty extracted fields into the existing `profile` state (skills union rather than replace, so existing skills survive), inserts any extracted work-experience entries directly into `work_experiences` (same insert shape `WorkExperience.tsx` itself uses), then bumps a new `workRefreshKey` state used as that component's React `key` to force it to remount and reload from the DB — reused the existing component as-is rather than adding it a new prop for external inserts. The candidate's own existing "Save Profile" button is still what persists the profile fields; only the work-experience rows save immediately (matching how `WorkExperience.tsx` has always saved its own entries immediately, independent of the page's Save button).
+
+**Out of scope / flagged, on purpose:** DOCX/DOC extraction (no library, no partner-restricted API); the DB-level assumption that a PDF-plus-`thinking` Claude call is heavier than the already-live `cv-audit` call — no Netlify/Next config in this repo currently overrides any timeout or payload limit for any route, so this is worth watching in production rather than something to preemptively configure blind.
+
+## Files changed, this pass
+```
+M  app/candidate/onboarding/page.tsx
+M  app/candidate/profile/page.tsx
+M  docs/ROADMAP.md
+A  app/api/cv-extract/route.ts
+A  components/candidate/CvAutofill.tsx
+```
+`npm run build` and `npm run lint` both clean (new `/api/cv-extract` route listed as dynamic; same 41 pre-existing lint problems as every other pass today, none in touched files).
+
+## Still outstanding, this pass
+- Not tested against a live Supabase project or the real Anthropic API from here — no DB/API access in this environment. Once deployed: upload a real PDF CV from both entry points, try a `.docx` to confirm the rejection message, and try a short/garbled PDF to confirm the JSON-parse failure path degrades gracefully.
+- Production request duration for this endpoint (file fetch + base64 encode + a `thinking`-enabled Claude call attached to a multi-MB document) has not been measured against Netlify's actual function timeout for this project's plan — flagged as a risk in the plan, not yet verified either way.
+
+---
+
+## Profile upgrades: split social links, multi-institution education, avatar + preview (later same day)
+
+Four asks in one message. The fourth ("why are jobs only from South Africa?") was answered directly, no code involved — it's intentional (the platform's mission is explicitly SA-focused, documented in this roadmap's own header) plus a volume effect (Adzuna, the SA-specific source, can pull ~2,600 rows per run across 26 queries vs. RemoteOK/Remotive's combined ~300; `lib/publicJobs.ts` sorts SA jobs first but never filters international ones out). The other three all touched `/candidate/profile`, researched together before planning.
+
+**1. Split social links.** "Portfolio / LinkedIn / GitHub URL" was one input. Research surfaced 7 places `portfolio_url` touched (`types/database.ts`, `lib/profileCompleteness.ts`, the dashboard's select query, the `compute_profile_score` DB trigger, `scripts/run-profile-nudges.ts`, `CandidateSearch.tsx`) — every one updated to treat "any of the three filled" as satisfying that one checklist/scoring bucket, rather than duplicating the bucket three times. `supabase/add-candidate-social-links.sql` adds `linkedin_url`/`github_url` and redefines `compute_profile_score` with the widened rule. Bonus, low cost since the pattern already existed: `/api/cv-extract` and `CvAutofill`'s review form now also extract/collect LinkedIn and GitHub URLs from an uploaded CV.
+
+**2. Multi-institution education.** Research showed `matric_grad_year`/`university` (flat columns) ripple almost nowhere — not in scoring, not in company search, not on the dashboard — unlike `portfolio_url`, so this was safe to convert cleanly. New `candidate_education` table (`supabase/add-candidate-education.sql`), same one-to-many shape `work_experiences` already established, and a new `components/candidate/Education.tsx` that's a near-structural-copy of `WorkExperience.tsx` (self-contained load/insert/delete, own `onChanged` callback). The migration backfills existing `university`/`matric_grad_year` values into the new table so nothing a candidate already entered quietly vanishes; the old columns stay in the schema, unreferenced by the app from here on — confirmed nothing else reads them before leaving them in place rather than risking a destructive drop.
+
+**3. Avatar + bio + "preview my profile."** No avatar/photo concept existed anywhere in the repo (confirmed by search — every "avatar" in the UI was a letter-initial circle). `professional_summary` already existed and already functions as the bio (shown in the "Your Professional Profile" section), so no new bio field was needed. New `avatar_url` column and a new public `avatars` Storage bucket (`supabase/add-candidate-avatar.sql`, `supabase/create-avatar-bucket.sql`, mirroring `create-documents-bucket.sql`'s RLS conventions exactly, sized for images: 2 MB, `image/jpeg`/`png`/`webp`), plus a new `components/candidate/AvatarUpload.tsx` (controlled by the parent page, so it always shows the same `avatar_url` state the rest of that page's form has). Wired into `/candidate/profile` (editable) and `/candidate/dashboard`'s header (read-only, next to "Welcome back").
+
+For "preview as others see it," found the *only* existing third-party view of a candidate is the modal in `app/company/candidates/CandidateSearch.tsx` — but it's gated by an RLS policy (`supabase/fix-security-hardening.sql`) that only lets a company see a candidate's profile **if that candidate has applied to one of their jobs**. A literal "reuse the exact company view" preview would therefore show nothing for anyone who hasn't applied anywhere yet — exactly the person most likely to want a preview before applying. Built a new route, `/candidate/profile/preview`, instead: a self-contained, read-only rendering of the candidate's own data (own profile + own education + own work experience, all reachable under their existing RLS access, no new policies needed), styled like a profile card. Not a live reuse of the company-side component — that was a deliberate scope decision stated up front in the plan, not something the user was asked about mid-build, since the technical reasoning (RLS makes the alternative broken for most first-time users) was decisive enough to just state and proceed.
+
+**Out of scope, on purpose:** not updating what companies themselves see in `CandidateSearch.tsx` beyond the two extra link buttons (bio/education/avatar still invisible to companies — a separate, not-requested change); not dropping the old education columns; not building signed URLs for the new avatars bucket (matches the still-public `documents` bucket's current state).
+
+## Files changed, this pass
+```
+M  app/api/cv-extract/route.ts
+M  app/candidate/dashboard/page.tsx
+M  app/candidate/profile/page.tsx
+M  app/company/candidates/CandidateSearch.tsx
+M  components/candidate/CvAutofill.tsx
+M  docs/ROADMAP.md
+M  lib/profileCompleteness.ts
+M  scripts/run-profile-nudges.ts
+M  types/database.ts
+A  app/candidate/profile/preview/page.tsx
+A  components/candidate/AvatarUpload.tsx
+A  components/candidate/Education.tsx
+A  supabase/add-candidate-avatar.sql
+A  supabase/add-candidate-education.sql
+A  supabase/add-candidate-social-links.sql
+A  supabase/create-avatar-bucket.sql
+```
+`npm run build` and `npm run lint` both clean (`/candidate/profile/preview` compiles as a new dynamic route; same 41 pre-existing lint problems as every other pass today, none in touched or new files — confirmed by grepping the lint output for each new filename).
+
+## Still outstanding, this pass
+- None of the 4 new migrations have been run against the live Supabase project from here (no DB access in this environment) — see items 17-19 in `docs/ROADMAP.md#outstanding-production-migrations`. Until they run: saving LinkedIn/GitHub URLs or an avatar will error, education entries can't be added, and the preview page's education/social-link sections will simply stay empty rather than crash (all reads are `?? []`/optional-chained).
+- Not tested against a live Supabase project from here — the manual verification steps in the plan (split fields save independently; multiple education entries persist and delete independently; a pre-existing `university` value appears as a backfilled entry; avatar shows on both pages; preview reflects saved data for a candidate who has never applied anywhere) still need to be run by hand once deployed.

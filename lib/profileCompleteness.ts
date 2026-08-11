@@ -11,6 +11,8 @@ export type ProfileCompletenessInput = {
   skills?: string[] | null;
   cv_url?: string | null;
   portfolio_url?: string | null;
+  linkedin_url?: string | null;
+  github_url?: string | null;
   professional_summary?: string | null;
 };
 
@@ -28,7 +30,7 @@ export function profileChecklist(p: ProfileCompletenessInput): ProfileChecklistI
     { key: 'phone', label: 'Add a phone number', shortLabel: 'phone number', done: Boolean(p.phone) },
     { key: 'location', label: 'Add your location', shortLabel: 'location', done: Boolean(p.location) },
     { key: 'summary', label: 'Write a short professional summary', shortLabel: 'professional summary', done: Boolean(p.professional_summary) },
-    { key: 'portfolio', label: 'Add a portfolio link', shortLabel: 'portfolio link', done: Boolean(p.portfolio_url) },
+    { key: 'portfolio', label: 'Add a portfolio, LinkedIn or GitHub link', shortLabel: 'portfolio link', done: Boolean(p.portfolio_url || p.linkedin_url || p.github_url) },
   ];
 }
 

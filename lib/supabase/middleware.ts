@@ -79,5 +79,24 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(new URL('/', request.url));
   }
 
+  // Every candidate needs a phone number on file -- most often missing after a
+  // Google sign-in, since Google never supplies one, but this also catches
+  // existing accounts created back when the signup form's phone field was
+  // optional. Applies to every /candidate/* request except the onboarding
+  // page itself, which is where they fix it.
+  if (isCandidateRoute && role === 'candidate' && !pathname.startsWith('/candidate/onboarding')) {
+    const { data: profile } = await supabase
+      .from('candidate_profiles')
+      .select('phone')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (!profile?.phone) {
+      const onboardingUrl = new URL('/candidate/onboarding', request.url);
+      onboardingUrl.searchParams.set('next', pathname);
+      return NextResponse.redirect(onboardingUrl);
+    }
+  }
+
   return supabaseResponse;
 }

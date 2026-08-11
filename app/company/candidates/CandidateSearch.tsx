@@ -13,6 +13,8 @@ interface Candidate {
   location: string | null;
   skills: string[];
   portfolio_url: string | null;
+  linkedin_url: string | null;
+  github_url: string | null;
   cv_url: string | null;
   verified: boolean;
   profile_score: number | null;
@@ -270,6 +272,26 @@ export default function CandidateSearch({
                     className="text-sm text-brand-600 font-medium hover:underline"
                   >
                     View Portfolio
+                  </a>
+                )}
+                {selectedCandidate.linkedin_url && (
+                  <a
+                    href={selectedCandidate.linkedin_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-brand-600 font-medium hover:underline"
+                  >
+                    LinkedIn
+                  </a>
+                )}
+                {selectedCandidate.github_url && (
+                  <a
+                    href={selectedCandidate.github_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-brand-600 font-medium hover:underline"
+                  >
+                    GitHub
                   </a>
                 )}
                 {selectedCandidate.cv_url && (

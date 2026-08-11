@@ -1,10 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { normalizeUrl } from '@/lib/normalizeUrl';
 import DocumentLibrary from '@/components/candidate/DocumentLibrary';
 import WorkExperience, { type WorkExperienceEntry } from '@/components/candidate/WorkExperience';
+import Education from '@/components/candidate/Education';
+import AvatarUpload from '@/components/candidate/AvatarUpload';
+import CvAutofill, { type CvAutofillResult } from '@/components/candidate/CvAutofill';
 import { Sparkles } from 'lucide-react';
 
 interface ProfileData {
@@ -12,10 +16,11 @@ interface ProfileData {
   phone: string;
   whatsapp: string;
   location: string;
-  matric_grad_year: number | null;
-  university: string;
   skills: string[];
   portfolio_url: string;
+  linkedin_url: string;
+  github_url: string;
+  avatar_url: string | null;
   professional_summary: string;
 }
 
@@ -24,10 +29,11 @@ const emptyProfile: ProfileData = {
   phone: '',
   whatsapp: '',
   location: '',
-  matric_grad_year: null,
-  university: '',
   skills: [],
   portfolio_url: '',
+  linkedin_url: '',
+  github_url: '',
+  avatar_url: null,
   professional_summary: '',
 };
 
@@ -45,6 +51,7 @@ export default function CandidateProfilePage() {
   const [workEntries, setWorkEntries] = useState<WorkExperienceEntry[]>([]);
   const [building, setBuilding] = useState(false);
   const [buildError, setBuildError] = useState('');
+  const [workRefreshKey, setWorkRefreshKey] = useState(0);
 
   async function loadProfile() {
     const supabase = createClient();
@@ -72,10 +79,11 @@ export default function CandidateProfilePage() {
         phone: data.phone ?? '',
         whatsapp: data.whatsapp ?? '',
         location: data.location ?? '',
-        matric_grad_year: data.matric_grad_year ?? null,
-        university: data.university ?? '',
         skills: data.skills ?? [],
         portfolio_url: data.portfolio_url ?? '',
+        linkedin_url: data.linkedin_url ?? '',
+        github_url: data.github_url ?? '',
+        avatar_url: data.avatar_url ?? null,
         professional_summary: data.professional_summary ?? '',
       });
     }
@@ -85,7 +93,7 @@ export default function CandidateProfilePage() {
 
   useEffect(() => { loadProfile(); }, []);
 
-  function handleChange(field: keyof ProfileData, value: string | number | null) {
+  function handleChange(field: keyof ProfileData, value: string | null) {
     setProfile((prev) => ({ ...prev, [field]: value }));
     setFeedback(null);
   }
@@ -140,10 +148,10 @@ export default function CandidateProfilePage() {
       phone: profile.phone || null,
       whatsapp: profile.whatsapp || null,
       location: profile.location || null,
-      matric_grad_year: profile.matric_grad_year,
-      university: profile.university || null,
       skills: profile.skills,
       portfolio_url: profile.portfolio_url ? normalizeUrl(profile.portfolio_url) : null,
+      linkedin_url: profile.linkedin_url ? normalizeUrl(profile.linkedin_url) : null,
+      github_url: profile.github_url ? normalizeUrl(profile.github_url) : null,
     };
 
     let { error } = await supabase
@@ -217,6 +225,54 @@ export default function CandidateProfilePage() {
     }
   }
 
+  // From CvAutofill, already reviewed and confirmed by the candidate. Only
+  // non-empty extracted fields are applied, so a CV that is silent on e.g.
+  // location never wipes out a location already on file. Skills merge rather
+  // than replace for the same reason. Work experience entries are inserted
+  // directly (same shape WorkExperience.tsx itself inserts), then the
+  // component is remounted via workRefreshKey so it reloads and shows them --
+  // simpler than teaching that self-contained component a new prop.
+  async function handleCvExtracted(result: CvAutofillResult) {
+    setProfile((prev) => ({
+      ...prev,
+      full_name: result.full_name?.trim() || prev.full_name,
+      phone: result.phone?.trim() || prev.phone,
+      location: result.location?.trim() || prev.location,
+      professional_summary: result.professional_summary?.trim() || prev.professional_summary,
+      linkedin_url: result.linkedin_url?.trim() || prev.linkedin_url,
+      github_url: result.github_url?.trim() || prev.github_url,
+      skills: Array.from(new Set([...prev.skills, ...result.skills])),
+    }));
+
+    if (result.work_experience.length > 0 && userId) {
+      const supabase = createClient();
+      if (supabase) {
+        const { error: insertError } = await supabase.from('work_experiences').insert(
+          result.work_experience.map((entry) => ({
+            user_id: userId,
+            job_title: entry.job_title,
+            employer: entry.employer || null,
+            work_type: entry.work_type,
+            location: entry.location || null,
+            duration_text: entry.duration_text || null,
+            duties: entry.duties || null,
+            skills_gained: entry.skills_gained,
+          }))
+        );
+        if (insertError) {
+          console.error('[profile] could not save CV work experience:', insertError.message);
+        } else {
+          setWorkRefreshKey((k) => k + 1);
+        }
+      }
+    }
+
+    setFeedback({
+      type: 'success',
+      message: 'Details filled in from your CV. Review them below, then press Save Profile.',
+    });
+  }
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -230,11 +286,19 @@ export default function CandidateProfilePage() {
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">My Profile</h1>
-        <p className="text-slate-500 mt-1">
-          Keep your profile up to date so employers can find you.
-        </p>
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">My Profile</h1>
+          <p className="text-slate-500 mt-1">
+            Keep your profile up to date so employers can find you.
+          </p>
+        </div>
+        <Link
+          href="/candidate/profile/preview"
+          className="text-sm font-medium text-brand-600 hover:text-brand-700 whitespace-nowrap"
+        >
+          Preview my profile →
+        </Link>
       </div>
 
       {feedback && (
@@ -249,12 +313,23 @@ export default function CandidateProfilePage() {
         </div>
       )}
 
+      <CvAutofill onExtracted={handleCvExtracted} />
+
       <div className="bg-white rounded-xl border border-slate-200 divide-y divide-slate-200">
         {/* Personal Information */}
         <div className="p-6 space-y-5">
           <h2 className="text-base font-semibold text-slate-900">
             Personal Information
           </h2>
+
+          {userId && (
+            <AvatarUpload
+              userId={userId}
+              avatarUrl={profile.avatar_url}
+              fullName={profile.full_name}
+              onUploaded={(url) => setProfile((prev) => ({ ...prev, avatar_url: url }))}
+            />
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -326,41 +401,7 @@ export default function CandidateProfilePage() {
         {/* Education */}
         <div className="p-6 space-y-5">
           <h2 className="text-base font-semibold text-slate-900">Education</h2>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Matric Graduation Year
-              </label>
-              <input
-                type="number"
-                min={1990}
-                max={2030}
-                value={profile.matric_grad_year ?? ''}
-                onChange={(e) =>
-                  handleChange(
-                    'matric_grad_year',
-                    e.target.value ? Number(e.target.value) : null
-                  )
-                }
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
-                placeholder="e.g. 2022"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                University / Institution
-              </label>
-              <input
-                type="text"
-                value={profile.university}
-                onChange={(e) => handleChange('university', e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
-                placeholder="e.g. University of Cape Town"
-              />
-            </div>
-          </div>
+          <Education />
         </div>
 
         {/* Skills */}
@@ -415,18 +456,46 @@ export default function CandidateProfilePage() {
         {/* Online Presence */}
         <div className="p-6 space-y-4">
           <h2 className="text-base font-semibold text-slate-900">Online Presence</h2>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Portfolio / LinkedIn / GitHub URL
-            </label>
-            <input
-              type="text"
-              inputMode="url"
-              value={profile.portfolio_url}
-              onChange={(e) => handleChange('portfolio_url', e.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
-              placeholder="https://yourportfolio.com"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Portfolio URL
+              </label>
+              <input
+                type="text"
+                inputMode="url"
+                value={profile.portfolio_url}
+                onChange={(e) => handleChange('portfolio_url', e.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
+                placeholder="https://yourportfolio.com"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                LinkedIn URL
+              </label>
+              <input
+                type="text"
+                inputMode="url"
+                value={profile.linkedin_url}
+                onChange={(e) => handleChange('linkedin_url', e.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
+                placeholder="https://linkedin.com/in/you"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                GitHub URL
+              </label>
+              <input
+                type="text"
+                inputMode="url"
+                value={profile.github_url}
+                onChange={(e) => handleChange('github_url', e.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
+                placeholder="https://github.com/you"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -443,7 +512,7 @@ export default function CandidateProfilePage() {
           </p>
         </div>
         <div className="px-6 pb-6 pt-4">
-          <WorkExperience onChanged={setWorkEntries} />
+          <WorkExperience key={workRefreshKey} onChanged={setWorkEntries} />
         </div>
       </div>
 

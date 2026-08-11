@@ -133,6 +133,9 @@ export interface DbCandidateProfile {
   location: string | null;
   skills: string[];
   portfolio_url: string | null;
+  linkedin_url?: string | null;
+  github_url?: string | null;
+  avatar_url?: string | null;
   cv_url: string | null;
   professional_summary?: string | null;
   verified: boolean;

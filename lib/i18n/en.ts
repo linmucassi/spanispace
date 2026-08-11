@@ -296,6 +296,13 @@ const en = {
     passwordUpdatedTitle: 'Password updated',
     passwordUpdatedMessage: 'Redirecting you to sign in...',
   },
+  onboarding: {
+    title: 'Just one more step',
+    subtitle: 'Confirm your name and add a phone number so employers and SpaniSpace can reach you. This only takes a moment.',
+    submit: 'Save and continue',
+    submitting: 'Saving...',
+    error: 'We could not save your details. Please try again.',
+  },
   events: {
     title: 'Upcoming Events',
     subtitle: 'Workshops, webinars, and career events to boost your career.',

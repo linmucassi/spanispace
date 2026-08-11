@@ -302,6 +302,13 @@ const zu = {
     passwordUpdatedTitle: 'Iphasiwedi ibuyekeziwe',
     passwordUpdatedMessage: 'Siyakuthumela ekungeneni...',
   },
+  onboarding: {
+    title: 'Kusele isinyathelo esisodwa',
+    subtitle: 'Qinisekisa igama lakho futhi wengeze inombolo yocingo ukuze abaqashi ne-SpaniSpace bakwazi ukukuthola. Kuthatha umzuzwana nje.',
+    submit: 'Londoloza uqhubeke',
+    submitting: 'Iyalondoloza...',
+    error: 'Asikwazanga ukulondoloza imininingwane yakho. Sicela uzame futhi.',
+  },
   events: {
     title: 'Imicimbi Ezayo',
     subtitle: 'Ama-workshop, ama-webinar, nemicimbi yomsebenzi ukukhuphula umsebenzi wakho.',
