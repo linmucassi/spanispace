@@ -134,7 +134,7 @@ export default async function CoursePage({ params }: Props) {
                       </span>
                     )}
                   </span>
-                  <span className="block text-sm text-ink-500 mt-1">
+                  <span className="block text-sm text-ink-500 mt-1 line-clamp-2">
                     <Inline html={lesson.hookHtml} />
                   </span>
                 </span>

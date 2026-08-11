@@ -162,7 +162,7 @@ const TrainingSection: React.FC<{
                 >
                   {item.title}
                 </h2>
-                <p className="text-ink-400 text-sm mt-1.5">{item.description}</p>
+                <p className="text-ink-400 text-sm mt-1.5 line-clamp-2">{item.description}</p>
 
                 <p className="mt-auto pt-5 text-xs text-ink-500">
                   {item.provider} · {factLine}
@@ -220,7 +220,7 @@ const TrainingSection: React.FC<{
                   className="group bg-ink-800/60 border border-ink-700 rounded-2xl p-5 transition-colors hover:border-brand-500"
                 >
                   <p className="font-bold group-hover:text-brand-400">{guide.title}</p>
-                  <p className="text-sm text-ink-400 mt-1">{guide.blurb}</p>
+                  <p className="text-sm text-ink-400 mt-1 line-clamp-2">{guide.blurb}</p>
                   <p className="text-xs text-ink-500 mt-3">{guide.count}</p>
                 </Link>
               ))}

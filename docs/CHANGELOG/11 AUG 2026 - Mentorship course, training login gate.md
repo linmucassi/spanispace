@@ -40,3 +40,27 @@ A  supabase/add-academy-progress.sql
 - `supabase/add-academy-progress.sql` needs to be run against the live Supabase project (`rssuacaedvihhpcakuvm`) before the "mark complete" button or the dashboard progress card do anything but silently no-op — see item 16 in `docs/ROADMAP.md#outstanding-production-migrations`.
 - `/login` ignores any `?next=` parameter and always redirects by role (`/candidate/dashboard`, etc. — see `app/(auth)/login/page.tsx`), a pre-existing limitation shared with every other gated route in the app (middleware sets `?next=` the same way). Signing in from a locked lesson page does not return the reader to that lesson; they land on their dashboard instead. Not fixed here — it's a broader, pre-existing gap, not something specific to training.
 - New mentorship course lesson content is English-only, matching the existing (undocumented-as-a-decision) state of `data/academy.ts` for the other two courses.
+
+---
+
+## Content trim + card cleanup, all three courses (later same day)
+User asked to go through every course and cut wordiness while keeping detail, and to uniformly apply the eyebrow/title decluttering to the rest of the training UI, keeping the existing design system rather than redesigning.
+
+**Content.** Condensed all 23 lessons in `data/academy.ts` — all 12 `bootcamp` modules, all 5 `shortcourse` modules, and a lighter pass over the 6 `mentorship` modules added earlier today (already fairly tight from being freshly written). Typical `bodyHtml` cut from 5 paragraphs to 3–4, roughly a third shorter per lesson. Rule followed throughout: cut throat-clearing openers, restated "so what" summary sentences, and redundant framing; never touch a named company, tool, number, date, source URL, or the "verified July 2026" caveat lines — every fact, example and citation (Capitec, Takealot, Discovery, OfferZen, POPIA, the Anthropic J-Space research link, etc.) survives intact, only the sentences carrying it got tighter. `outcomes`, `keyTerms`, and `activityHtml` were left alone (already terse) except for the small `activityHtml` additions already made earlier today for the ship-publicly requirement. Guide/reference content (`tracksIntroHtml`, the `spine` intros/closing) was deliberately left untouched — out of scope, and it lives behind an opt-in "about" expander rather than in the main reading flow.
+
+**UI, applied uniformly across all three courses' shared templates** (`app/(public)/training/[course]/page.tsx`, `[lesson]/page.tsx`, `components/TrainingSection.tsx` — one template renders every course, so a fix here is automatically a fix everywhere):
+- `line-clamp-2` added to the lesson-list hook text on the course page, the catalogue card description, and the guide-card blurb, so a longer line can never stretch one card taller than its neighbours — a card-grid consistency issue the shorter copy from this pass makes far less likely to trigger, but worth guarding against permanently rather than depending on every future edit staying short.
+- Confirmed the `eyebrow` field added earlier today (mentorship's "Weeks 1-3" labels) already declutters uniformly by construction — it's optional per lesson and rendered by the one shared template, so `ai-foundations` and `ai-careers-bootcamp` (no eyebrow data) render exactly as before, no separate change needed there.
+
+No layout, spacing, or color changes — same design system, tighter copy inside it.
+
+## Files changed, this pass
+```
+M  app/(public)/training/[course]/page.tsx
+M  components/TrainingSection.tsx
+M  data/academy.ts
+```
+`npm run build` and `npm run lint` both clean (same 41 pre-existing lint problems as every prior pass today, none in touched files).
+
+## Still outstanding, this pass
+- Guide/reference pages (`career-tracks`, `salaries`, `certifications`, `case-studies`, `resources`) and the `spine` intro/closing text were not condensed — same "out of scope, separate future decision" status as their English-only translation state already noted above.
