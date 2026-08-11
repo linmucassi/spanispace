@@ -167,3 +167,36 @@ A  supabase/create-avatar-bucket.sql
 ## Still outstanding, this pass
 - None of the 4 new migrations have been run against the live Supabase project from here (no DB access in this environment) — see items 17-19 in `docs/ROADMAP.md#outstanding-production-migrations`. Until they run: saving LinkedIn/GitHub URLs or an avatar will error, education entries can't be added, and the preview page's education/social-link sections will simply stay empty rather than crash (all reads are `?? []`/optional-chained).
 - Not tested against a live Supabase project from here — the manual verification steps in the plan (split fields save independently; multiple education entries persist and delete independently; a pre-existing `university` value appears as a backfilled entry; avatar shows on both pages; preview reflects saved data for a candidate who has never applied anywhere) still need to be run by hand once deployed.
+
+---
+
+## Onboarding save bug, First/Last name, Netlify build warnings (later same day)
+
+Three unrelated reports in one message.
+
+**Onboarding save error.** User hit "We could not save your details. Please try again." on `/candidate/onboarding`. Traced the exact string to a single usage, `onboarding.error`, only referenced in that page's `handleSubmit`. Root-caused by comparison: that page called `.update({ full_name, phone }).eq('user_id', user.id)` on `candidate_profiles`, while `app/candidate/profile/page.tsx`'s own save handler uses `.upsert(..., { onConflict: 'user_id' })` for a documented reason (robustness against a missing row). A plain `.update()` against a nonexistent row doesn't itself raise a PostgREST error (it just silently affects zero rows), so the exact trigger for the *visible* error couldn't be confirmed without production logs this session doesn't have access to — but `.update()` was clearly the wrong tool regardless, since it can silently no-op and leave a candidate stuck in an infinite onboarding-redirect loop with no explanation. Switched to the same upsert pattern already proven on the profile page, and appended the raw Postgres error message to the on-screen text so if this recurs, the actual cause is visible instead of a dead end.
+
+**First Name / Last Name.** Split the single "Full Name" input into two, on the register form, `/candidate/onboarding`, and `/candidate/profile`. Scoped this deliberately to the UI layer: `candidate_profiles.full_name` stays one NOT NULL column, exactly as before. New `lib/name.ts` (`joinFullName`, `splitFullName`, split heuristically on the first space) joins the two inputs before every save and splits an existing value back apart for editing — including inside `CvAutofill`'s extraction flow on both pages, so a CV-derived name also lands correctly in the two fields. Chose this over an actual schema split (`first_name`/`last_name` columns) because `full_name` is read as a single display string in 7+ places (dashboard header, `CandidateSearch.tsx`, transactional emails, the new profile preview page) that would all need to change for no functional benefit over string concatenation — stated as a scoping decision rather than asked about, since the ripple-radius argument was decisive on its own.
+
+**Netlify build warnings.** Two separate items from a deploy log:
+- `⚠ The "middleware" file convention is deprecated. Please use "proxy" instead.` — read Next.js 16's own source (`node_modules/next/dist/build/analysis/get-page-static-info.js`) rather than guessing at the new API, since getting a routing-layer rename wrong is a bad place to be wrong. Confirmed the new convention is a root `proxy.ts` (or `src/proxy.ts`) exporting a function named `proxy` (default export also accepted) instead of `middleware`, same `config.matcher` export, same `NextRequest`/`NextResponse` signature. Renamed `middleware.ts` → `proxy.ts`, renamed the exported function; `lib/supabase/middleware.ts` (the actual session-refresh logic it calls into) is untouched, its filename isn't part of Next's special-file convention. Verified by rebuilding — the deprecation warning is gone from the output, and the route legend still correctly shows the proxy/middleware line.
+- `@netlify/plugin-nextjs@5.15.9: latest version is 5.15.13` — ran `npm install @netlify/plugin-nextjs@latest`, which bumped `package.json`'s range to `^5.15.13` and updated the lockfile.
+
+## Files changed, this pass
+```
+M  app/(auth)/register/page.tsx
+M  app/candidate/onboarding/page.tsx
+M  app/candidate/profile/page.tsx
+M  lib/i18n/en.ts
+M  lib/i18n/zu.ts
+M  package.json
+M  package-lock.json
+D  middleware.ts
+A  proxy.ts
+A  lib/name.ts
+```
+`npm run build` and `npm run lint` both clean — critically, the middleware-deprecation warning that appeared in every prior build this session is now absent. Same 41 pre-existing lint problems as every other pass today, none in touched files.
+
+## Still outstanding, this pass
+- The exact root cause of the onboarding save error was not confirmed against production logs (no access from here) — the upsert fix closes the most plausible failure mode (missing row) and is a strict improvement regardless, but if it recurs, the now-appended raw error message is what to read next.
+- `splitFullName`'s first-space heuristic is wrong for some real names (double-barrelled surnames, single-word names, names with no space) — it's an editable starting point on load, not a guarantee, same tradeoff already accepted elsewhere in this codebase (e.g. `handle_new_user`'s email-prefix fallback).

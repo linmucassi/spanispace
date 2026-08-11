@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useTranslation } from '@/lib/i18n/context';
+import { joinFullName, splitFullName } from '@/lib/name';
 import { Loader2 } from 'lucide-react';
 import CvAutofill, { type CvAutofillResult } from '@/components/candidate/CvAutofill';
 
@@ -30,7 +31,8 @@ export default function CandidateOnboardingPage() {
   const router = useRouter();
   const { t } = useTranslation();
 
-  const [fullName, setFullName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -61,7 +63,9 @@ export default function CandidateOnboardingPage() {
       // The Google name (or the email fallback) is pre-filled but editable --
       // this is the explicit "confirm/update your display name" step, not a
       // silent trigger default the candidate never sees.
-      setFullName(data?.full_name ?? '');
+      const { firstName: fn, lastName: ln } = splitFullName(data?.full_name ?? '');
+      setFirstName(fn);
+      setLastName(ln);
       setPhone(data?.phone ?? '');
       setLoading(false);
     }
@@ -89,14 +93,21 @@ export default function CandidateOnboardingPage() {
       return;
     }
 
+    // upsert, not update: a plain update silently touches zero rows (no
+    // error) if candidate_profiles has no row yet for this user, which then
+    // sent people back through this same gate forever with no visible cause.
+    // Matches the same upsert-by-user_id pattern app/candidate/profile/page.tsx
+    // already uses for exactly this reason.
     const { error: updateError } = await supabase
       .from('candidate_profiles')
-      .update({ full_name: fullName.trim(), phone: phone.trim() })
-      .eq('user_id', user.id);
+      .upsert(
+        { user_id: user.id, full_name: joinFullName(firstName, lastName), phone: phone.trim() },
+        { onConflict: 'user_id' }
+      );
 
     if (updateError) {
       console.error('[onboarding] could not save profile:', updateError.message);
-      setError(t('onboarding.error'));
+      setError(`${t('onboarding.error')} (${updateError.message})`);
       setSaving(false);
       return;
     }
@@ -109,7 +120,11 @@ export default function CandidateOnboardingPage() {
   // those two fields -- the rest of what CvAutofill finds (skills, work
   // history) is available again from the full profile page later.
   function handleExtracted(result: CvAutofillResult) {
-    if (result.full_name) setFullName(result.full_name);
+    if (result.full_name) {
+      const { firstName: fn, lastName: ln } = splitFullName(result.full_name);
+      setFirstName(fn);
+      setLastName(ln);
+    }
     if (result.phone) setPhone(result.phone);
   }
 
@@ -132,18 +147,33 @@ export default function CandidateOnboardingPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-6">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              {t('auth.fullName')}
-            </label>
-            <input
-              type="text"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              required
-              className="block w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
-              placeholder={t('auth.fullNamePlaceholder')}
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                {t('auth.firstName')}
+              </label>
+              <input
+                type="text"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                required
+                className="block w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
+                placeholder={t('auth.firstNamePlaceholder')}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                {t('auth.lastName')}
+              </label>
+              <input
+                type="text"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                required
+                className="block w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
+                placeholder={t('auth.lastNamePlaceholder')}
+              />
+            </div>
           </div>
 
           <div>

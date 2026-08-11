@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { normalizeUrl } from '@/lib/normalizeUrl';
+import { joinFullName, splitFullName } from '@/lib/name';
 import DocumentLibrary from '@/components/candidate/DocumentLibrary';
 import WorkExperience, { type WorkExperienceEntry } from '@/components/candidate/WorkExperience';
 import Education from '@/components/candidate/Education';
@@ -39,6 +40,10 @@ const emptyProfile: ProfileData = {
 
 export default function CandidateProfilePage() {
   const [profile, setProfile] = useState<ProfileData>(emptyProfile);
+  // full_name stays one column in the DB (see lib/name.ts) -- these two are
+  // UI-only, kept in sync with profile.full_name on every change.
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [userId, setUserId] = useState<string | null>(null);
   const [skillInput, setSkillInput] = useState('');
@@ -74,6 +79,9 @@ export default function CandidateProfilePage() {
     if (error) console.error('[profile] load error:', error.message);
 
     if (data) {
+      const { firstName: fn, lastName: ln } = splitFullName(data.full_name ?? '');
+      setFirstName(fn);
+      setLastName(ln);
       setProfile({
         full_name: data.full_name ?? '',
         phone: data.phone ?? '',
@@ -95,6 +103,15 @@ export default function CandidateProfilePage() {
 
   function handleChange(field: keyof ProfileData, value: string | null) {
     setProfile((prev) => ({ ...prev, [field]: value }));
+    setFeedback(null);
+  }
+
+  function handleNameChange(part: 'first' | 'last', value: string) {
+    const nextFirst = part === 'first' ? value : firstName;
+    const nextLast = part === 'last' ? value : lastName;
+    if (part === 'first') setFirstName(value);
+    else setLastName(value);
+    setProfile((prev) => ({ ...prev, full_name: joinFullName(nextFirst, nextLast) }));
     setFeedback(null);
   }
 
@@ -233,6 +250,11 @@ export default function CandidateProfilePage() {
   // component is remounted via workRefreshKey so it reloads and shows them --
   // simpler than teaching that self-contained component a new prop.
   async function handleCvExtracted(result: CvAutofillResult) {
+    if (result.full_name?.trim()) {
+      const { firstName: fn, lastName: ln } = splitFullName(result.full_name.trim());
+      setFirstName(fn);
+      setLastName(ln);
+    }
     setProfile((prev) => ({
       ...prev,
       full_name: result.full_name?.trim() || prev.full_name,
@@ -334,14 +356,27 @@ export default function CandidateProfilePage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                Full Name
+                First Name
               </label>
               <input
                 type="text"
-                value={profile.full_name}
-                onChange={(e) => handleChange('full_name', e.target.value)}
+                value={firstName}
+                onChange={(e) => handleNameChange('first', e.target.value)}
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
-                placeholder="e.g. Thabo Mokoena"
+                placeholder="e.g. Thabo"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Last Name
+              </label>
+              <input
+                type="text"
+                value={lastName}
+                onChange={(e) => handleNameChange('last', e.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
+                placeholder="e.g. Mokoena"
               />
             </div>
 

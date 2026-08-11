@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { useTranslation } from '@/lib/i18n/context';
+import { joinFullName } from '@/lib/name';
 import { Loader2 } from 'lucide-react';
 
 type Tab = 'candidate' | 'company';
@@ -34,7 +35,8 @@ export default function RegisterPage() {
   const [location, setLocation] = useState('');
 
   // Candidate fields
-  const [fullName, setFullName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
 
   // Company fields
@@ -45,7 +47,8 @@ export default function RegisterPage() {
     setEmail('');
     setPassword('');
     setLocation('');
-    setFullName('');
+    setFirstName('');
+    setLastName('');
     setPhone('');
     setCompanyName('');
     setIndustry('');
@@ -96,7 +99,7 @@ export default function RegisterPage() {
 
     const metadata =
       tab === 'candidate'
-        ? { role: 'candidate', full_name: fullName, phone, location }
+        ? { role: 'candidate', full_name: joinFullName(firstName, lastName), phone, location }
         : { role: 'company', company_name: companyName, industry, location };
 
     const { data, error: signUpError } = await supabase.auth.signUp({
@@ -207,21 +210,34 @@ export default function RegisterPage() {
         <form onSubmit={handleRegister} className="space-y-4">
           {/* Candidate-specific fields */}
           {tab === 'candidate' && (
-            <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
-                  {t('auth.fullName')}
+                  {t('auth.firstName')}
                 </label>
                 <input
                   type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
                   required
                   className="block w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
-                  placeholder={t('auth.fullNamePlaceholder')}
+                  placeholder={t('auth.firstNamePlaceholder')}
                 />
               </div>
-            </>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  {t('auth.lastName')}
+                </label>
+                <input
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  required
+                  className="block w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
+                  placeholder={t('auth.lastNamePlaceholder')}
+                />
+              </div>
+            </div>
           )}
 
           {/* Company-specific fields */}
