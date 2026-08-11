@@ -9,21 +9,19 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: '/',
     display: 'standalone',
     background_color: '#ffffff',
-    theme_color: '#0f172a',
+    // Matches the hero background and the browser theme colour, so the install
+    // splash and the phone status bar are the brand navy, not slate.
+    theme_color: '#0b1a2e',
     orientation: 'portrait-primary',
     categories: ['education', 'productivity', 'business'],
+    // A real icon set. The old array had one 300x72 wordmark, which is not
+    // square, so an installed shortcut showed a letterboxed strip, and the
+    // maskable slot Android needs was absent, so it fell back to a screenshot.
     icons: [
-      {
-        src: '/assets/new-logo.png',
-        sizes: '300x72',
-        type: 'image/png',
-        purpose: 'any',
-      },
-      {
-        src: '/favicon.ico',
-        sizes: '64x64 32x32 24x24 16x16',
-        type: 'image/x-icon',
-      },
+      { src: '/favicon.ico', sizes: '48x48', type: 'image/x-icon' },
+      { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: '/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
     ],
   };
 }
