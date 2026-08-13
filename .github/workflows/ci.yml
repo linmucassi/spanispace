@@ -1,0 +1,61 @@
+name: CI
+
+# Runs on every PR into staging or main, and on every push to staging (so
+# staging itself always reflects a green build, not just each individual PR
+# at merge time). Pair this with branch protection on main (Settings >
+# Branches > require this check to pass before merging) so a broken build
+# can't reach production even if a reviewer approves it by mistake.
+on:
+  pull_request:
+    branches: [staging, main]
+  push:
+    branches: [staging]
+
+jobs:
+  checks:
+    name: Typecheck, lint, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      # Non-blocking for now: the repo already has ~22 pre-existing lint
+      # errors as of 13 Aug 2026 (react-hooks/set-state-in-effect in several
+      # sidebars/i18n context, a couple of no-explicit-any), unrelated to any
+      # change that added this workflow. Making lint required today would
+      # block every PR immediately on unrelated debt. Once that's cleaned up,
+      # drop continue-on-error so lint becomes a real gate like typecheck/build.
+      - name: Lint (informational only)
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Build
+        run: npm run build
+        env:
+          # Same secrets the other workflows use, plus the two NEXT_PUBLIC_
+          # ones the build needs to prerender any page that touches Supabase.
+          # If these aren't set as repo secrets, the build still succeeds --
+          # lib/supabase/client.ts and server.ts treat a missing URL/key as
+          # "Supabase not configured" rather than throwing, same as local dev
+          # without .env.local.
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
