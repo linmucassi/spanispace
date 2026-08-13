@@ -13,13 +13,18 @@ import type { NextConfig } from "next";
 //   connect-src      every network call the app makes: itself, Supabase over
 //                    https and wss, and Resend. An injected exfil-to-evil.com
 //                    fetch is refused.
-//   img-src          self, data URIs, and the two image hosts next/image trusts
+//   img-src          self, data URIs, blob URIs (client-side canvas resizing
+//                    reads the picked file via URL.createObjectURL before
+//                    upload -- AvatarUpload.tsx), the Supabase project
+//                    (avatars/CVs are served straight from Storage, no
+//                    next/image proxy in front of them), and the two image
+//                    hosts next/image trusts
 //   frame-ancestors  nobody can iframe the site, the header twin of XFO
 //   base-uri/object  shut off two classic injection vectors
 //   form-action      a form may only post to us and to Netlify Forms
 const csp = [
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.resend.com",
-  "img-src 'self' data: https://upload.wikimedia.org https://picsum.photos",
+  "img-src 'self' data: blob: https://*.supabase.co https://upload.wikimedia.org https://picsum.photos",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "object-src 'none'",

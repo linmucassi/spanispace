@@ -34,7 +34,6 @@ type CandidateRow = {
   phone: string | null
   location: string | null
   skills: string[] | null
-  cv_url: string | null
   portfolio_url: string | null
   linkedin_url: string | null
   github_url: string | null
@@ -49,7 +48,7 @@ async function main() {
 
   const { data: candidates, error } = await supabase
     .from('candidate_profiles')
-    .select('user_id, full_name, phone, location, skills, cv_url, portfolio_url, linkedin_url, github_url, professional_summary, profile_score, created_at')
+    .select('user_id, full_name, phone, location, skills, portfolio_url, linkedin_url, github_url, professional_summary, profile_score, created_at')
     .lt('profile_score', PROFILE_COMPLETE_THRESHOLD)
     .lte('created_at', cutoff)
     .not('user_id', 'is', null)
@@ -58,6 +57,15 @@ async function main() {
     console.error('[profile-nudges] Failed to load incomplete profiles:', error.message)
     process.exit(1)
   }
+
+  // The CV lives in candidate_documents (multi-document library), not
+  // candidate_profiles.cv_url -- that column predates the library and
+  // nothing writes to it anymore.
+  const { data: cvDocs } = await supabase
+    .from('candidate_documents')
+    .select('user_id')
+    .eq('doc_type', 'cv')
+  const cvUserIds = new Set((cvDocs ?? []).map((d) => d.user_id))
 
   const dedupeKey = isoWeekKey()
   let queued = 0
@@ -75,7 +83,7 @@ async function main() {
       recipient_email: user.email,
       type: 'profile_nudge',
       dedupe_key: dedupeKey,
-      payload: { missingFields: missingProfileFields(candidate) },
+      payload: { missingFields: missingProfileFields({ ...candidate, hasCv: cvUserIds.has(candidate.user_id) }) },
     })
 
     if (insertError && insertError.code !== '23505') {

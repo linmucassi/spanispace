@@ -1,14 +1,24 @@
+// Reads an already-uploaded CV (a candidate_documents row, PDF only -- same
+// upload path as app/api/cv-extract/route.ts) and asks Claude for both a
+// human-readable audit (score/strengths/improvements/quick wins) and the
+// same structured profile fields cv-extract returns, in one call, so a
+// single upload can both show feedback and offer to fill the profile.
+//
+// This endpoint used to take pasted cvText instead of an upload. Changed
+// because a paste box can't do the second half of this job -- populating the
+// profile needs an actual document, and every other CV-reading flow in the
+// app (CvAutofill.tsx, the onboarding page) already works from an upload,
+// not pasted text.
+
 import Anthropic from '@anthropic-ai/sdk';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-// Best-effort, in-memory rate limit. This resets per serverless instance and is
-// not a hard guarantee, but it blunts a runaway loop from a single caller. For a
-// durable limit across instances, back this with Upstash Ratelimit or Netlify KV.
+// Same per-instance, best-effort limiter pattern as cv-extract. This now
+// attaches a full PDF like that endpoint does, so it uses the same tighter
+// window rather than the old text-only limit.
 const WINDOW_MS = 60 * 60 * 1000; // 1 hour
-const MAX_PER_WINDOW = 8;
+const MAX_PER_WINDOW = 5;
 const hits = new Map<string, number[]>();
 
 function rateLimited(key: string): boolean {
@@ -24,8 +34,13 @@ function rateLimited(key: string): boolean {
 }
 
 export async function POST(request: NextRequest) {
-  // Require an authenticated session. This endpoint calls a paid model, so it
-  // must sit behind the same trust boundary as the /candidate/cv-audit page.
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return NextResponse.json(
+      { error: 'The CV audit is not configured yet. Please try again later.' },
+      { status: 503 },
+    );
+  }
+
   const supabase = await createServerSupabase();
   if (!supabase) {
     return NextResponse.json({ error: 'Service unavailable.' }, { status: 503 });
@@ -45,30 +60,65 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json().catch(() => null);
-  if (!body || typeof body.cvText !== 'string') {
-    return NextResponse.json({ error: 'Missing cvText.' }, { status: 400 });
+  if (!body || typeof body.documentId !== 'string') {
+    return NextResponse.json({ error: 'Missing documentId.' }, { status: 400 });
   }
 
-  const { cvText } = body;
+  // RLS ("Candidates manage own documents") means this simply returns nothing
+  // if the row belongs to someone else -- no separate ownership check needed.
+  const { data: document, error: docError } = await supabase
+    .from('candidate_documents')
+    .select('name, file_url')
+    .eq('id', body.documentId)
+    .maybeSingle();
 
-  if (cvText.trim().length < 50) {
-    return NextResponse.json({ error: 'CV text is too short (minimum 50 characters).' }, { status: 400 });
+  if (docError || !document) {
+    return NextResponse.json({ error: 'Could not find that document.' }, { status: 404 });
   }
-  if (cvText.length > 8000) {
-    return NextResponse.json({ error: 'CV text is too long (maximum 8,000 characters).' }, { status: 400 });
+
+  const isPdf = document.file_url.toLowerCase().endsWith('.pdf') || document.name.toLowerCase().endsWith('.pdf');
+  if (!isPdf) {
+    return NextResponse.json(
+      { error: 'The CV audit currently only reads PDF files. Please upload your CV as a PDF.' },
+      { status: 400 },
+    );
   }
+
+  let base64: string;
+  try {
+    const fileRes = await fetch(document.file_url);
+    if (!fileRes.ok) throw new Error(`storage fetch failed: ${fileRes.status}`);
+    const bytes = await fileRes.arrayBuffer();
+    base64 = Buffer.from(bytes).toString('base64');
+  } catch (err) {
+    console.error('[cv-audit] could not read uploaded file:', err instanceof Error ? err.message : err);
+    return NextResponse.json({ error: 'Could not read your uploaded CV. Please try again.' }, { status: 502 });
+  }
+
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
   try {
     const stream = await client.messages.stream({
       model: 'claude-opus-4-8',
-      max_tokens: 1500,
+      max_tokens: 4500,
       thinking: { type: 'adaptive' },
+      output_config: { effort: 'low' },
       messages: [
         {
           role: 'user',
-          content: `You are an expert South African career coach and CV reviewer specialising in the local job market.
+          content: [
+            {
+              type: 'document',
+              source: { type: 'base64', media_type: 'application/pdf', data: base64 },
+            },
+            {
+              type: 'text',
+              text: `You are an expert South African career coach and CV reviewer specialising in the local job market. Do two things with the attached CV:
 
-Analyse the CV below and return ONLY a valid JSON object. No markdown, no explanation, no code fences. Use this exact shape:
+1. Audit it: score it, highlight strengths, and give specific, actionable improvements.
+2. Extract what is actually written in it, for pre-filling a job-seeker profile. Never invent a name, employer, date or skill that is not present -- use null (or an empty array) for anything not on the page.
+
+Return ONLY a valid JSON object, no markdown, no code fences, in this exact shape:
 {
   "score": <integer 1 to 10>,
   "headline": "<one sentence overall verdict>",
@@ -78,19 +128,44 @@ Analyse the CV below and return ONLY a valid JSON object. No markdown, no explan
     {"area": "<area>", "suggestion": "<actionable suggestion>"},
     {"area": "<area>", "suggestion": "<actionable suggestion>"}
   ],
-  "quickWins": ["<quick win 1>", "<quick win 2>", "<quick win 3>"]
-}
-
-CV:
-${cvText.trim()}`,
+  "quickWins": ["<quick win 1>", "<quick win 2>", "<quick win 3>"],
+  "extracted": {
+    "full_name": "<string or null>",
+    "phone": "<string or null>",
+    "location": "<string or null, city/town and province if given>",
+    "linkedin_url": "<string or null, only if a LinkedIn URL is actually printed on the CV>",
+    "github_url": "<string or null, only if a GitHub URL is actually printed on the CV>",
+    "skills": ["<skill>", ...],
+    "professional_summary": "<a short professional summary in 2 to 3 sentences, or null if there is not enough to summarise>",
+    "work_experience": [
+      {
+        "job_title": "<string>",
+        "employer": "<string or null>",
+        "work_type": "<one of: formal, informal, piece_job, part_time, volunteer, self_employed, your best judgement if not explicit>",
+        "location": "<string or null>",
+        "duration_text": "<string or null, as written, e.g. 'Jan 2022 to Mar 2023' or '3 months'>",
+        "duties": "<string or null, one or two sentences>",
+        "skills_gained": ["<skill>", ...]
+      }
+    ]
+  }
+}`,
+            },
+          ],
         },
       ],
     });
 
     const message = await stream.finalMessage();
+    if (message.stop_reason === 'max_tokens') {
+      return NextResponse.json(
+        { error: 'Your CV produced more than we could read in one go. Please try again.' },
+        { status: 502 },
+      );
+    }
+
     const textBlock = message.content.find((b) => b.type === 'text');
     const raw = textBlock?.type === 'text' ? textBlock.text.trim() : '';
-
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       return NextResponse.json({ error: 'Analysis failed, could not parse the response.' }, { status: 502 });

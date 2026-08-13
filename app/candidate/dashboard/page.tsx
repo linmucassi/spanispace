@@ -47,13 +47,23 @@ export default async function CandidateDashboard() {
   // Fetch candidate profile
   const { data: profile } = await supabase
     .from('candidate_profiles')
-    .select('id, full_name, profile_score, phone, location, skills, cv_url, portfolio_url, linkedin_url, github_url, avatar_url, professional_summary')
+    .select('id, full_name, profile_score, phone, location, skills, portfolio_url, linkedin_url, github_url, avatar_url, professional_summary')
     .eq('user_id', user.id)
     .maybeSingle();
 
   const candidateId = profile?.id;
   const fullName = profile?.full_name ?? user.email?.split('@')[0] ?? 'there';
   const profileScore = profile?.profile_score ?? 0;
+
+  // The CV lives in candidate_documents (multi-document library), not
+  // candidate_profiles.cv_url -- that column predates the library and
+  // nothing writes to it anymore.
+  const { count: cvCount } = await supabase
+    .from('candidate_documents')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .eq('doc_type', 'cv');
+  const hasCv = (cvCount ?? 0) > 0;
 
   // Fetch applications
   let totalApplications = 0;
@@ -201,7 +211,7 @@ export default async function CandidateDashboard() {
 
       <ProfileCompletenessCard
         profileScore={profileScore}
-        profile={profile ?? {}}
+        profile={{ ...(profile ?? {}), hasCv }}
         hasApplied={totalApplications > 0}
       />
 
