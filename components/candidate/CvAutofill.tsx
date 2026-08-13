@@ -14,6 +14,7 @@
 import { useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { WORK_TYPE_LABELS } from './WorkExperience';
+import PhoneInput from '@/components/PhoneInput';
 import { FileUp, Loader2, X } from 'lucide-react';
 
 export interface CvAutofillWorkEntry {
@@ -255,11 +256,9 @@ export default function CvAutofill({
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Phone</label>
-              <input
-                type="tel"
+              <PhoneInput
                 value={result.phone ?? ''}
-                onChange={(e) => setResult((prev) => ({ ...prev, phone: e.target.value }))}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 bg-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
+                onChange={(value) => setResult((prev) => ({ ...prev, phone: value }))}
               />
             </div>
             <div className="sm:col-span-2">

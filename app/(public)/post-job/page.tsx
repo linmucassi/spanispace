@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useTranslation } from '@/lib/i18n/context';
 import { submitNetlifyForm } from '@/lib/netlifyForms';
+import PhoneInput from '@/components/PhoneInput';
 
 export default function PostJobPage() {
   const { t } = useTranslation();
@@ -120,14 +121,13 @@ export default function PostJobPage() {
               <label className="block text-sm font-medium text-ink-700 mb-1">
                 {t('postJob.phone')} *
               </label>
-              <input
-                name="phone"
-                type="tel"
+              <PhoneInput
                 value={form.phone}
-                onChange={handleChange}
+                onChange={(value) => setForm({ ...form, phone: value })}
                 required
-                placeholder="+27 82 123 4567"
-                className="block w-full rounded-xl border border-ink-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
+                containerClassName="rounded-xl border border-ink-200 focus-within:border-brand-500 focus-within:ring-1 focus-within:ring-brand-500"
+                inputClassName="px-4 py-3"
+                prefixClassName="px-4"
               />
             </div>
 
@@ -136,12 +136,12 @@ export default function PostJobPage() {
               <label className="block text-sm font-medium text-ink-700 mb-1">
                 {t('postJob.whatsapp')}
               </label>
-              <input
-                name="whatsapp"
-                type="tel"
+              <PhoneInput
                 value={form.whatsapp}
-                onChange={handleChange}
-                className="block w-full rounded-xl border border-ink-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
+                onChange={(value) => setForm({ ...form, whatsapp: value })}
+                containerClassName="rounded-xl border border-ink-200 focus-within:border-brand-500 focus-within:ring-1 focus-within:ring-brand-500"
+                inputClassName="px-4 py-3"
+                prefixClassName="px-4"
               />
             </div>
 

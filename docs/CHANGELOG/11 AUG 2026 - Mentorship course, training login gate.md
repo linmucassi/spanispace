@@ -200,3 +200,37 @@ A  lib/name.ts
 ## Still outstanding, this pass
 - The exact root cause of the onboarding save error was not confirmed against production logs (no access from here) — the upsert fix closes the most plausible failure mode (missing row) and is a strict improvement regardless, but if it recurs, the now-appended raw error message is what to read next.
 - `splitFullName`'s first-space heuristic is wrong for some real names (double-barrelled surnames, single-word names, names with no space) — it's an editable starting point on load, not a guarantee, same tradeoff already accepted elsewhere in this codebase (e.g. `handle_new_user`'s email-prefix fallback).
+
+---
+
+## +27-prefixed phone inputs, everywhere (later same day)
+
+User asked to make "+27" a fixed prefix on phone number fields and only let the candidate type the 9 digits after it. Found 7 files with a `type="tel"` input (`grep -rl 'type="tel"'`) and applied the same treatment to all of them, on the reasoning that every one is genuinely a South African mobile number and a half-converted site would be more confusing than a fully consistent one:
+
+- Candidate portal: `app/(auth)/register/page.tsx` (candidate phone), `app/candidate/onboarding/page.tsx`, `app/candidate/profile/page.tsx` (Phone and WhatsApp), `components/candidate/CvAutofill.tsx`'s review form, `components/candidate/WorkExperience.tsx`'s reference phone.
+- Public forms: `app/(public)/jobs/[id]/apply/ApplyForm.tsx` (phone and WhatsApp), `app/(public)/post-job/page.tsx` (phone and WhatsApp).
+
+New `components/PhoneInput.tsx`: a fixed "+27" chip followed by a field that strips non-digits and caps at 9 characters as the candidate types, rather than accepting anything and validating after the fact. New `lib/phone.ts` holds the two conversions — `toSaPhone(localDigits)` joins the 9 digits back into the stored `+27XXXXXXXXX` form, and `toSaLocalDigits(value)` best-effort re-derives the 9 digits from whatever format a value is already in (`"071 234 5678"`, `"+27 82 123 4567"`, a bare `"821234567"`), so existing data — including the two different placeholder formats this codebase had been showing across different forms — still displays cleanly in the new input rather than looking broken for every account that already has a phone number saved.
+
+Two different wiring patterns existed across these 7 files: five use per-field `useState` (`value`/`onChange` pairs), two (`ApplyForm.tsx`, `post-job/page.tsx`) use a single flat `form` object with one generic `handleChange(e)` keyed by `e.target.name`. `PhoneInput` emits a plain string, not an event, so the generic-handler sites get a small inline `onChange={(value) => setForm({ ...form, phone: value })}` instead of passing `handleChange` directly — everywhere else it drops straight in as `onChange={setPhone}` or equivalent.
+
+Visual styling differs by area (candidate portal uses the `slate` color scale with `rounded-lg`/`rounded-xl` depending on the page; public forms use the `ink` scale) — `PhoneInput` takes `containerClassName`/`inputClassName`/`prefixClassName` overrides so each call site matches its surrounding form exactly rather than the component forcing one look everywhere.
+
+## Files changed, this pass
+```
+M  app/(auth)/register/page.tsx
+M  app/(public)/jobs/[id]/apply/ApplyForm.tsx
+M  app/(public)/post-job/page.tsx
+M  app/candidate/onboarding/page.tsx
+M  app/candidate/profile/page.tsx
+M  components/candidate/CvAutofill.tsx
+M  components/candidate/WorkExperience.tsx
+M  docs/ROADMAP.md
+A  components/PhoneInput.tsx
+A  lib/phone.ts
+```
+`npm run build` and `npm run lint` both clean. Same 41 pre-existing lint problems as every other pass today, none in touched files.
+
+## Still outstanding, this pass
+- Not tested against a live Supabase project from here — the manual check (existing saved phone numbers in a few different old formats still show their correct 9 digits in the new input; typing letters/spaces/an extra digit is silently ignored; a fresh save round-trips correctly) still needs to be run by hand once deployed.
+- Did not touch any admin-side phone fields, or `poster_phone` if it appears anywhere outside the two files found — scoped strictly to the 7 files the grep actually found.

@@ -365,6 +365,30 @@ AS $$
   );
 $$;
 
+-- ============================================================
+-- HELPER: Did this company receive an application from this candidate?
+-- (SECURITY DEFINER breaks RLS recursion)
+-- ============================================================
+-- Must be SECURITY DEFINER: "Candidates read own applications" on `applications`
+-- reaches back into candidate_profiles, so a plain EXISTS here (querying
+-- applications from a candidate_profiles policy) makes the two tables
+-- evaluate each other's policies forever.
+CREATE OR REPLACE FUNCTION public.company_has_applicant(p_candidate_id UUID)
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.applications a
+    JOIN public.jobs j ON j.id = a.job_id
+    JOIN public.company_profiles cp ON cp.id = j.company_id
+    WHERE a.candidate_id = p_candidate_id AND cp.user_id = auth.uid()
+  );
+$$;
+
 -- Public read for active content
 CREATE POLICY "Public read active jobs" ON jobs FOR SELECT USING (status = 'active');
 CREATE POLICY "Public read active trainings" ON trainings FOR SELECT USING (status IN ('active', 'completed') AND vetted_status = 'verified');
@@ -429,6 +453,10 @@ CREATE POLICY "Candidates insert own profile" ON candidate_profiles FOR INSERT W
 CREATE POLICY "Candidates manage own documents" ON candidate_documents FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Candidates read own profile" ON candidate_profiles FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Candidates update own profile" ON candidate_profiles FOR UPDATE USING (auth.uid() = user_id);
+-- A company can see the profiles of candidates who applied to its jobs, and only those.
+CREATE POLICY "Companies read applicant profiles" ON candidate_profiles FOR SELECT USING (
+  public.company_has_applicant(id)
+);
 CREATE POLICY "Companies insert own profile" ON company_profiles FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Companies read own profile" ON company_profiles FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Companies update own profile" ON company_profiles FOR UPDATE USING (auth.uid() = user_id);

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { useTranslation } from '@/lib/i18n/context';
 import { joinFullName } from '@/lib/name';
+import PhoneInput from '@/components/PhoneInput';
 import { Loader2 } from 'lucide-react';
 
 type Tab = 'candidate' | 'company';
@@ -296,13 +297,13 @@ export default function RegisterPage() {
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 {t('auth.phone')}
               </label>
-              <input
-                type="tel"
+              <PhoneInput
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={setPhone}
                 required
-                className="block w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
-                placeholder="+27 XX XXX XXXX"
+                containerClassName="rounded-xl border border-slate-300 focus-within:border-brand-500 focus-within:ring-1 focus-within:ring-brand-500"
+                inputClassName="px-4 py-3"
+                prefixClassName="px-4"
               />
             </div>
           )}

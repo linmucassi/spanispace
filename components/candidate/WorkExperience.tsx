@@ -7,6 +7,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import PhoneInput from '@/components/PhoneInput';
 import { Briefcase, Trash2, Plus } from 'lucide-react';
 
 export interface WorkExperienceEntry {
@@ -325,13 +326,9 @@ export default function WorkExperience({
               <label className="block text-xs font-medium text-slate-600 mb-1">
                 Reference phone
               </label>
-              <input
-                name="reference_phone"
-                type="tel"
+              <PhoneInput
                 value={form.reference_phone}
-                onChange={handleChange}
-                placeholder="e.g. 071 234 5678"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 bg-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
+                onChange={(value) => setForm({ ...form, reference_phone: value })}
               />
             </div>
           </div>

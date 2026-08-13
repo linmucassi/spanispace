@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { normalizeUrl } from '@/lib/normalizeUrl';
 import { joinFullName, splitFullName } from '@/lib/name';
+import PhoneInput from '@/components/PhoneInput';
 import DocumentLibrary from '@/components/candidate/DocumentLibrary';
 import WorkExperience, { type WorkExperienceEntry } from '@/components/candidate/WorkExperience';
 import Education from '@/components/candidate/Education';
@@ -396,12 +397,9 @@ export default function CandidateProfilePage() {
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 Phone
               </label>
-              <input
-                type="tel"
+              <PhoneInput
                 value={profile.phone}
-                onChange={(e) => handleChange('phone', e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
-                placeholder="e.g. 071 234 5678"
+                onChange={(value) => handleChange('phone', value)}
               />
             </div>
 
@@ -409,12 +407,9 @@ export default function CandidateProfilePage() {
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 WhatsApp
               </label>
-              <input
-                type="tel"
+              <PhoneInput
                 value={profile.whatsapp}
-                onChange={(e) => handleChange('whatsapp', e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
-                placeholder="e.g. 071 234 5678"
+                onChange={(value) => handleChange('whatsapp', value)}
               />
             </div>
 
