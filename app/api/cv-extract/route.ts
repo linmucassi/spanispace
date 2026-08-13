@@ -1,20 +1,31 @@
 // Reads an already-uploaded CV (a candidate_documents row, PDF only) and asks
-// Claude to pull structured profile fields out of it. Returns the parsed
+// Gemini to pull structured profile fields out of it. Returns the parsed
 // fields only -- it never writes to candidate_profiles or work_experiences
 // itself. The candidate reviews and edits the result client side, and their
 // own existing profile/onboarding save flow is what actually persists it.
 //
-// PDF only for v1: Claude reads a PDF natively as a document content block,
-// so there is no text-extraction library to add for that format. DOCX/DOC
-// still upload fine through components/candidate/DocumentLibrary.tsx for
-// storage, just not through this endpoint.
+// PDF only for v1: Gemini reads a PDF natively as inline document data, so
+// there is no text-extraction library to add for that format. DOCX/DOC still
+// upload fine through components/candidate/DocumentLibrary.tsx for storage,
+// just not through this endpoint.
+//
+// Runs on Gemini (gemini-2.5-flash), not Claude -- Google's Gemini API has a
+// genuine free tier (no billing method required) at the request volume this
+// app runs at; the AI CV Audit/autofill features previously ran on Claude via
+// ANTHROPIC_API_KEY, which has no comparable free tier. See 13 Aug 2026
+// changelog for the switch.
 
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenAI, ApiError } from '@google/genai';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 
-// Same per-instance, best-effort limiter pattern as /api/cv-audit. Tighter
-// window here since this call also attaches a full PDF, a heavier request.
+const MODEL = 'gemini-2.5-flash';
+
+// Same per-instance, best-effort limiter pattern as the other AI endpoints.
+// Kept at the same 5/hour-per-user ceiling as before the provider switch --
+// worth remembering this now also has to fit inside Gemini's shared, *project
+// wide* free-tier daily cap (around 250 requests/day at the time of writing),
+// not just this per-user limit.
 const WINDOW_MS = 60 * 60 * 1000; // 1 hour
 const MAX_PER_WINDOW = 5;
 const hits = new Map<string, number[]>();
@@ -32,7 +43,7 @@ function rateLimited(key: string): boolean {
 }
 
 export async function POST(request: NextRequest) {
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!process.env.GEMINI_API_KEY) {
     return NextResponse.json(
       { error: 'CV autofill is not configured yet. Please try again later.' },
       { status: 503 },
@@ -95,29 +106,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Could not read your uploaded CV. Please try again.' }, { status: 502 });
   }
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
   try {
-    // max_tokens is shared between adaptive thinking and the answer, so leave
-    // generous headroom, the same reasoning as /api/profile-summary.
-    const stream = await client.messages.stream({
-      model: 'claude-opus-4-8',
-      max_tokens: 4000,
-      thinking: { type: 'adaptive' },
-      output_config: { effort: 'low' },
-      messages: [
+    const response = await ai.models.generateContent({
+      model: MODEL,
+      contents: [
         {
           role: 'user',
-          content: [
+          parts: [
+            { inlineData: { mimeType: 'application/pdf', data: base64 } },
             {
-              type: 'document',
-              source: { type: 'base64', media_type: 'application/pdf', data: base64 },
-            },
-            {
-              type: 'text',
               text: `Read this CV and extract what is actually written in it. Never invent a name, employer, date or skill that is not present.
 
-Return ONLY a valid JSON object, no markdown, no code fences, in this exact shape:
+Return ONLY a valid JSON object in this exact shape:
 {
   "full_name": "<string or null>",
   "phone": "<string or null>",
@@ -144,18 +146,14 @@ If a field is not present in the CV, use null (or an empty array for lists). Do 
           ],
         },
       ],
+      config: {
+        maxOutputTokens: 4000,
+        responseMimeType: 'application/json',
+        thinkingConfig: { thinkingBudget: 0 },
+      },
     });
 
-    const message = await stream.finalMessage();
-    if (message.stop_reason === 'max_tokens') {
-      return NextResponse.json(
-        { error: 'Your CV produced more than we could read in one go. Please try again.' },
-        { status: 502 },
-      );
-    }
-
-    const textBlock = message.content.find((b) => b.type === 'text');
-    const raw = textBlock?.type === 'text' ? textBlock.text.trim() : '';
+    const raw = (response.text ?? '').trim();
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       return NextResponse.json(
@@ -174,7 +172,14 @@ If a field is not present in the CV, use null (or an empty array for lists). Do 
       );
     }
   } catch (err) {
+    const status = err instanceof ApiError ? err.status : undefined;
     console.error('[cv-extract] provider error:', err instanceof Error ? err.message : err);
+    if (status === 429) {
+      return NextResponse.json(
+        { error: 'CV autofill has hit its free-tier limit for now. Please try again shortly.' },
+        { status: 503 },
+      );
+    }
     return NextResponse.json(
       { error: 'CV autofill is temporarily unavailable. Please try again shortly.' },
       { status: 503 },

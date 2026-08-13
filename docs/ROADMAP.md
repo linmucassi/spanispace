@@ -26,8 +26,8 @@ The platform is live on Netlify with a full Next.js 16 + React 19 + Supabase sta
 | Legal | ✅ Live | POPIA-compliant Privacy Policy + SA Terms of Service |
 | Waitlist | ❌ Removed 9 Aug 2026 | Real registration/login replaced it — see below |
 | Job/event auto-refresh | ✅ Live | Daily GitHub Actions scraper (RemoteOK, Remotive, Adzuna, Eventbrite → Supabase) — not previously documented |
-| AI CV Audit | ✅ Live | Claude-powered CV review at `/candidate/cv-audit`. Upload-based since 13 Aug 2026 (was paste-only) — see changelog. |
-| AI profile-summary builder | ✅ Live | `POST /api/profile-summary`: turns a candidate's piece-job/informal `work_experiences` entries into a professional summary via Claude, auth-gated to the caller's own rows. Shipped alongside PR #3. Not previously documented. |
+| AI CV Audit | ✅ Live | Gemini-powered CV review at `/candidate/cv-audit`. Upload-based since 13 Aug 2026 (was paste-only); switched from Claude to Gemini the same day for its free tier — see changelog. |
+| AI profile-summary builder | ✅ Live | `POST /api/profile-summary`: turns a candidate's piece-job/informal `work_experiences` entries into a professional summary via Gemini (switched from Claude 13 Aug 2026, see changelog), auth-gated to the caller's own rows. Shipped alongside PR #3. Not previously documented. |
 | Mobile portal navigation | ✅ Live | All three portal sidebars (candidate/company/admin) now collapse to a hamburger drawer on mobile |
 | Error boundaries | ✅ Live | `error.tsx` present for public, candidate, company, and admin sections |
 | Loading skeletons | ✅ Live | Present on most dashboard/list routes across all portals |
@@ -147,7 +147,7 @@ Full pre-launch audit of the live site, 9 Aug 2026. Branch `fix/ship-check-launc
 
 - **Frontend:** Next.js 16.1.6 (App Router), React 19.2.3, TypeScript, Tailwind CSS 4
 - **Backend/DB:** Supabase (PostgreSQL + Auth + Storage + RLS)
-- **AI:** Anthropic Claude (CV audit today; interview simulator/matching planned)
+- **AI:** Google Gemini (CV audit, autofill, profile builder today; interview simulator/matching planned). Switched from Anthropic Claude 13 Aug 2026 for Gemini's free tier.
 - **Hosting:** Netlify
 - **Forms:** Netlify Forms (newsletter — **not** job applications, see above; waitlist removed 9 Aug 2026)
 - **Automation:** GitHub Actions daily scraper job (`.github/workflows/daily-scraper.yml`)

@@ -368,7 +368,7 @@ export default function CVAuditPage() {
             <p className="text-sm text-slate-500 -mt-2">
               We also pulled these details out of the same upload. Review and edit them, then
               save to add anything missing to your profile — nothing here overwrites a field
-              you've already filled in unless you change it below.
+              you&apos;ve already filled in unless you change it below.
             </p>
 
             <CvExtractedReview
@@ -428,7 +428,7 @@ export default function CVAuditPage() {
       <p className="text-xs text-slate-400 leading-relaxed border-t border-slate-100 pt-4">
         AI-generated feedback is for guidance only and does not guarantee employment outcomes.
         Your uploaded CV is stored in your document library like any other document you upload,
-        and the audit itself is processed by Anthropic&apos;s API.
+        and the audit itself is processed by Google&apos;s Gemini API.
       </p>
     </div>
   );

@@ -186,24 +186,33 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-ink-800 mb-3">10. AI CV Audit Feature</h2>
+            <h2 className="text-xl font-semibold text-ink-800 mb-3">10. AI CV Audit and Autofill Features</h2>
             <p className="text-ink-600 leading-relaxed mb-3">
-              Spanispace offers an optional AI-Driven CV Audit feature that allows candidates to paste
-              their CV text and receive automated feedback. When you use this feature:
+              Spanispace offers optional AI-driven features that read an uploaded CV: the CV Audit
+              (feedback and a score), CV autofill (pre-filling your profile from your CV), and the
+              professional-profile builder (turning your work history into a summary). When you use
+              any of these features:
             </p>
             <ul className="list-disc list-inside text-ink-600 space-y-2 ml-2">
               <li>
-                Your CV text is transmitted to Anthropic&apos;s API for processing. Anthropic&apos;s own
-                Privacy Policy governs how they handle this data. We do not store your CV text on our
-                servers beyond the duration of the API request.
+                Your uploaded CV, or the work history on your profile, is transmitted to Google&apos;s
+                Gemini API for processing. Google&apos;s own Privacy Policy governs how they handle
+                this data.
               </li>
               <li>
-                The audit is provided for guidance purposes only and does not constitute professional
-                career advice, nor does it guarantee any employment outcome.
+                A CV you upload for these features is stored the same way as any other document in
+                your My Documents section — see Section 11, Document Storage — not deleted after the
+                AI request completes.
+              </li>
+              <li>
+                The audit and any autofilled details are provided for guidance purposes only, do not
+                constitute professional career advice, and do not guarantee any employment outcome.
+                Autofilled and generated details are always shown to you for review before anything
+                is saved to your profile.
               </li>
               <li>
                 You should not include sensitive personal information such as your national ID number,
-                bank details, or medical history in text submitted for CV analysis.
+                bank details, or medical history on a CV submitted for analysis.
               </li>
             </ul>
           </section>

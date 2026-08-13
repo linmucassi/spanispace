@@ -3,15 +3,20 @@
 // promise: informal work counts, and it reads professionally here.
 //
 // Auth-gated: only signed-in candidates can call it (each request costs
-// Anthropic API credit), and it only ever reads the caller's own rows
-// through their RLS-scoped session.
+// Gemini API quota), and it only ever reads the caller's own rows through
+// their RLS-scoped session.
+//
+// Runs on Gemini (gemini-2.5-flash), not Claude -- see the note at the top of
+// app/api/cv-extract/route.ts for why (13 Aug 2026 changelog has the detail).
 
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenAI, ApiError } from '@google/genai';
 import { NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 
+const MODEL = 'gemini-2.5-flash';
+
 export async function POST() {
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!process.env.GEMINI_API_KEY) {
     return NextResponse.json(
       { error: 'The profile builder is not configured yet. Please try again later.' },
       { status: 503 },
@@ -75,25 +80,18 @@ export async function POST() {
     .join('\n')
     .slice(0, 6000);
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-  // max_tokens is shared between adaptive thinking and the answer, so leave
-  // generous headroom or the JSON can truncate mid-object.
-  const stream = await client.messages.stream({
-    model: 'claude-opus-4-8',
-    max_tokens: 4000,
-    thinking: { type: 'adaptive' },
-    output_config: { effort: 'low' },
-    messages: [
-      {
-        role: 'user',
-        content: `You are a South African career coach who specialises in helping people present informal work, piece jobs, part time work and side hustles as real professional experience. Many employers undervalue this work; your job is to make it read the way it deserves to.
+  try {
+    const response = await ai.models.generateContent({
+      model: MODEL,
+      contents: `You are a South African career coach who specialises in helping people present informal work, piece jobs, part time work and side hustles as real professional experience. Many employers undervalue this work; your job is to make it read the way it deserves to.
 
 Write a professional profile for this candidate based on their real work history below. Rules:
 - First person, confident but honest. Never invent employers, dates or qualifications.
 - Treat informal work with full respect: a car wash attendant manages customer relationships and cash; a spaza assistant runs stock and sales.
 - Plain professional English a local hiring manager respects. No jargon, no em dashes.
-- Return ONLY a valid JSON object, no markdown, no code fences, in this exact shape:
+- Return ONLY a valid JSON object in this exact shape:
 {
   "headline": "<one line professional headline, max 10 words>",
   "summary": "<a professional summary of 80 to 130 words>",
@@ -107,35 +105,43 @@ Self-listed skills: ${profile?.skills?.length ? profile.skills.join(', ') : 'Non
 
 Work history:
 ${experienceLines}`,
+      config: {
+        maxOutputTokens: 2000,
+        responseMimeType: 'application/json',
+        thinkingConfig: { thinkingBudget: 0 },
       },
-    ],
-  });
+    });
 
-  const message = await stream.finalMessage();
-  if (message.stop_reason === 'max_tokens') {
-    return NextResponse.json(
-      { error: 'The profile builder ran out of space. Please try again.' },
-      { status: 502 },
-    );
-  }
-  const textBlock = message.content.find((b) => b.type === 'text');
-  const raw = textBlock?.type === 'text' ? textBlock.text.trim() : '';
+    const raw = (response.text ?? '').trim();
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      return NextResponse.json(
+        { error: 'Could not build your profile this time. Please try again.' },
+        { status: 500 },
+      );
+    }
 
-  const jsonMatch = raw.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
+    try {
+      const parsed = JSON.parse(jsonMatch[0]);
+      return NextResponse.json(parsed);
+    } catch {
+      return NextResponse.json(
+        { error: 'Could not build your profile this time. Please try again.' },
+        { status: 500 },
+      );
+    }
+  } catch (err) {
+    const status = err instanceof ApiError ? err.status : undefined;
+    console.error('[profile-summary] provider error:', err instanceof Error ? err.message : err);
+    if (status === 429) {
+      return NextResponse.json(
+        { error: 'The profile builder has hit its free-tier limit for now. Please try again shortly.' },
+        { status: 503 },
+      );
+    }
     return NextResponse.json(
-      { error: 'Could not build your profile this time. Please try again.' },
-      { status: 500 },
-    );
-  }
-
-  try {
-    const parsed = JSON.parse(jsonMatch[0]);
-    return NextResponse.json(parsed);
-  } catch {
-    return NextResponse.json(
-      { error: 'Could not build your profile this time. Please try again.' },
-      { status: 500 },
+      { error: 'The profile builder ran into a problem. Please try again shortly.' },
+      { status: 503 },
     );
   }
 }

@@ -1,5 +1,5 @@
 // Reads an already-uploaded CV (a candidate_documents row, PDF only -- same
-// upload path as app/api/cv-extract/route.ts) and asks Claude for both a
+// upload path as app/api/cv-extract/route.ts) and asks Gemini for both a
 // human-readable audit (score/strengths/improvements/quick wins) and the
 // same structured profile fields cv-extract returns, in one call, so a
 // single upload can both show feedback and offer to fill the profile.
@@ -9,14 +9,19 @@
 // profile needs an actual document, and every other CV-reading flow in the
 // app (CvAutofill.tsx, the onboarding page) already works from an upload,
 // not pasted text.
+//
+// Runs on Gemini (gemini-2.5-flash), not Claude -- see the note at the top of
+// app/api/cv-extract/route.ts for why (13 Aug 2026 changelog has the detail).
 
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenAI, ApiError } from '@google/genai';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 
-// Same per-instance, best-effort limiter pattern as cv-extract. This now
-// attaches a full PDF like that endpoint does, so it uses the same tighter
-// window rather than the old text-only limit.
+const MODEL = 'gemini-2.5-flash';
+
+// Same per-instance, best-effort limiter pattern as cv-extract. This attaches
+// a full PDF like that endpoint does, so it uses the same tighter window
+// rather than a looser text-only limit.
 const WINDOW_MS = 60 * 60 * 1000; // 1 hour
 const MAX_PER_WINDOW = 5;
 const hits = new Map<string, number[]>();
@@ -34,7 +39,7 @@ function rateLimited(key: string): boolean {
 }
 
 export async function POST(request: NextRequest) {
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!process.env.GEMINI_API_KEY) {
     return NextResponse.json(
       { error: 'The CV audit is not configured yet. Please try again later.' },
       { status: 503 },
@@ -95,30 +100,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Could not read your uploaded CV. Please try again.' }, { status: 502 });
   }
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
   try {
-    const stream = await client.messages.stream({
-      model: 'claude-opus-4-8',
-      max_tokens: 4500,
-      thinking: { type: 'adaptive' },
-      output_config: { effort: 'low' },
-      messages: [
+    const response = await ai.models.generateContent({
+      model: MODEL,
+      contents: [
         {
           role: 'user',
-          content: [
+          parts: [
+            { inlineData: { mimeType: 'application/pdf', data: base64 } },
             {
-              type: 'document',
-              source: { type: 'base64', media_type: 'application/pdf', data: base64 },
-            },
-            {
-              type: 'text',
               text: `You are an expert South African career coach and CV reviewer specialising in the local job market. Do two things with the attached CV:
 
 1. Audit it: score it, highlight strengths, and give specific, actionable improvements.
 2. Extract what is actually written in it, for pre-filling a job-seeker profile. Never invent a name, employer, date or skill that is not present -- use null (or an empty array) for anything not on the page.
 
-Return ONLY a valid JSON object, no markdown, no code fences, in this exact shape:
+Return ONLY a valid JSON object in this exact shape:
 {
   "score": <integer 1 to 10>,
   "headline": "<one sentence overall verdict>",
@@ -154,18 +152,14 @@ Return ONLY a valid JSON object, no markdown, no code fences, in this exact shap
           ],
         },
       ],
+      config: {
+        maxOutputTokens: 4500,
+        responseMimeType: 'application/json',
+        thinkingConfig: { thinkingBudget: 0 },
+      },
     });
 
-    const message = await stream.finalMessage();
-    if (message.stop_reason === 'max_tokens') {
-      return NextResponse.json(
-        { error: 'Your CV produced more than we could read in one go. Please try again.' },
-        { status: 502 },
-      );
-    }
-
-    const textBlock = message.content.find((b) => b.type === 'text');
-    const raw = textBlock?.type === 'text' ? textBlock.text.trim() : '';
+    const raw = (response.text ?? '').trim();
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       return NextResponse.json({ error: 'Analysis failed, could not parse the response.' }, { status: 502 });
@@ -178,7 +172,14 @@ Return ONLY a valid JSON object, no markdown, no code fences, in this exact shap
       return NextResponse.json({ error: 'Analysis failed, the response was not valid JSON.' }, { status: 502 });
     }
   } catch (err) {
+    const status = err instanceof ApiError ? err.status : undefined;
     console.error('[cv-audit] provider error:', err instanceof Error ? err.message : err);
+    if (status === 429) {
+      return NextResponse.json(
+        { error: 'The CV audit has hit its free-tier limit for now. Please try again shortly.' },
+        { status: 503 },
+      );
+    }
     return NextResponse.json(
       { error: 'The CV audit is temporarily unavailable. Please try again shortly.' },
       { status: 503 },

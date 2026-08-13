@@ -11,7 +11,7 @@
     "auto-apply-match": "tsx scripts/run-auto-apply-matcher.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.106.0",
+    "@google/genai": "^2.17.0",
     "@hookform/resolvers": "^5.2.2",
     "@supabase/ssr": "^0.9.0",
     "@supabase/supabase-js": "^2.100.0",

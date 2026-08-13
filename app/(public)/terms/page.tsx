@@ -165,11 +165,12 @@ export default function TermsOfServicePage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-ink-800 mb-3">12. AI CV Audit, Accuracy Disclaimer</h2>
+            <h2 className="text-xl font-semibold text-ink-800 mb-3">12. AI CV Features, Accuracy Disclaimer</h2>
             <p className="text-ink-600 leading-relaxed">
-              The AI-Driven CV Audit feature uses large language model technology to generate
-              automated feedback on CV text submitted by candidates. By using this feature, you
-              acknowledge and agree that:
+              The AI-driven CV Audit, CV autofill, and professional-profile builder features use
+              large language model technology to generate automated feedback and suggested profile
+              details from a CV or work history a candidate uploads or has already entered. By using
+              any of these features, you acknowledge and agree that:
             </p>
             <ul className="list-disc list-inside text-ink-600 space-y-2 ml-2 mt-3">
               <li>
@@ -186,8 +187,8 @@ export default function TermsOfServicePage() {
                 career decisions.
               </li>
               <li>
-                Your CV text is processed by Anthropic&apos;s API. By submitting your CV for analysis,
-                you consent to this processing as described in our Privacy Policy.
+                Your CV, or your work history, is processed by Google&apos;s Gemini API. By using these
+                features, you consent to this processing as described in our Privacy Policy.
               </li>
             </ul>
           </section>
