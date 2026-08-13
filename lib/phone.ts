@@ -16,8 +16,14 @@ function digitsOnly(value: string): string {
  * Best effort, not validation.
  */
 export function toSaLocalDigits(value: string | null | undefined): string {
-  let digits = digitsOnly(value ?? '');
-  if (digits.startsWith('27') && digits.length > 9) digits = digits.slice(2);
+  const raw = (value ?? '').trim();
+  let digits = digitsOnly(raw);
+  if (raw.startsWith('+27')) {
+    // Always a country-code prefix here, regardless of how many local
+    // digits follow -- this is what toSaPhone() emits on every keystroke,
+    // so this branch can't gate on total length like the others below.
+    digits = digits.slice(2);
+  } else if (digits.startsWith('27') && digits.length > 9) digits = digits.slice(2);
   else if (digits.startsWith('0') && digits.length === 10) digits = digits.slice(1);
   return digits.slice(0, 9);
 }
