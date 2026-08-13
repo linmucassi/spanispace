@@ -78,43 +78,50 @@ export default function CandidateOnboardingPage() {
     setError('');
     setSaving(true);
 
-    const supabase = createClient();
-    if (!supabase) {
-      setError(t('auth.supabaseNotConfigured'));
+    try {
+      const supabase = createClient();
+      if (!supabase) {
+        setError(t('auth.supabaseNotConfigured'));
+        return;
+      }
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        setError(t('auth.supabaseNotConfigured'));
+        return;
+      }
+
+      // upsert, not update: a plain update silently touches zero rows (no
+      // error) if candidate_profiles has no row yet for this user, which then
+      // sent people back through this same gate forever with no visible cause.
+      // Matches the same upsert-by-user_id pattern app/candidate/profile/page.tsx
+      // already uses for exactly this reason.
+      const { error: updateError } = await supabase
+        .from('candidate_profiles')
+        .upsert(
+          { user_id: user.id, full_name: joinFullName(firstName, lastName), phone: phone.trim() },
+          { onConflict: 'user_id' }
+        );
+
+      if (updateError) {
+        console.error('[onboarding] could not save profile:', updateError.message);
+        setError(`${t('onboarding.error')} (${updateError.message})`);
+        return;
+      }
+
+      const next = new URLSearchParams(window.location.search).get('next');
+      router.push(safeNext(next));
+    } catch (err) {
+      // A thrown exception here (network failure, client init error, etc.)
+      // would otherwise leave `saving` stuck true forever with no visible
+      // cause -- this is what "stuck on the loading spinner" looks like.
+      console.error('[onboarding] unexpected error saving profile:', err);
+      setError(`${t('onboarding.error')} (${err instanceof Error ? err.message : String(err)})`);
+    } finally {
       setSaving(false);
-      return;
     }
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      setError(t('auth.supabaseNotConfigured'));
-      setSaving(false);
-      return;
-    }
-
-    // upsert, not update: a plain update silently touches zero rows (no
-    // error) if candidate_profiles has no row yet for this user, which then
-    // sent people back through this same gate forever with no visible cause.
-    // Matches the same upsert-by-user_id pattern app/candidate/profile/page.tsx
-    // already uses for exactly this reason.
-    const { error: updateError } = await supabase
-      .from('candidate_profiles')
-      .upsert(
-        { user_id: user.id, full_name: joinFullName(firstName, lastName), phone: phone.trim() },
-        { onConflict: 'user_id' }
-      );
-
-    if (updateError) {
-      console.error('[onboarding] could not save profile:', updateError.message);
-      setError(`${t('onboarding.error')} (${updateError.message})`);
-      setSaving(false);
-      return;
-    }
-
-    const next = new URLSearchParams(window.location.search).get('next');
-    router.push(safeNext(next));
   }
 
   // Onboarding only needs a name and a phone, so a CV upload here only fills
