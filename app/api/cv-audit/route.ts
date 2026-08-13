@@ -10,14 +10,15 @@
 // app (CvAutofill.tsx, the onboarding page) already works from an upload,
 // not pasted text.
 //
-// Runs on Gemini (gemini-2.5-flash), not Claude -- see the note at the top of
-// app/api/cv-extract/route.ts for why (13 Aug 2026 changelog has the detail).
+// Runs on Gemini (gemini-3.5-flash), not Claude -- see the note at the top of
+// app/api/cv-extract/route.ts for why, and for why this specific model id
+// (13 Aug 2026 changelog has the detail).
 
 import { GoogleGenAI, ApiError } from '@google/genai';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 
-const MODEL = 'gemini-2.5-flash';
+const MODEL = 'gemini-3.5-flash';
 
 // Same per-instance, best-effort limiter pattern as cv-extract. This attaches
 // a full PDF like that endpoint does, so it uses the same tighter window

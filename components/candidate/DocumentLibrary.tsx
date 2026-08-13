@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useConfirm } from '@/components/useConfirm';
 import { FileText, Trash2, ExternalLink, Upload } from 'lucide-react';
 
 export type DocType = 'cv' | 'certificate' | 'cover_letter' | 'motivational_letter' | 'other';
@@ -55,6 +56,7 @@ export default function DocumentLibrary() {
   const [selectedType, setSelectedType] = useState<DocType>('cv');
   const [customName, setCustomName] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
+  const { confirm, ConfirmDialog } = useConfirm();
 
   async function loadDocs(uid?: string) {
     const supabase = createClient();
@@ -133,6 +135,7 @@ export default function DocumentLibrary() {
 
   async function handleDelete(doc: CandidateDocument) {
     if (!userId) return;
+    if (!(await confirm(`Delete "${doc.name}"?`))) return;
     setDeleting(doc.id);
     const supabase = createClient();
     if (!supabase) { setDeleting(null); return; }
@@ -296,6 +299,7 @@ export default function DocumentLibrary() {
           Upload document
         </button>
       )}
+      {ConfirmDialog}
     </div>
   );
 }

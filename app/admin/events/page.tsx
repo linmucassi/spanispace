@@ -3,11 +3,13 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { DbEvent } from '@/types/database';
+import { useConfirm } from '@/components/useConfirm';
 
 export default function AdminEvents() {
   const [items, setItems] = useState<DbEvent[]>([]);
   const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(true);
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const load = async () => {
     const supabase = createClient();
@@ -31,7 +33,7 @@ export default function AdminEvents() {
   };
 
   const deleteItem = async (id: string) => {
-    if (!confirm('Delete this event?')) return;
+    if (!(await confirm('Delete this event?'))) return;
     const supabase = createClient();
     if (!supabase) return;
     await supabase.from('events').delete().eq('id', id);
@@ -119,6 +121,7 @@ export default function AdminEvents() {
           </div>
         )}
       </div>
+      {ConfirmDialog}
     </div>
   );
 }

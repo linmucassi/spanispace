@@ -6,14 +6,15 @@
 // Gemini API quota), and it only ever reads the caller's own rows through
 // their RLS-scoped session.
 //
-// Runs on Gemini (gemini-2.5-flash), not Claude -- see the note at the top of
-// app/api/cv-extract/route.ts for why (13 Aug 2026 changelog has the detail).
+// Runs on Gemini (gemini-3.5-flash), not Claude -- see the note at the top of
+// app/api/cv-extract/route.ts for why, and for why this specific model id
+// (13 Aug 2026 changelog has the detail).
 
 import { GoogleGenAI, ApiError } from '@google/genai';
 import { NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 
-const MODEL = 'gemini-2.5-flash';
+const MODEL = 'gemini-3.5-flash';
 
 export async function POST() {
   if (!process.env.GEMINI_API_KEY) {

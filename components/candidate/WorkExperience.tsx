@@ -8,6 +8,7 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import PhoneInput from '@/components/PhoneInput';
+import { useConfirm } from '@/components/useConfirm';
 import { Briefcase, Trash2, Plus } from 'lucide-react';
 
 export interface WorkExperienceEntry {
@@ -64,6 +65,7 @@ export default function WorkExperience({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [form, setForm] = useState(emptyForm);
+  const { confirm, ConfirmDialog } = useConfirm();
 
   async function load() {
     const supabase = createClient();
@@ -137,7 +139,8 @@ export default function WorkExperience({
     await load();
   }
 
-  async function handleDelete(id: string) {
+  async function handleDelete(id: string, jobTitle: string) {
+    if (!(await confirm(`Delete "${jobTitle}" from your work experience?`))) return;
     const supabase = createClient();
     if (!supabase) return;
     const { error: deleteError } = await supabase
@@ -210,7 +213,7 @@ export default function WorkExperience({
           </div>
           <button
             type="button"
-            onClick={() => handleDelete(entry.id)}
+            onClick={() => handleDelete(entry.id, entry.job_title)}
             className="text-slate-300 hover:text-red-500 transition-colors shrink-0"
             aria-label={`Remove ${entry.job_title}`}
           >
@@ -364,6 +367,7 @@ export default function WorkExperience({
       )}
 
       {error && !showForm && <p className="text-red-600 text-sm">{error}</p>}
+      {ConfirmDialog}
     </div>
   );
 }

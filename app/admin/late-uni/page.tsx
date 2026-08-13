@@ -4,10 +4,12 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import type { DbLateUniApp } from '@/types/database';
+import { useConfirm } from '@/components/useConfirm';
 
 export default function AdminLateUni() {
   const [items, setItems] = useState<DbLateUniApp[]>([]);
   const [loading, setLoading] = useState(true);
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const load = async () => {
     const supabase = createClient();
@@ -20,7 +22,7 @@ export default function AdminLateUni() {
   useEffect(() => { load(); }, []);
 
   const deleteItem = async (id: string) => {
-    if (!confirm('Delete this entry?')) return;
+    if (!(await confirm('Delete this entry?'))) return;
     const supabase = createClient();
     if (!supabase) return;
     await supabase.from('late_uni_apps').delete().eq('id', id);
@@ -55,6 +57,7 @@ export default function AdminLateUni() {
           </table>
         )}
       </div>
+      {ConfirmDialog}
     </div>
   );
 }

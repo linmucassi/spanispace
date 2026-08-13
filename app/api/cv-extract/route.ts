@@ -9,17 +9,24 @@
 // upload fine through components/candidate/DocumentLibrary.tsx for storage,
 // just not through this endpoint.
 //
-// Runs on Gemini (gemini-2.5-flash), not Claude -- Google's Gemini API has a
+// Runs on Gemini (gemini-3.5-flash), not Claude -- Google's Gemini API has a
 // genuine free tier (no billing method required) at the request volume this
 // app runs at; the AI CV Audit/autofill features previously ran on Claude via
 // ANTHROPIC_API_KEY, which has no comparable free tier. See 13 Aug 2026
 // changelog for the switch.
+//
+// Model pinned to gemini-3.5-flash, not gemini-2.5-flash: confirmed directly
+// against the API (not docs, which lag) that 2.5-flash/2.5-flash-lite now
+// 404 for new API keys ("no longer available to new users"). Google rotates
+// which models new keys can reach faster than any doc page keeps up -- if
+// this starts 404ing again, run `ai.models.list()` against the live key and
+// pick a current one rather than guessing from search results.
 
 import { GoogleGenAI, ApiError } from '@google/genai';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabase } from '@/lib/supabase/server';
 
-const MODEL = 'gemini-2.5-flash';
+const MODEL = 'gemini-3.5-flash';
 
 // Same per-instance, best-effort limiter pattern as the other AI endpoints.
 // Kept at the same 5/hour-per-user ceiling as before the provider switch --

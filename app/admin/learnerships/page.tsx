@@ -4,10 +4,12 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import type { DbLearnership } from '@/types/database';
+import { useConfirm } from '@/components/useConfirm';
 
 export default function AdminLearnerships() {
   const [items, setItems] = useState<DbLearnership[]>([]);
   const [loading, setLoading] = useState(true);
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const load = async () => {
     const supabase = createClient();
@@ -20,7 +22,7 @@ export default function AdminLearnerships() {
   useEffect(() => { load(); }, []);
 
   const deleteItem = async (id: string) => {
-    if (!confirm('Delete this learnership?')) return;
+    if (!(await confirm('Delete this learnership?'))) return;
     const supabase = createClient();
     if (!supabase) return;
     await supabase.from('learnerships').delete().eq('id', id);
@@ -55,6 +57,7 @@ export default function AdminLearnerships() {
           </table>
         )}
       </div>
+      {ConfirmDialog}
     </div>
   );
 }

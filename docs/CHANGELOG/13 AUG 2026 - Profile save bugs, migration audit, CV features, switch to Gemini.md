@@ -120,14 +120,32 @@ Added a `429` branch distinct from other provider errors (checked via `err insta
 
 **One thing to watch:** Gemini's free tier is a *shared, project-wide* daily cap (~250 requests/day across all three endpoints combined at the time of writing), not a per-user one. The app's own 5/hour-per-user limiter still applies unchanged, but it doesn't protect against the free tier's daily ceiling if usage grows — worth revisiting if these features get real traffic.
 
+## Gemini model id fix: `gemini-2.5-flash` 404s for new API keys
+
+Once `GEMINI_API_KEY` was actually added, CV Audit failed with "The CV audit is temporarily unavailable" — the generic catch-all, not useful on its own. Reproduced directly against the live API outside the app (`ai.models.generateContent` in a standalone script, same key) rather than guessing from the vague error: `gemini-2.5-flash` returns `404`, `"This model ... is no longer available to new users."` Google's own docs still listed it as free-tier at the time it was chosen a few hours earlier — availability for new keys apparently moves faster than the docs.
+
+Queried `ai.models.list()` against the actual key to get ground truth instead of trying names from search results one at a time. `gemini-2.5-flash`/`gemini-2.5-flash-lite` are both blocked for new users despite appearing in the list; `gemini-3.5-flash` works. Verified end-to-end before calling it fixed: plain text generation, `responseMimeType: 'application/json'` + `thinkingBudget: 0` together, and a minimal hand-built PDF through `inlineData` (asked it to read a name off the page — correct answer) — the same three capabilities all three routes actually use. `MODEL` constant updated to `gemini-3.5-flash` in `app/api/cv-extract/route.ts`, `app/api/cv-audit/route.ts`, `app/api/profile-summary/route.ts`, with a comment pointing at `ai.models.list()` as the way to re-diagnose this if Google rotates access again.
+
+## Delete confirmation dialogs, everywhere something deletes with no undo
+
+User report: no "are you sure" before deleting anything in the UI, and no undo once it's gone. Audited every delete action in the app (`.delete()` calls, `handleDelete`/`handleRemove` handlers): three candidate-profile components — `WorkExperience.tsx`, `Education.tsx`, `DocumentLibrary.tsx` — deleted immediately on click with no confirmation at all. Five admin list pages (`jobs`, `trainings`, `events`, `learnerships`, `late-uni`) already used the browser's native `confirm()`, which technically asks first but looks jarring next to the rest of the app's styled UI.
+
+Built one reusable piece instead of one-off dialogs per file: `components/useConfirm.tsx`, a promise-based hook (`const { confirm, ConfirmDialog } = useConfirm()`, then `if (!(await confirm('...'))) return;` before the actual delete, with `{ConfirmDialog}` rendered once in the component). Wired into all eight files above — the three candidate components that had nothing, and the five admin pages, swapping their native `confirm()` for the same styled modal so the whole app is consistent. Every dialog states plainly that the action can't be undone.
+
 ## Files changed
 ```
 A  components/candidate/CvExtractedReview.tsx
+A  components/useConfirm.tsx
 A  supabase/fix-candidate-profile-visibility-recursion.sql
 A  supabase/fix-cv-completeness.sql
 M  .env.example
 M  app/(public)/privacy/page.tsx
 M  app/(public)/terms/page.tsx
+M  app/admin/events/page.tsx
+M  app/admin/jobs/page.tsx
+M  app/admin/late-uni/page.tsx
+M  app/admin/learnerships/page.tsx
+M  app/admin/trainings/page.tsx
 M  app/api/cv-audit/route.ts
 M  app/api/cv-extract/route.ts
 M  app/api/profile-summary/route.ts
@@ -136,6 +154,9 @@ M  app/candidate/dashboard/page.tsx
 M  app/company/candidates/page.tsx
 M  components/candidate/AvatarUpload.tsx
 M  components/candidate/CvAutofill.tsx
+M  components/candidate/DocumentLibrary.tsx
+M  components/candidate/Education.tsx
+M  components/candidate/WorkExperience.tsx
 M  docs/ROADMAP.md
 M  lib/profileCompleteness.ts
 M  next.config.ts

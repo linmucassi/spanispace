@@ -4,11 +4,13 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import type { DbTraining } from '@/types/database';
+import { useConfirm } from '@/components/useConfirm';
 
 export default function AdminTrainings() {
   const [items, setItems] = useState<DbTraining[]>([]);
   const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(true);
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const load = async () => {
     const supabase = createClient();
@@ -32,7 +34,7 @@ export default function AdminTrainings() {
   };
 
   const deleteItem = async (id: string) => {
-    if (!confirm('Delete this training?')) return;
+    if (!(await confirm('Delete this training?'))) return;
     const supabase = createClient();
     if (!supabase) return;
     await supabase.from('trainings').delete().eq('id', id);
@@ -119,6 +121,7 @@ export default function AdminTrainings() {
           </div>
         )}
       </div>
+      {ConfirmDialog}
     </div>
   );
 }

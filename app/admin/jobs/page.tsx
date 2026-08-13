@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import type { DbJob } from '@/types/database';
 import { isExpiringSoon } from '@/lib/listingFreshness';
+import { useConfirm } from '@/components/useConfirm';
 
 export default function AdminJobs() {
   const [jobs, setJobs] = useState<DbJob[]>([]);
@@ -13,6 +14,7 @@ export default function AdminJobs() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [extendDays, setExtendDays] = useState(30);
   const [extending, setExtending] = useState(false);
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const loadJobs = async () => {
     const supabase = createClient();
@@ -40,7 +42,7 @@ export default function AdminJobs() {
   };
 
   const deleteJob = async (id: string) => {
-    if (!confirm('Delete this job permanently?')) return;
+    if (!(await confirm('Delete this job permanently?'))) return;
     const supabase = createClient();
     if (!supabase) return;
     await supabase.from('jobs').delete().eq('id', id);
@@ -231,6 +233,7 @@ export default function AdminJobs() {
           </div>
         )}
       </div>
+      {ConfirmDialog}
     </div>
   );
 }

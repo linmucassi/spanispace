@@ -7,6 +7,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useConfirm } from '@/components/useConfirm';
 import { GraduationCap, Trash2, Plus } from 'lucide-react';
 
 export interface EducationEntry {
@@ -35,6 +36,7 @@ export default function Education({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [form, setForm] = useState(emptyForm);
+  const { confirm, ConfirmDialog } = useConfirm();
 
   async function load() {
     const supabase = createClient();
@@ -99,7 +101,8 @@ export default function Education({
     await load();
   }
 
-  async function handleDelete(id: string) {
+  async function handleDelete(id: string, institution: string) {
+    if (!(await confirm(`Delete "${institution}" from your education?`))) return;
     const supabase = createClient();
     if (!supabase) return;
     const { error: deleteError } = await supabase
@@ -143,7 +146,7 @@ export default function Education({
           </div>
           <button
             type="button"
-            onClick={() => handleDelete(entry.id)}
+            onClick={() => handleDelete(entry.id, entry.institution)}
             className="text-slate-300 hover:text-red-500 transition-colors shrink-0"
             aria-label={`Remove ${entry.institution}`}
           >
@@ -236,6 +239,7 @@ export default function Education({
       )}
 
       {error && !showForm && <p className="text-red-600 text-sm">{error}</p>}
+      {ConfirmDialog}
     </div>
   );
 }
