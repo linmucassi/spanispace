@@ -152,6 +152,7 @@ Full pre-launch audit of the live site, 9 Aug 2026. Branch `fix/ship-check-launc
 - **Forms:** Netlify Forms (newsletter — **not** job applications, see above; waitlist removed 9 Aug 2026)
 - **Automation:** GitHub Actions daily scraper job (`.github/workflows/daily-scraper.yml`)
 - **Validation:** react-hook-form + zod
+- **Branch workflow (since 13 Aug 2026):** feature branches -> `staging` -> `main`, `staging` is now the repo's default branch. Both `main` and `staging` are protected via GitHub branch protection (require a PR to merge; `main` also requires 1 approval, `staging` requires none; admins can bypass either in an emergency; force-push and branch deletion blocked on both). `.github/workflows/ci.yml` runs typecheck + build (blocking) and lint (informational, ~22 pre-existing errors not yet a hard gate) on PRs into either branch. **Outstanding:** Netlify's production-branch/branch-deploy settings still need manual configuration in the Netlify dashboard — no CLI/API access to that account from here. Set Branch deploys to only `staging` (not "All") to actually realize the build-credit savings this whole setup is for.
 
 ---
 
