@@ -132,8 +132,36 @@ User report: no "are you sure" before deleting anything in the UI, and no undo o
 
 Built one reusable piece instead of one-off dialogs per file: `components/useConfirm.tsx`, a promise-based hook (`const { confirm, ConfirmDialog } = useConfirm()`, then `if (!(await confirm('...'))) return;` before the actual delete, with `{ConfirmDialog}` rendered once in the component). Wired into all eight files above — the three candidate components that had nothing, and the five admin pages, swapping their native `confirm()` for the same styled modal so the whole app is consistent. Every dialog states plainly that the action can't be undone.
 
+## Branch workflow: staging in front of main, PR + review required to promote
+
+User asked to set up a proper flow: feature branches merge into a new `staging` branch first, not straight to `main`; promoting `staging` to `main` requires a PR approved by someone else. Intent (stated explicitly): save Netlify production build credits by not deploying every branch to production, and add a real review gate before production.
+
+Checked tooling first rather than assume: `gh` CLI isn't installed in this environment (`command not found` in both Bash and PowerShell), so GitHub repo settings (branch protection, default branch) can't be set programmatically this session — those need the web UI, instructions handed to the user rather than executed. Plain `git` push access already works (confirmed via the existing auto-commit history), so branch creation itself didn't need `gh`.
+
+Asked two clarifying questions before touching anything, since both are real behavior decisions, not something to infer: whether admins should be able to bypass main's protection in an emergency (yes -- admins can bypass), and whether staging itself should also require a PR rather than allow direct pushes (yes -- PR required into staging too, no minimum approval count there, just main gets the required-approval gate).
+
+**Did directly:**
+- Added `.github/workflows/ci.yml` -- typecheck + build run on every PR into `staging`/`main` and every push to `staging`; lint runs too but with `continue-on-error: true` for now, since the repo already has ~22 pre-existing lint errors (`react-hooks/set-state-in-effect` in a few sidebars and `lib/i18n/context.tsx`, a couple of `no-explicit-any`) unrelated to anything in this session -- making lint a hard gate today would block every future PR on unrelated debt. Verified `npx tsc --noEmit` and `npm run build` both pass cleanly right now, so those two are real, trustworthy gates from day one.
+- One-time bootstrap: committed `ci.yml` directly to `main` (the one exception to the new flow, since the workflow file has to exist before `staging` is branched from it), pushed, then created `staging` from that updated `main` and pushed it too. Everything after this follows the new flow.
+
+**Left for the user, with exact steps given in chat, since no tool access exists for these:**
+- ~~GitHub branch protection on `main`...~~ ~~Optional: setting `staging` as the repo's default branch...~~ **Done later the same session** -- see follow-up below.
+- Netlify: keep Production branch as `main`; change Branch deploys from whatever it's currently set to, to explicitly only `staging` (so feature branches never trigger a Netlify build at all -- this is the actual credit-saving lever, not anything in the GitHub workflow); Deploy Previews limited to PRs against the production branch, or disabled, since `staging`'s own branch deploy URL covers pre-merge testing. Still outstanding -- no Netlify CLI or API access available.
+
+**Follow-up, same day: user installed `gh` CLI.** It wasn't on PATH in the already-running shell (installing a program doesn't update the PATH of a terminal that was already open -- needed the full binary path, found at `C:\Program Files\GitHub CLI\gh.exe`, added to `$env:PATH` for the session). `gh auth status` showed not logged in; `gh auth login` is an interactive OAuth/device-code flow that can't run through a non-interactive tool shell, so that one step had to be the user's own action. Once they confirmed they'd logged in, set both branch protection rules for real via `gh api -X PUT repos/.../branches/{branch}/protection`:
+- `main`: `required_pull_request_reviews.required_approving_review_count: 1`, `enforce_admins: false` (admins can still bypass, per the user's answer to the earlier clarifying question).
+- `staging`: same shape, `required_approving_review_count: 0`.
+- Both: `allow_force_pushes: false`, `allow_deletions: false`.
+
+One hiccup: the first `gh api --input` call failed with `Problems parsing JSON (HTTP 400)` even though the JSON content was valid -- `Out-File -Encoding utf8` in Windows PowerShell 5.1 writes a UTF-8 **BOM**, and GitHub's API rejects the leading BOM bytes before `{`. Fixed by writing the file with `[System.IO.File]::WriteAllText(..., New-Object System.Text.UTF8Encoding($false))` instead, which omits the BOM.
+
+Verified both rules live via `GET .../branches/{branch}/protection` before moving on, rather than trusting the `PUT` response alone. Also set `staging` as the repo's default branch (`gh repo edit --default-branch staging`) since the whole point of this setup is that new work targets it first, and refreshed the local clone's `origin/HEAD` to match (`git remote set-head origin -a`) so `git branch -a` locally reflects the change too.
+
+Netlify remains the one piece not done -- still no CLI/API access to that account from here.
+
 ## Files changed
 ```
+A  .github/workflows/ci.yml
 A  components/candidate/CvExtractedReview.tsx
 A  components/useConfirm.tsx
 A  supabase/fix-candidate-profile-visibility-recursion.sql

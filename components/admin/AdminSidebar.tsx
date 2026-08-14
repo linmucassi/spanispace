@@ -55,7 +55,7 @@ export default function AdminSidebar() {
         {/* Logo */}
         <div className="px-6 py-5 border-b border-slate-800 flex items-center justify-between">
           <Link href="/admin/dashboard" className="flex items-center">
-            <img src="/assets/logo-wordmark.png" alt="Spanispace" className="h-10 w-auto" />
+            <img src="/assets/logo-wordmark.png" alt="Spanispace" className="h-10 w-auto brightness-0 invert" />
             <span className="block text-[10px] text-slate-400 uppercase tracking-widest ml-2 mt-1">Admin</span>
           </Link>
           <button
