@@ -25,6 +25,7 @@ const en = {
     title: 'Vetted Job Opportunities',
     subtitle:
       'South African jobs come first, from waitering and retail to learnerships and tech, and every listing is checked for trust.',
+    searchPlaceholder: 'Search job title, e.g. Pharmacist',
     allTypes: 'All Types',
     remote: 'Remote',
     hybrid: 'Hybrid',
@@ -255,7 +256,6 @@ const en = {
     backToLogin: 'Back to Sign In',
     tabCandidate: "I'm looking for work",
     tabCompany: "I'm hiring",
-    continueWithGoogle: 'Continue with Google',
     googleCandidateNote: 'Google sign-in is for candidate accounts. Companies register with email and password.',
     orDivider: 'or',
     fullName: 'Full Name',

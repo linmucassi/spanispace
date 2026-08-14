@@ -11,8 +11,10 @@ import type { NextConfig } from "next";
 // What is set here are the directives that carry real protection and zero risk
 // to a Next app, because none of them fall back to govern scripts:
 //   connect-src      every network call the app makes: itself, Supabase over
-//                    https and wss, and Resend. An injected exfil-to-evil.com
-//                    fetch is refused.
+//                    https and wss, Resend, and Google's Identity Services
+//                    (the "Continue with Google" button on login/register --
+//                    accounts.google.com issues the ID token client-side).
+//                    An injected exfil-to-evil.com fetch is refused.
 //   img-src          self, data URIs, blob URIs (client-side canvas resizing
 //                    reads the picked file via URL.createObjectURL before
 //                    upload -- AvatarUpload.tsx), the Supabase project
@@ -23,7 +25,7 @@ import type { NextConfig } from "next";
 //   base-uri/object  shut off two classic injection vectors
 //   form-action      a form may only post to us and to Netlify Forms
 const csp = [
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.resend.com",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.resend.com https://accounts.google.com",
   "img-src 'self' data: blob: https://*.supabase.co https://upload.wikimedia.org https://picsum.photos",
   "frame-ancestors 'none'",
   "base-uri 'self'",

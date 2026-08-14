@@ -25,6 +25,7 @@ const zu = {
     title: 'Amathuba Omsebenzi Aqinisekisiwe',
     subtitle:
       'Imisebenzi yaseNingizimu Afrika iza kuqala, kusukela ekuphakeni nasekuthengiseni kuye ebufundisweni nakubuchwepheshe, futhi yonke ihlolwe ukuthembeka.',
+    searchPlaceholder: 'Sesha isihloko somsebenzi, isb. Pharmacist',
     allTypes: 'Zonke Izinhlobo',
     remote: 'Ukusebenza Ekhaya',
     hybrid: 'Okuxubile',
@@ -259,7 +260,6 @@ const zu = {
     backToLogin: 'Buyela Ekungeneni',
     tabCandidate: 'Ngifuna umsebenzi',
     tabCompany: 'Ngiqasha abantu',
-    continueWithGoogle: 'Qhubeka nge-Google',
     googleCandidateNote: 'Ukungena nge-Google kungabafuna umsebenzi. Izinkampani zibhalisa nge-imeyili nephasiwedi.',
     orDivider: 'noma',
     fullName: 'Igama Eligcwele',
