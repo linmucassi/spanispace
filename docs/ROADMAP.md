@@ -3,7 +3,7 @@
 **Platform:** Talent Bridge for South African Job Seekers
 **Founders:** Linda & Percy | **Location:** Gauteng, South Africa
 **Mission:** Empower 100,000+ SA youth with job-ready skills and direct employment pathways by 2030
-**Last Updated:** 13 August 2026
+**Last Updated:** 14 August 2026
 
 ---
 
@@ -26,6 +26,8 @@ The platform is live on Netlify with a full Next.js 16 + React 19 + Supabase sta
 | Legal | ✅ Live | POPIA-compliant Privacy Policy + SA Terms of Service |
 | Waitlist | ❌ Removed 9 Aug 2026 | Real registration/login replaced it — see below |
 | Job/event auto-refresh | ✅ Live | Daily GitHub Actions scraper (RemoteOK, Remotive, Adzuna, Eventbrite → Supabase) — not previously documented |
+| Job title/keyword search | ✅ Live | `/jobs` had a job-type dropdown (Full-time/Remote/etc.) and a SA-location toggle, but no way to search by role, e.g. "Pharmacist" — reported by Linda. Added a text input to `components/JobBoard.tsx`, client-side substring match (case-insensitive) against `job.role` and `job.company`, resets to page 1 on change, same filter array data already fetched by `lib/publicJobs.ts` (no new query/migration needed). No `category` field exists on `jobs` (only `job_type`, a fixed enum) so free-text title search was the only fit, not a new category. 14 Aug 2026. |
+| Dashboard sidebar logo dark-on-dark | ✅ Fixed 14 Aug 2026 | Candidate/company/admin sidebar logo (`bg-slate-900` background) was rendering the dark `logo-wordmark.png` with no filter, so it was effectively invisible — reported by Linda. Each sidebar's own mobile top bar and `Footer.tsx` already turn the same asset white via `brightness-0 invert` (there's no separate white logo file); the desktop sidebar logo in all three sidebar components was just missing those classes. Added to `CandidateSidebar.tsx`, `CompanySidebar.tsx`, `AdminSidebar.tsx`. |
 | AI CV Audit | ✅ Live | Gemini-powered CV review at `/candidate/cv-audit`. Upload-based since 13 Aug 2026 (was paste-only); switched from Claude to Gemini the same day for its free tier — see changelog. |
 | AI profile-summary builder | ✅ Live | `POST /api/profile-summary`: turns a candidate's piece-job/informal `work_experiences` entries into a professional summary via Gemini (switched from Claude 13 Aug 2026, see changelog), auth-gated to the caller's own rows. Shipped alongside PR #3. Not previously documented. |
 | Mobile portal navigation | ✅ Live | All three portal sidebars (candidate/company/admin) now collapse to a hamburger drawer on mobile |

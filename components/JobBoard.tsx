@@ -16,6 +16,7 @@ interface JobBoardProps {
 }
 
 const JobBoard: React.FC<JobBoardProps> = ({ initialJobs }) => {
+  const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');
   const [locationFilter, setLocationFilter] = useState('All');
   const [page, setPage] = useState(1);
@@ -24,10 +25,15 @@ const JobBoard: React.FC<JobBoardProps> = ({ initialJobs }) => {
 
   const now = new Date();
 
+  const query = search.trim().toLowerCase();
+
   const filteredJobs = jobs.filter((job) => {
     if (locationFilter === 'ZA' && !isSouthAfricanJob(job.location)) return false;
-    if (filter === 'All') return true;
-    return job.type.toLowerCase().includes(filter.toLowerCase());
+    if (filter !== 'All' && !job.type.toLowerCase().includes(filter.toLowerCase())) return false;
+    if (query && !job.role.toLowerCase().includes(query) && !job.company.toLowerCase().includes(query)) {
+      return false;
+    }
+    return true;
   });
 
   // Active jobs first, expired jobs last
@@ -41,6 +47,11 @@ const JobBoard: React.FC<JobBoardProps> = ({ initialJobs }) => {
   const totalPages = Math.max(1, Math.ceil(sortedJobs.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const pagedJobs = sortedJobs.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setPage(1);
+  };
 
   const handleFilterChange = (value: string) => {
     setFilter(value);
@@ -60,6 +71,14 @@ const JobBoard: React.FC<JobBoardProps> = ({ initialJobs }) => {
           <p className="text-ink-500 mt-2">{t('jobs.subtitle')}</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            placeholder={t('jobs.searchPlaceholder')}
+            className="bg-white border border-ink-200 rounded-lg px-3 py-2 text-sm min-w-[220px]"
+            aria-label={t('jobs.searchPlaceholder')}
+          />
           <select
             value={locationFilter}
             onChange={(e) => handleLocationFilterChange(e.target.value)}

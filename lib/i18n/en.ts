@@ -25,6 +25,7 @@ const en = {
     title: 'Vetted Job Opportunities',
     subtitle:
       'South African jobs come first, from waitering and retail to learnerships and tech, and every listing is checked for trust.',
+    searchPlaceholder: 'Search job title, e.g. Pharmacist',
     allTypes: 'All Types',
     remote: 'Remote',
     hybrid: 'Hybrid',
