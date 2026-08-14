@@ -260,7 +260,6 @@ const zu = {
     backToLogin: 'Buyela Ekungeneni',
     tabCandidate: 'Ngifuna umsebenzi',
     tabCompany: 'Ngiqasha abantu',
-    continueWithGoogle: 'Qhubeka nge-Google',
     googleCandidateNote: 'Ukungena nge-Google kungabafuna umsebenzi. Izinkampani zibhalisa nge-imeyili nephasiwedi.',
     orDivider: 'noma',
     fullName: 'Igama Eligcwele',

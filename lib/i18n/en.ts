@@ -256,7 +256,6 @@ const en = {
     backToLogin: 'Back to Sign In',
     tabCandidate: "I'm looking for work",
     tabCompany: "I'm hiring",
-    continueWithGoogle: 'Continue with Google',
     googleCandidateNote: 'Google sign-in is for candidate accounts. Companies register with email and password.',
     orDivider: 'or',
     fullName: 'Full Name',
