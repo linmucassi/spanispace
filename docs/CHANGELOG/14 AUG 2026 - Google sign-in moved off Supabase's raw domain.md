@@ -27,6 +27,18 @@ Two ways to fix it, discussed with the user first: pay for a Supabase custom aut
 
 Verified: `npx tsc --noEmit` and `npm run build` both pass clean.
 
+## Email Notifications workflow failing every day
+
+Report: "my Email Notifications workflows has been failing everyday." Rather than guess, pulled the actual run history and logs: `gh run list --workflow=notifications.yml --limit 100` (94 runs, ~9 days of history) then `gh run view <id> --log-failed` on the failing ones.
+
+Every failure — 6 out of 6 — hit the same step, `Run expiry alerts (daily schedule only)`, with the same error: `Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY. Add them to your environment.` The env block in the log literally showed both as blank (`SUPABASE_URL: `, `SUPABASE_SERVICE_ROLE_KEY: `) even though those are repo secrets referenced identically (`${{ secrets.SUPABASE_URL }}`) in every other step, all of which succeeded on every run. That ruled out an actual missing/rotated secret — if the secret itself were gone, the hourly-only steps using the same secret would fail too, and they never did (every single failure fell inside 05:00-07:40 UTC, every other hour of every day was clean).
+
+Root cause: `notifications.yml` had three `schedule` triggers — hourly (`0 * * * *`), daily (`0 5 * * *`), weekly (`0 6 * * 1`). The hourly and daily crons fire at the exact same instant once a day (5:00 UTC). GitHub queues two separate runs of the same workflow back-to-back in that case, and the later-starting one (the daily-flagged run, delayed by GitHub's queue to somewhere between 05:00 and 07:40 depending on load) would intermittently come up with an empty secrets context — a known GitHub Actions flakiness pattern for workflows with colliding `schedule` triggers, not something wrong in this repo's own code or Supabase config.
+
+Fixed by moving the daily/weekly crons off the top of the hour — `0 5 * * *` → `20 5 * * *`, `0 6 * * 1` → `20 6 * * 1` — so they never land on the same instant as the hourly trigger. The `if:` conditions gating the daily/weekly-only steps updated to match. `.github/workflows/notifications.yml` now documents the collision in a comment so a future edit to the schedule doesn't reintroduce it.
+
+Likely how Linda found out day after day without checking the Actions tab herself: GitHub emails the repo owner automatically when a scheduled workflow run fails.
+
 ## Files changed
 ```
 A  docs/CHANGELOG/14 AUG 2026 - Google sign-in moved off Supabase's raw domain.md
@@ -34,6 +46,7 @@ A  lib/auth/googleIdentity.ts
 A  lib/auth/roleRedirect.ts
 A  lib/auth/useGoogleSignIn.ts
 M  .env.example
+M  .github/workflows/notifications.yml
 M  app/(auth)/login/page.tsx
 M  app/(auth)/register/page.tsx
 M  docs/ROADMAP.md
