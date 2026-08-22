@@ -25,6 +25,10 @@ CREATE TABLE candidate_profiles (
   cv_url TEXT,
   verified BOOLEAN DEFAULT FALSE,
   profile_score INT DEFAULT 0 CHECK (profile_score >= 0 AND profile_score <= 100),
+  -- Candidate-controlled: opts into being visible/invitable by companies who
+  -- haven't received an application from them. Independent of `verified` --
+  -- see supabase/add-talent-sourcing-and-verification.sql.
+  open_to_offers BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -34,9 +38,13 @@ CREATE TABLE candidate_documents (
   id           UUID        DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id      UUID        REFERENCES users(id) ON DELETE CASCADE NOT NULL,
   name         TEXT        NOT NULL,
-  doc_type     TEXT        NOT NULL CHECK (doc_type IN ('cv', 'certificate', 'cover_letter', 'motivational_letter', 'other')),
+  doc_type     TEXT        NOT NULL CHECK (doc_type IN ('cv', 'certificate', 'cover_letter', 'motivational_letter', 'other', 'id_document', 'qualification', 'transcript')),
   file_url     TEXT        NOT NULL,
   file_size_kb INT,
+  -- Nullable, only meaningful for id_document/qualification/transcript --
+  -- see supabase/add-talent-sourcing-and-verification.sql.
+  verification_status TEXT CHECK (verification_status IN ('pending', 'verified', 'rejected')),
+  verification_note   TEXT,
   created_at   TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -101,6 +109,21 @@ CREATE TABLE applications (
   documents JSONB DEFAULT '[]'::jsonb,
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'reviewed', 'shortlisted', 'rejected', 'hired')),
   created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 5b. Job Invites (company invites a candidate to apply for a specific job --
+-- a signal, not an application; deliberately separate from `applications`,
+-- since accepting one just routes through that job's normal apply flow)
+CREATE TABLE job_invites (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  job_id UUID REFERENCES jobs(id) ON DELETE CASCADE NOT NULL,
+  company_id UUID REFERENCES company_profiles(id) ON DELETE CASCADE NOT NULL,
+  candidate_id UUID REFERENCES candidate_profiles(id) ON DELETE CASCADE NOT NULL,
+  message TEXT,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'declined')),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  responded_at TIMESTAMPTZ,
+  UNIQUE (job_id, candidate_id)
 );
 
 -- 6. Trainings / Bootcamps
@@ -298,6 +321,7 @@ CREATE TABLE newsletter (
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE jobs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE applications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE job_invites ENABLE ROW LEVEL SECURITY;
 ALTER TABLE trainings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE learnerships ENABLE ROW LEVEL SECURITY;
 ALTER TABLE late_uni_apps ENABLE ROW LEVEL SECURITY;
@@ -486,6 +510,29 @@ CREATE POLICY "Candidates update own profile" ON candidate_profiles FOR UPDATE U
 CREATE POLICY "Companies read applicant profiles" ON candidate_profiles FOR SELECT USING (
   public.company_has_applicant(id)
 );
+-- Additive to the policy above (Postgres OR's multiple permissive SELECT
+-- policies together) -- opts a candidate into being visible/invitable by
+-- companies they haven't applied to yet. See
+-- supabase/add-talent-sourcing-and-verification.sql.
+CREATE POLICY "Companies read opted-in candidates" ON candidate_profiles FOR SELECT USING (
+  open_to_offers = true
+);
+
+CREATE POLICY "Companies manage own invites" ON job_invites FOR ALL USING (
+  EXISTS (SELECT 1 FROM company_profiles cp WHERE cp.id = job_invites.company_id AND cp.user_id = auth.uid())
+) WITH CHECK (
+  EXISTS (SELECT 1 FROM company_profiles cp WHERE cp.id = job_invites.company_id AND cp.user_id = auth.uid())
+  AND EXISTS (
+    SELECT 1 FROM candidate_profiles c WHERE c.id = job_invites.candidate_id
+    AND (c.open_to_offers = true OR public.company_has_applicant(c.id))
+  )
+);
+CREATE POLICY "Candidates read own invites" ON job_invites FOR SELECT USING (
+  EXISTS (SELECT 1 FROM candidate_profiles c WHERE c.id = job_invites.candidate_id AND c.user_id = auth.uid())
+);
+CREATE POLICY "Candidates respond to own invites" ON job_invites FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM candidate_profiles c WHERE c.id = job_invites.candidate_id AND c.user_id = auth.uid())
+);
 CREATE POLICY "Companies insert own profile" ON company_profiles FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Companies read own profile" ON company_profiles FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Companies update own profile" ON company_profiles FOR UPDATE USING (auth.uid() = user_id);
@@ -563,6 +610,11 @@ CREATE POLICY "Admin full access newsletter" ON newsletter FOR ALL USING (public
 CREATE POLICY "Admin full access enrollments" ON enrollments FOR ALL USING (public.is_admin());
 CREATE POLICY "Admin full access event_registrations" ON event_registrations FOR ALL USING (public.is_admin());
 CREATE POLICY "Admin full access candidate_profiles" ON candidate_profiles FOR ALL USING (public.is_admin());
+-- candidate_documents previously had only the owner-only policy plus
+-- fix-cv-completeness.sql's cv-only company policy -- needed for the
+-- id_document/qualification/transcript review queue.
+CREATE POLICY "Admin full access candidate_documents" ON candidate_documents FOR ALL USING (public.is_admin());
+CREATE POLICY "Admin full access job_invites" ON job_invites FOR ALL USING (public.is_admin());
 CREATE POLICY "Admin full access company_profiles" ON company_profiles FOR ALL USING (public.is_admin());
 CREATE POLICY "Admin full access job_views" ON job_views FOR ALL USING (public.is_admin());
 CREATE POLICY "Admin full access application_starts" ON application_starts FOR ALL USING (public.is_admin());
@@ -665,6 +717,8 @@ CREATE INDEX idx_events_status ON events(status);
 CREATE INDEX idx_events_start ON events(start_date);
 CREATE INDEX idx_job_views_job ON job_views(job_id);
 CREATE INDEX idx_application_starts_job ON application_starts(job_id);
+CREATE INDEX idx_job_invites_candidate ON job_invites(candidate_id);
+CREATE INDEX idx_job_invites_company ON job_invites(company_id);
 CREATE INDEX idx_message_threads_company ON message_threads(company_id);
 CREATE INDEX idx_message_threads_candidate ON message_threads(candidate_id);
 CREATE INDEX idx_messages_thread ON messages(thread_id);

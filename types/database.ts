@@ -154,6 +154,7 @@ export interface DbCandidateProfile {
   cv_url: string | null;
   professional_summary?: string | null;
   verified: boolean;
+  open_to_offers?: boolean;
   profile_score: number | null;
   created_at: string;
   updated_at: string;
@@ -215,6 +216,22 @@ export interface DbApplicationMatch {
   matched_at: string;
 }
 
+// A company inviting a candidate to apply for a specific job -- a signal,
+// not an application. See supabase/add-talent-sourcing-and-verification.sql.
+export interface DbJobInvite {
+  id: string;
+  job_id: string;
+  company_id: string;
+  candidate_id: string;
+  message: string | null;
+  status: 'pending' | 'accepted' | 'declined';
+  created_at: string;
+  responded_at: string | null;
+  job?: { title: string; id: string };
+  company_profiles?: { company_name: string };
+  candidate_profiles?: { full_name: string; phone: string | null };
+}
+
 export interface AdminStats {
   totalJobs: number;
   activeJobs: number;
@@ -225,4 +242,6 @@ export interface AdminStats {
   totalTrainings: number;
   totalLearnerships: number;
   weekUniversityInterest: number;
+  pendingVerifications: number;
+  openInvites: number;
 }

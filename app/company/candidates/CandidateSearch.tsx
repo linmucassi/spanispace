@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Search, MapPin, CheckCircle, X, MessageSquare } from 'lucide-react';
+import { Search, MapPin, CheckCircle, X, MessageSquare, Send } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
 interface Candidate {
   id: string;
@@ -18,6 +19,17 @@ interface Candidate {
   cv_url: string | null;
   verified: boolean;
   profile_score: number | null;
+}
+
+interface CompanyJob {
+  id: string;
+  title: string;
+}
+
+interface ExistingInvite {
+  candidate_id: string;
+  job_id: string;
+  status: string;
 }
 
 function ScoreBadge({ score }: { score: number | null }) {
@@ -37,12 +49,54 @@ function ScoreBadge({ score }: { score: number | null }) {
 
 export default function CandidateSearch({
   initialCandidates,
+  applicantCandidateIds = [],
+  companyJobs = [],
+  existingInvites = [],
 }: {
   initialCandidates: Candidate[];
+  applicantCandidateIds?: string[];
+  companyJobs?: CompanyJob[];
+  existingInvites?: ExistingInvite[];
 }) {
   const [searchSkills, setSearchSkills] = useState('');
   const [searchLocation, setSearchLocation] = useState('');
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
+  const [invites, setInvites] = useState(existingInvites);
+  const [showInvite, setShowInvite] = useState(false);
+  const [inviteJobId, setInviteJobId] = useState(companyJobs[0]?.id ?? '');
+  const [inviteMessage, setInviteMessage] = useState('');
+  const [sendingInvite, setSendingInvite] = useState(false);
+  const [inviteError, setInviteError] = useState('');
+  const applicantSet = new Set(applicantCandidateIds);
+
+  function invitesFor(candidateId: string) {
+    return invites.filter((i) => i.candidate_id === candidateId);
+  }
+
+  async function sendInvite() {
+    if (!selectedCandidate || !inviteJobId) return;
+    setSendingInvite(true);
+    setInviteError('');
+    const supabase = createClient();
+    if (!supabase) {
+      setInviteError('Unable to connect to database.');
+      setSendingInvite(false);
+      return;
+    }
+    const { error } = await supabase.from('job_invites').insert({
+      job_id: inviteJobId,
+      candidate_id: selectedCandidate.id,
+      message: inviteMessage.trim() || null,
+    });
+    setSendingInvite(false);
+    if (error) {
+      setInviteError(error.code === '23505' ? 'You already invited this candidate to that job.' : error.message);
+      return;
+    }
+    setInvites((prev) => [...prev, { candidate_id: selectedCandidate.id, job_id: inviteJobId, status: 'pending' }]);
+    setShowInvite(false);
+    setInviteMessage('');
+  }
 
   const filtered = initialCandidates.filter((c) => {
     const skillMatch =
@@ -109,7 +163,12 @@ export default function CandidateSearch({
           {filtered.map((candidate) => (
             <div
               key={candidate.id}
-              onClick={() => setSelectedCandidate(candidate)}
+              onClick={() => {
+                setSelectedCandidate(candidate);
+                setShowInvite(false);
+                setInviteError('');
+                setInviteMessage('');
+              }}
               className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 hover:shadow-md hover:border-brand-200 transition-all cursor-pointer"
             >
               <div className="flex items-start justify-between mb-3">
@@ -128,6 +187,11 @@ export default function CandidateSearch({
                       {candidate.location}
                     </p>
                   )}
+                  <span className={`inline-flex mt-1.5 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${
+                    applicantSet.has(candidate.id) ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                  }`}>
+                    {applicantSet.has(candidate.id) ? 'Applied to your jobs' : 'Open to offers'}
+                  </span>
                 </div>
                 <ScoreBadge score={candidate.profile_score} />
               </div>
@@ -189,6 +253,11 @@ export default function CandidateSearch({
                         Verified
                       </span>
                     )}
+                    <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-bold ${
+                      applicantSet.has(selectedCandidate.id) ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                    }`}>
+                      {applicantSet.has(selectedCandidate.id) ? 'Applied to your jobs' : 'Open to offers'}
+                    </span>
                   </div>
                   {selectedCandidate.location && (
                     <p className="text-sm text-slate-500 flex items-center gap-1">
@@ -305,6 +374,63 @@ export default function CandidateSearch({
                   </a>
                 )}
               </div>
+
+              {/* Invite to apply -- only meaningful with an active job to invite to */}
+              {companyJobs.length > 0 && (
+                <div className="pt-2 border-t border-slate-100">
+                  {!showInvite ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowInvite(true)}
+                      className="inline-flex items-center gap-1.5 text-sm text-brand-600 font-medium hover:underline"
+                    >
+                      <Send className="w-4 h-4" />
+                      Invite to apply
+                    </button>
+                  ) : (
+                    <div className="space-y-2">
+                      <label className="block text-xs font-bold text-slate-400 uppercase">Invite to apply for</label>
+                      <select
+                        value={inviteJobId}
+                        onChange={(e) => setInviteJobId(e.target.value)}
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none"
+                      >
+                        {companyJobs.map((job) => (
+                          <option key={job.id} value={job.id}>{job.title}</option>
+                        ))}
+                      </select>
+                      <textarea
+                        value={inviteMessage}
+                        onChange={(e) => setInviteMessage(e.target.value)}
+                        placeholder="Optional message"
+                        rows={2}
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none"
+                      />
+                      {inviteError && <p className="text-red-600 text-xs">{inviteError}</p>}
+                      {invitesFor(selectedCandidate.id).some((i) => i.job_id === inviteJobId) && (
+                        <p className="text-amber-600 text-xs">Already invited to this job.</p>
+                      )}
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={sendInvite}
+                          disabled={sendingInvite || invitesFor(selectedCandidate.id).some((i) => i.job_id === inviteJobId)}
+                          className="px-3 py-1.5 text-xs font-bold bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-50"
+                        >
+                          {sendingInvite ? 'Sending...' : 'Send invite'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowInvite(false)}
+                          className="px-3 py-1.5 text-xs font-bold text-slate-500 hover:text-slate-700"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="px-6 py-4 border-t border-slate-100">
