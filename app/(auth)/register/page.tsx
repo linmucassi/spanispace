@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
@@ -12,6 +12,22 @@ import PhoneInput from '@/components/PhoneInput';
 import { Loader2 } from 'lucide-react';
 
 type Tab = 'candidate' | 'company';
+
+type InvitePreview = {
+  valid: boolean;
+  inviteType?: 'platform_admin' | 'company_member' | 'referral';
+  companyRole?: string;
+  companyName?: string | null;
+};
+
+// A company_member or platform_admin invite means this account joins an
+// existing company/becomes admin -- it must sign up as a plain account
+// (candidate tab, no new company_profiles row), not create a new company.
+// Acceptance itself happens after signUp() succeeds, never via
+// handle_new_user() -- see lib/invites/acceptInvite.ts.
+function inviteLocksToCandidateTab(invite: InvitePreview | null): boolean {
+  return invite?.valid === true && (invite.inviteType === 'company_member' || invite.inviteType === 'platform_admin');
+}
 
 const INDUSTRIES = [
   'Technology',
@@ -46,6 +62,27 @@ export default function RegisterPage() {
   const [companyName, setCompanyName] = useState('');
   const [industry, setIndustry] = useState('');
 
+  // Invite context, read from ?invite=<token> -- plain window.location.search
+  // rather than next/navigation's useSearchParams, to avoid forcing this
+  // whole page into a Suspense boundary for one query param (same call made
+  // for app/admin/jobs/page.tsx's ?origin= deep link earlier this session).
+  const [inviteToken, setInviteToken] = useState<string | null>(null);
+  const [invitePreview, setInvitePreview] = useState<InvitePreview | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('invite');
+    if (!token) return;
+    setInviteToken(token);
+    fetch(`/api/invites/preview?token=${encodeURIComponent(token)}`)
+      .then((res) => res.json())
+      .then((data: InvitePreview) => {
+        setInvitePreview(data);
+        if (inviteLocksToCandidateTab(data)) setTab('candidate');
+      })
+      .catch(() => setInvitePreview({ valid: false }));
+  }, []);
+
   const resetForm = () => {
     setEmail('');
     setPassword('');
@@ -66,11 +103,40 @@ export default function RegisterPage() {
     }
   };
 
+  // Shared by both signup paths (email/password and Google) -- POSTs the
+  // pending invite token, if any, then redirects based on what it granted
+  // rather than the tab the form happened to be on. Best effort: an
+  // invalid/expired invite just falls through to the normal role-based
+  // redirect, it never blocks signup itself.
+  const acceptInviteAndRedirect = async (supabase: ReturnType<typeof createClient>, userId: string) => {
+    if (inviteToken) {
+      try {
+        const res = await fetch('/api/invites/accept', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: inviteToken }),
+        });
+        const result = await res.json().catch(() => null);
+        if (res.ok && result?.inviteType === 'platform_admin') {
+          router.push('/admin/dashboard');
+          return;
+        }
+        if (res.ok && result?.inviteType === 'company_member') {
+          router.push('/company/dashboard');
+          return;
+        }
+      } catch {
+        // Fall through to the normal role-based redirect below.
+      }
+    }
+    if (!supabase) return;
+    await redirectToDashboard(supabase, router, userId, t('auth.roleCheckFailed'), setError);
+  };
+
   const { buttonRef: googleButtonRef, loading: googleLoading } = useGoogleSignIn({
     onSignedIn: async (userId) => {
       const supabase = createClient();
-      if (!supabase) return;
-      await redirectToDashboard(supabase, router, userId, t('auth.roleCheckFailed'), setError);
+      await acceptInviteAndRedirect(supabase, userId);
     },
     onError: setError,
   });
@@ -93,6 +159,12 @@ export default function RegisterPage() {
         ? { role: 'candidate', full_name: joinFullName(firstName, lastName), phone, location }
         : { role: 'company', company_name: companyName, industry, location };
 
+    const callbackUrl = new URL('/callback', window.location.origin);
+    // If confirmation email is required, no session exists until that link
+    // is clicked -- app/(auth)/callback/route.ts reads this same param and
+    // accepts the invite there instead. See lib/invites/acceptInvite.ts.
+    if (inviteToken) callbackUrl.searchParams.set('invite', inviteToken);
+
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
@@ -102,7 +174,7 @@ export default function RegisterPage() {
         // Site URL the Supabase project has configured, which is still the
         // default on this project. app/(auth)/callback/route.ts is what knows
         // how to exchange the code and route by role, so send them there.
-        emailRedirectTo: `${window.location.origin}/callback`,
+        emailRedirectTo: callbackUrl.toString(),
       },
     });
 
@@ -119,8 +191,11 @@ export default function RegisterPage() {
       return;
     }
 
-    // Session exists -- redirect to appropriate dashboard
-    if (tab === 'candidate') {
+    // Session exists -- accept the invite (if any) and redirect based on
+    // what it granted, falling back to the tab-based dashboard otherwise.
+    if (inviteToken) {
+      await acceptInviteAndRedirect(supabase, data.user!.id);
+    } else if (tab === 'candidate') {
       router.push('/candidate/dashboard');
     } else {
       router.push('/company/dashboard');
@@ -134,31 +209,53 @@ export default function RegisterPage() {
         <p className="text-slate-500 text-sm mt-1">{t('auth.registerSubtitle')}</p>
       </div>
 
-      {/* Tab Selector */}
-      <div className="flex rounded-xl bg-slate-100 p-1 mb-6">
-        <button
-          type="button"
-          onClick={() => handleTabSwitch('candidate')}
-          className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all ${
-            tab === 'candidate'
-              ? 'bg-white text-slate-900 shadow-sm'
-              : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          {t('auth.tabCandidate')}
-        </button>
-        <button
-          type="button"
-          onClick={() => handleTabSwitch('company')}
-          className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all ${
-            tab === 'company'
-              ? 'bg-white text-slate-900 shadow-sm'
-              : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          {t('auth.tabCompany')}
-        </button>
-      </div>
+      {/* Invite context banner */}
+      {invitePreview?.valid && invitePreview.inviteType === 'platform_admin' && (
+        <div className="mb-6 text-sm text-brand-700 bg-brand-50 border border-brand-100 rounded-2xl px-4 py-3">
+          You&apos;ve been invited to become a Spanispace admin. Finish signing up below to get access.
+        </div>
+      )}
+      {invitePreview?.valid && invitePreview.inviteType === 'company_member' && (
+        <div className="mb-6 text-sm text-brand-700 bg-brand-50 border border-brand-100 rounded-2xl px-4 py-3">
+          You&apos;ve been invited to join <strong>{invitePreview.companyName ?? 'a company'}</strong> as a{' '}
+          {invitePreview.companyRole}. Finish signing up below to get access.
+        </div>
+      )}
+      {invitePreview?.valid === false && inviteToken && (
+        <div className="mb-6 text-sm text-amber-700 bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3">
+          That invite link is invalid or has expired. You can still sign up normally below.
+        </div>
+      )}
+
+      {/* Tab Selector -- hidden when an invite locks the account to a plain
+          signup (joining an existing company or becoming admin), since
+          picking "company" here would create a second, unrelated company. */}
+      {!inviteLocksToCandidateTab(invitePreview) && (
+        <div className="flex rounded-xl bg-slate-100 p-1 mb-6">
+          <button
+            type="button"
+            onClick={() => handleTabSwitch('candidate')}
+            className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all ${
+              tab === 'candidate'
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            {t('auth.tabCandidate')}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleTabSwitch('company')}
+            className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all ${
+              tab === 'company'
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            {t('auth.tabCompany')}
+          </button>
+        </div>
+      )}
 
       {tab === 'candidate' && !success && (
         <div className="mb-6">

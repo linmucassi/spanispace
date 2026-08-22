@@ -1,6 +1,7 @@
 import { createServerSupabase } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import CandidateSearch from './CandidateSearch';
+import { resolveCompanyMembership } from '@/lib/company/resolveCompanyMembership';
 
 export default async function CompanyCandidates() {
   const supabase = await createServerSupabase();
@@ -11,13 +12,9 @@ export default async function CompanyCandidates() {
   } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const { data: company } = await supabase
-    .from('company_profiles')
-    .select('id')
-    .eq('user_id', user.id)
-    .single();
-
-  if (!company) redirect('/company/profile');
+  const membership = await resolveCompanyMembership(supabase, user.id);
+  if (!membership) redirect('/company/profile');
+  const company = { id: membership.companyId };
 
   // Fetch all candidate profiles -- RLS now returns two groups: candidates
   // who applied to this company's jobs ("Companies read applicant

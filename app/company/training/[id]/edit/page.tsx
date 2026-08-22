@@ -14,6 +14,7 @@ import {
   TRAINING_LEVELS,
   type TrainingLevel,
 } from '@/lib/training-level';
+import { resolveCompanyMembership } from '@/lib/company/resolveCompanyMembership';
 
 const CATEGORIES = ['Bootcamp', 'Short Course', 'Event'];
 const FORMATS = ['online', 'hybrid', 'in-person'];
@@ -70,13 +71,9 @@ export default function CompanyEditTraining() {
         return;
       }
 
-      const { data: company } = await supabase
-        .from('company_profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
+      const membership = await resolveCompanyMembership(supabase, user.id);
 
-      if (!company) {
+      if (!membership) {
         setError('Company profile not found.');
         setLoading(false);
         return;
@@ -86,7 +83,7 @@ export default function CompanyEditTraining() {
         .from('trainings')
         .select('*')
         .eq('id', trainingId)
-        .eq('company_id', company.id)
+        .eq('company_id', membership.companyId)
         .single();
 
       if (trainingError || !training) {

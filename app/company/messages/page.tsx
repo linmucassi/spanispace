@@ -1,6 +1,7 @@
 import { createServerSupabase } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import MessagesInbox, { type ThreadSummary } from '@/components/messaging/MessagesInbox';
+import { resolveCompanyMembership } from '@/lib/company/resolveCompanyMembership';
 
 type Props = {
   searchParams: Promise<{ candidateId?: string; jobId?: string }>;
@@ -17,13 +18,9 @@ export default async function CompanyMessages({ searchParams }: Props) {
   } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const { data: company } = await supabase
-    .from('company_profiles')
-    .select('id')
-    .eq('user_id', user.id)
-    .single();
-
-  if (!company) redirect('/company/profile');
+  const membership = await resolveCompanyMembership(supabase, user.id);
+  if (!membership) redirect('/company/profile');
+  const company = { id: membership.companyId };
 
   let selectedThreadId: string | null = null;
 

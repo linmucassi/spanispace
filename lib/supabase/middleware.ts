@@ -66,8 +66,10 @@ export async function updateSession(request: NextRequest) {
 
   const role = userData?.role;
 
-  // Check role matches the route
-  if (isAdminRoute && role !== 'admin') {
+  // Check role matches the route. 'admin' route accepts super_admin too
+  // (is_admin() in RLS does the same widening -- see
+  // supabase/add-roles-invites-and-calendar.sql).
+  if (isAdminRoute && role !== 'admin' && role !== 'super_admin') {
     return NextResponse.redirect(new URL('/', request.url));
   }
 
@@ -75,8 +77,20 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(new URL('/', request.url));
   }
 
+  // A company_members row (added as staff to a company) grants /company/*
+  // access even when the base users.role is something else, e.g. a
+  // candidate added as a company's recruiter. Only queried when the fast
+  // path (role === 'company', the original owner) doesn't already pass --
+  // see supabase/add-roles-invites-and-calendar.sql PART C.
   if (isCompanyRoute && role !== 'company') {
-    return NextResponse.redirect(new URL('/', request.url));
+    const { data: membership } = await supabase
+      .from('company_members')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (!membership) {
+      return NextResponse.redirect(new URL('/', request.url));
+    }
   }
 
   // Every candidate needs a phone number on file -- most often missing after a

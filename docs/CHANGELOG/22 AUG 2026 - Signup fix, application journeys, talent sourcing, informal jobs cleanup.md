@@ -123,18 +123,63 @@ Surfaced this to Linda before deleting anything (a real person's data was about 
 
 **Still to do (not something I can do):** Linda should reach out to SNOTHANDO DLULISA directly, since Spanispace has no real waiter listing to redirect them to.
 
+## Add: platform roles + general invites, company org/RBAC, interview scheduling + calendar
+
+Linda asked three things at once: can an admin promote a general user to admin; are companies handled as multi-user organizations with roles; do we have a calendar for events/meetings/interviews. Researched all three before answering (not guessing): no admin-promotion UI or API existed anywhere; `company_profiles.user_id` is `UNIQUE` — a company was strictly one login, no membership table existed; the `events` table is a public content board like the jobs board, not a scheduler, and no interview/meeting/calendar feature or calendar UI library existed at all. Confirmed: "Yes, build all three."
+
+This is the largest single feature of the day — three architecturally distinct subsystems. Went through plan mode and confirmed the real risk up front: `handle_new_user()` (the signup trigger) already caused a full production outage earlier today (the search_path regression). Locked in via AskUserQuestion before building: invites work for both existing and not-yet-registered users (admin→admin, company→team member, anyone→referral), company roles are a real 5-tier hierarchy (Owner/Admin/Manager/Member/Viewer) per Linda's own spec, platform roles split into Super Admin/Platform Admin, calendar means interview scheduling (company↔candidate, tied to an application) plus a calendar view, "meetings" = interviews, not a separate system.
+
+**Critical design constraint, held throughout:** invite acceptance is never wired into `handle_new_user()`. It's an explicit `POST /api/invites/accept` call the client makes *after* `supabase.auth.signUp()` succeeds (or, for the confirmation-email path where no session exists yet, handled by `app/(auth)/callback/route.ts` on the same principle) — both share `lib/invites/acceptInvite.ts`, running server-side with the service-role client. The signup trigger itself is untouched by any of this.
+
+**Caught and fixed before it shipped:** the first draft of `lock_user_role()` (the trigger that stops a non-super-admin from self-promoting) checked `is_super_admin()` unconditionally — but `auth.uid()` is `NULL` under a service-role connection (no JWT), so it would have silently reverted the invite-acceptance route's own attempt to grant admin. Fixed to only enforce the lock when there's an actual authenticated non-super-admin actor (`auth.uid() IS NOT NULL AND NOT is_super_admin()`), matching the same service-role trust model every other admin script in this session already relies on.
+
+**Data model** (`supabase/add-roles-invites-and-calendar.sql`, mirrored into `schema.sql` — **not yet run against production**):
+- **Platform roles:** `users.role` widened to include `super_admin`. `is_admin()` widened to accept both `admin` and `super_admin` — every existing "Admin full access X" policy in this app (dozens of them) keys off `is_admin()`, so super_admin inherits all of them automatically, zero other RLS changes needed. New `is_super_admin()` gates promoting/demoting admins and inviting new ones specifically — a regular Platform Admin can't mint more admins at will. **Linda needs to run one manual `UPDATE users SET role = 'super_admin' WHERE email = ...` for her own account** — bootstrapping the first super_admin can't happen through the app itself, same as how the first admin was always provisioned out of band.
+- **General invites:** new `platform_invites` table (token, email, `invite_type` IN `platform_admin/company_member/referral`, status, expiry). No anon SELECT — an unauthenticated visitor can never enumerate invites; a new `/api/invites/preview` route returns only the minimum needed for the register page to show "You've been invited to join X as Y" context, looked up by the token itself.
+- **Company org/RBAC:** new `company_members` table, one person per company in v1 (`UNIQUE(user_id)`), 5-tier role CHECK. Backfilled: every existing company got an `owner` membership row for its current `user_id` in the same migration, so nothing existing changes behavior. RLS is **additive only** — a new permissive policy per company-scoped table (jobs, trainings, events, applications, job_invites, messaging via `is_thread_party()`, company_profiles) layered *alongside* the original owner-only policies, never replacing them (Postgres ORs multiple permissive policies together — same pattern already used twice earlier today). Ownership transfer is explicitly out of scope for v1 — a trigger blocks editing/removing an `owner` row outright, not exposed in any UI.
+- **Interviews:** new `interviews` table (application/company/candidate, proposed time, duration, location, notes, status). Company manages via `company_can_operate()`; candidate reads/responds to their own; admin full access.
+
+**App-side, roughly in the order built:**
+- Fixed two role-routing gaps that would otherwise have silently broken this feature: `lib/supabase/middleware.ts` gated `/admin/*` on `role === 'admin'` exactly (would have locked out real super_admins) and `/company/*` on `role === 'company'` exactly (would have locked out team members whose base role stays whatever it was, e.g. a candidate added as a company's recruiter). Both widened — admin route also accepts `super_admin`; company route falls back to a `company_members` lookup when the base role isn't `company`. Same fix applied to `lib/auth/roleRedirect.ts` and `app/(auth)/callback/route.ts` so post-login routing sends the right people to the right portal.
+- `app/(auth)/register/page.tsx` reads `?invite=` from the URL (plain `window.location.search`, not `useSearchParams`, same Suspense-avoidance reasoning as earlier today), previews it via the new route, locks the signup to the candidate tab and hides the company tab when the invite means "join an existing company" or "become admin" (picking the company tab there would have created a second, unrelated company), shows context-appropriate banner copy, and routes based on what the invite actually granted rather than the tab.
+- New `/admin/users` (super-admin-gated, promote/demote admin, invite-by-email with a copyable link since Resend isn't configured yet — same non-automated-email pattern as this app's existing "Sent Invites" pages).
+- New `lib/company/resolveCompanyMembership.ts` — checks the original owner path first (byte-for-byte unchanged for existing owners), falls back to `company_members` for team members. Repointed all 15 `app/company/*` pages that used to resolve `company_profiles.user_id = auth.uid()` directly at this one helper. `app/company/profile/page.tsx` needed real surgery, not just a query swap: it now loads by `companyId` instead of `user_id` (so a team member sees the real company profile instead of a blank "create a company" form), and saving branches between `UPDATE ... WHERE id = companyId` for an existing company vs. the original `upsert`-by-`user_id` only for a brand-new owner's first save — upserting by `user_id` for a non-owner team member would have silently created a second, orphaned company.
+- New `/company/team` (roster, add-by-email — existing account added immediately via a service-role-backed route since arbitrary email lookup isn't opened to client RLS, unknown email creates an invite instead — role changes, remove), added to `CompanySidebar.tsx`.
+- `app/company/applications/ApplicationList.tsx` gets a "Schedule Interview" action (date/time/duration/location/notes) next to the existing status buttons; `app/candidate/applications/page.tsx` gets an inline interview badge with Confirm/Decline (new `InterviewActions.tsx`).
+- New `components/CalendarView.tsx` — hand-rolled month grid, no calendar library added (plain date math, consistent with this codebase's standing preference for hand-rolled UI, e.g. the Three.js scenes). New `/company/calendar` and `/candidate/calendar` pages feed it each side's interviews plus (company: posted events; candidate: registered events).
+
+**Verified:** `npx tsc --noEmit` and `npm run build` both clean (confirmed 7 new routes in the build output: `/admin/users`, `/api/company/team/add`, `/api/invites/accept`, `/api/invites/preview`, `/candidate/calendar`, `/company/calendar`, `/company/team`). Smoke-tested against the live dev server (migration not yet run, exercising every fallback path): public pages 200, every new auth-gated route redirects unauthenticated requests to login rather than erroring, `/api/invites/preview` returns a clean `{valid:false}` for a nonexistent token rather than crashing when `platform_invites` doesn't exist yet, `/api/invites/accept` and `/api/company/team/add` both fail closed with a clear error for unauthenticated requests.
+
+**Explicitly out of scope, flagged rather than silently dropped:** actual email delivery for any invite type (Resend isn't configured); company ownership transfer; a Support/Moderator platform role (mentioned in Linda's own notes but not one of the confirmed build options); per-member custom permission overrides beyond the 5 fixed role tiers; one person belonging to more than one company at a time.
+
+**Still outstanding:** `supabase/add-roles-invites-and-calendar.sql` needs to run in the Supabase SQL Editor — fourth migration handoff today — followed by the one-off super_admin bootstrap `UPDATE`. Nothing in this feature is live until both happen.
+
 ## Files changed
 ```
 A  app/admin/candidate-verification/page.tsx
 A  app/admin/invites/page.tsx
 A  app/admin/university-applications/page.tsx
+A  app/admin/users/page.tsx
+A  app/api/company/team/add/route.ts
+A  app/api/invites/accept/route.ts
+A  app/api/invites/preview/route.ts
 A  app/api/university-interest/route.ts
+A  app/candidate/applications/InterviewActions.tsx
+A  app/candidate/calendar/page.tsx
 A  app/candidate/invites/InviteList.tsx
 A  app/candidate/invites/page.tsx
+A  app/company/calendar/page.tsx
 A  app/company/invites/page.tsx
+A  app/company/team/page.tsx
+A  components/CalendarView.tsx
+A  lib/company/resolveCompanyMembership.ts
+A  lib/invites/acceptInvite.ts
 A  supabase/add-application-journeys.sql
+A  supabase/add-roles-invites-and-calendar.sql
 A  supabase/add-talent-sourcing-and-verification.sql
 A  supabase/fix-candidate-signup-search-path.sql
+M  app/(auth)/callback/route.ts
+M  app/(auth)/register/page.tsx
 M  app/(public)/jobs/[id]/JobDetailView.tsx
 M  app/(public)/jobs/[id]/apply/ApplyForm.tsx
 M  app/(public)/jobs/[id]/apply/page.tsx
@@ -144,14 +189,27 @@ M  app/admin/jobs/new/page.tsx
 M  app/admin/jobs/page.tsx
 M  app/admin/learnerships/new/page.tsx
 M  app/admin/learnerships/page.tsx
+M  app/admin/login/page.tsx
+M  app/candidate/applications/page.tsx
 M  app/candidate/dashboard/page.tsx
 M  app/candidate/profile/page.tsx
 M  app/company/applications/ApplicationList.tsx
 M  app/company/applications/page.tsx
 M  app/company/candidates/CandidateSearch.tsx
 M  app/company/candidates/page.tsx
+M  app/company/dashboard/page.tsx
+M  app/company/events/[id]/edit/page.tsx
+M  app/company/events/new/page.tsx
+M  app/company/events/page.tsx
+M  app/company/invites/page.tsx
 M  app/company/jobs/[id]/edit/page.tsx
 M  app/company/jobs/new/page.tsx
+M  app/company/jobs/page.tsx
+M  app/company/messages/page.tsx
+M  app/company/profile/page.tsx
+M  app/company/training/[id]/edit/page.tsx
+M  app/company/training/new/page.tsx
+M  app/company/training/page.tsx
 M  components/AcademicPortal.tsx
 M  components/admin/AdminSidebar.tsx
 M  components/candidate/CandidateSidebar.tsx
@@ -159,9 +217,11 @@ M  components/candidate/DocumentLibrary.tsx
 M  components/company/CompanySidebar.tsx
 M  data/constants.ts
 M  docs/ROADMAP.md
+M  lib/auth/roleRedirect.ts
 M  lib/publicAcademic.ts
 M  lib/publicJobs.ts
 M  lib/scrapers/db-writer.ts
+M  lib/supabase/middleware.ts
 M  supabase/add-informal-jobs.sql
 M  supabase/schema.sql
 M  types.ts

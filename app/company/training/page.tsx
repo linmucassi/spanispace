@@ -2,6 +2,7 @@ import { createServerSupabase } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import TrainingActions from './TrainingActions';
+import { resolveCompanyMembership } from '@/lib/company/resolveCompanyMembership';
 
 function VettedBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
@@ -49,13 +50,9 @@ export default async function CompanyTraining() {
   } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const { data: company } = await supabase
-    .from('company_profiles')
-    .select('id')
-    .eq('user_id', user.id)
-    .single();
-
-  if (!company) redirect('/company/profile');
+  const membership = await resolveCompanyMembership(supabase, user.id);
+  if (!membership) redirect('/company/profile');
+  const company = { id: membership.companyId };
 
   const { data: trainings } = await supabase
     .from('trainings')

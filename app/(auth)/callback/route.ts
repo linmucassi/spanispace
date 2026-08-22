@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse, type NextRequest } from 'next/server';
+import { acceptPlatformInvite } from '@/lib/invites/acceptInvite';
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
@@ -60,6 +61,19 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', origin));
   }
 
+  // Confirmation-email path for an invite-based signup -- register/page.tsx
+  // appends ?invite=<token> to emailRedirectTo when Supabase confirmation is
+  // required and no session exists immediately after signUp(). Best effort:
+  // an invalid/expired token here just means the person keeps whatever role
+  // signup gave them, same as the direct-session path in
+  // app/api/invites/accept/route.ts.
+  const inviteToken = searchParams.get('invite');
+  if (inviteToken && user.email) {
+    await acceptPlatformInvite(user.id, user.email, inviteToken).catch((err) => {
+      console.error('[callback] invite acceptance failed:', err);
+    });
+  }
+
   const { data: userData } = await supabase
     .from('users')
     .select('role')
@@ -72,14 +86,25 @@ export async function GET(request: NextRequest) {
   if (next === '/' && userData?.role) {
     switch (userData.role) {
       case 'admin':
+      case 'super_admin':
         redirectPath = '/admin/dashboard';
         break;
       case 'company':
         redirectPath = '/company/dashboard';
         break;
       case 'candidate':
-        redirectPath = '/candidate/dashboard';
+      default: {
+        // Someone added as company staff (company_members) keeps their base
+        // role but still belongs in the company portal -- see
+        // supabase/add-roles-invites-and-calendar.sql PART C.
+        const { data: membership } = await supabase
+          .from('company_members')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        redirectPath = membership ? '/company/dashboard' : '/candidate/dashboard';
         break;
+      }
     }
   }
 

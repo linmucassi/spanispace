@@ -13,6 +13,7 @@ import {
   MessageSquare,
   Zap,
   Mail,
+  Calendar,
   LogOut,
   Menu,
   X,
@@ -21,6 +22,7 @@ import { createClient } from '@/lib/supabase/client';
 
 const navItems: { name: string; href: string; icon: React.ElementType; isNew?: boolean }[] = [
   { name: 'Dashboard', href: '/candidate/dashboard', icon: LayoutDashboard },
+  { name: 'Calendar', href: '/candidate/calendar', icon: Calendar, isNew: true },
   { name: 'My Profile', href: '/candidate/profile', icon: User },
   { name: 'Applications', href: '/candidate/applications', icon: FileText },
   { name: 'Invitations', href: '/candidate/invites', icon: Mail, isNew: true },
