@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { resolveCompanyMembership } from '@/lib/company/resolveCompanyMembership';
 
 const EVENT_TYPES = [
   'webinar',
@@ -80,13 +81,9 @@ export default function CompanyEditEvent() {
         return;
       }
 
-      const { data: company } = await supabase
-        .from('company_profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
+      const membership = await resolveCompanyMembership(supabase, user.id);
 
-      if (!company) {
+      if (!membership) {
         setError('Company profile not found.');
         setLoading(false);
         return;
@@ -96,7 +93,7 @@ export default function CompanyEditEvent() {
         .from('events')
         .select('*')
         .eq('id', eventId)
-        .eq('company_id', company.id)
+        .eq('company_id', membership.companyId)
         .single();
 
       if (eventError || !event) {

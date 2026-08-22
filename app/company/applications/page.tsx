@@ -1,6 +1,7 @@
 import { createServerSupabase } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import ApplicationList from './ApplicationList';
+import { resolveCompanyMembership } from '@/lib/company/resolveCompanyMembership';
 
 export default async function CompanyApplications() {
   const supabase = await createServerSupabase();
@@ -11,13 +12,9 @@ export default async function CompanyApplications() {
   } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const { data: company } = await supabase
-    .from('company_profiles')
-    .select('id')
-    .eq('user_id', user.id)
-    .single();
-
-  if (!company) redirect('/company/profile');
+  const membership = await resolveCompanyMembership(supabase, user.id);
+  if (!membership) redirect('/company/profile');
+  const company = { id: membership.companyId };
 
   // Get job IDs for this company
   const { data: companyJobs } = await supabase
@@ -48,7 +45,7 @@ export default async function CompanyApplications() {
         </p>
       </div>
 
-      <ApplicationList initialApplications={applications} />
+      <ApplicationList initialApplications={applications} companyId={company.id} />
     </div>
   );
 }

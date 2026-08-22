@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { normalizeUrl } from '@/lib/normalizeUrl';
+import { resolveCompanyMembership, canOperate } from '@/lib/company/resolveCompanyMembership';
 
 const JOB_TYPES = [
   'Full-time',
@@ -22,6 +23,7 @@ const JOB_TYPES = [
 export default function CompanyNewJob() {
   const router = useRouter();
   const [companyId, setCompanyId] = useState<string | null>(null);
+  const [canPost, setCanPost] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -57,14 +59,10 @@ export default function CompanyNewJob() {
         return;
       }
 
-      const { data } = await supabase
-        .from('company_profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (data) {
-        setCompanyId(data.id);
+      const membership = await resolveCompanyMembership(supabase, user.id);
+      if (membership) {
+        setCompanyId(membership.companyId);
+        setCanPost(canOperate(membership.role));
       }
       setLoading(false);
     }
@@ -154,6 +152,15 @@ export default function CompanyNewJob() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600" />
+      </div>
+    );
+  }
+
+  if (!canPost) {
+    return (
+      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-8 text-center">
+        <h2 className="text-xl font-bold text-amber-800 mb-2">View-only access</h2>
+        <p className="text-amber-700">Your role on this company account doesn&apos;t allow posting jobs. Ask an admin or owner to change your role.</p>
       </div>
     );
   }

@@ -1,6 +1,7 @@
 import { createServerSupabase } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import { resolveCompanyMembership } from '@/lib/company/resolveCompanyMembership';
 
 function StatsCard({
   label,
@@ -48,14 +49,19 @@ export default async function CompanyDashboard() {
   } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  // Get company profile
-  const { data: company } = await supabase
+  // Get company membership -- owner (company_profiles.user_id, unchanged)
+  // or team member (company_members). See
+  // supabase/add-roles-invites-and-calendar.sql PART C.
+  const membership = await resolveCompanyMembership(supabase, user.id);
+  if (!membership) redirect('/company/profile');
+
+  const { data: companyRow } = await supabase
     .from('company_profiles')
     .select('id, company_name')
-    .eq('user_id', user.id)
+    .eq('id', membership.companyId)
     .single();
-
-  if (!company) redirect('/company/profile');
+  if (!companyRow) redirect('/company/profile');
+  const company = companyRow;
 
   // Get all job IDs for this company first
   const { data: companyJobs } = await supabase
