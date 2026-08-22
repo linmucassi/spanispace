@@ -5,7 +5,21 @@ import { createClient } from '@/lib/supabase/client';
 import { useConfirm } from '@/components/useConfirm';
 import { FileText, Trash2, ExternalLink, Upload } from 'lucide-react';
 
-export type DocType = 'cv' | 'certificate' | 'cover_letter' | 'motivational_letter' | 'other';
+export type DocType =
+  | 'cv'
+  | 'certificate'
+  | 'cover_letter'
+  | 'motivational_letter'
+  | 'other'
+  | 'id_document'
+  | 'qualification'
+  | 'transcript';
+
+// Only these three ever carry a verification_status -- see
+// supabase/add-talent-sourcing-and-verification.sql. Admin reviews them at
+// /admin/candidate-verification; nothing else in this component acts on
+// verification_status, it's read-only display here.
+const VERIFIABLE_TYPES: DocType[] = ['id_document', 'qualification', 'transcript'];
 
 export interface CandidateDocument {
   id: string;
@@ -14,6 +28,8 @@ export interface CandidateDocument {
   file_url: string;
   file_size_kb: number | null;
   created_at: string;
+  verification_status?: 'pending' | 'verified' | 'rejected' | null;
+  verification_note?: string | null;
 }
 
 const DOC_LABELS: Record<DocType, string> = {
@@ -22,6 +38,9 @@ const DOC_LABELS: Record<DocType, string> = {
   cover_letter: 'Cover Letter',
   motivational_letter: 'Motivational Letter',
   other: 'Other',
+  id_document: 'ID Document',
+  qualification: 'Qualification',
+  transcript: 'Transcript',
 };
 
 const DOC_COLORS: Record<DocType, string> = {
@@ -30,6 +49,15 @@ const DOC_COLORS: Record<DocType, string> = {
   cover_letter: 'bg-amber-100 text-amber-700',
   motivational_letter: 'bg-purple-100 text-purple-700',
   other: 'bg-slate-100 text-slate-600',
+  id_document: 'bg-blue-100 text-blue-700',
+  qualification: 'bg-blue-100 text-blue-700',
+  transcript: 'bg-blue-100 text-blue-700',
+};
+
+const VERIFICATION_BADGE: Record<'pending' | 'verified' | 'rejected', string> = {
+  pending: 'bg-amber-100 text-amber-700',
+  verified: 'bg-green-100 text-green-700',
+  rejected: 'bg-red-100 text-red-700',
 };
 
 function formatDate(iso: string) {
@@ -63,9 +91,13 @@ export default function DocumentLibrary() {
     if (!supabase) return;
     const id = uid ?? userId;
     if (!id) return;
+    // select('*') keeps this resilient whether or not
+    // supabase/add-talent-sourcing-and-verification.sql has run yet -- an
+    // explicit column list would error outright if verification_status
+    // doesn't exist, breaking the whole document list load.
     const { data, error } = await supabase
       .from('candidate_documents')
-      .select('id, name, doc_type, file_url, file_size_kb, created_at')
+      .select('*')
       .eq('user_id', id)
       .order('created_at', { ascending: false });
     if (error) console.error('[documents] load error:', error.message);
@@ -113,13 +145,24 @@ export default function DocumentLibrary() {
 
     const { data: urlData } = supabase.storage.from('documents').getPublicUrl(storagePath);
 
-    const { error: dbError } = await supabase.from('candidate_documents').insert({
+    const row: Record<string, unknown> = {
       user_id: userId,
       name: docName,
       doc_type: selectedType,
       file_url: urlData.publicUrl,
       file_size_kb: Math.ceil(file.size / 1024),
-    });
+    };
+    if (VERIFIABLE_TYPES.includes(selectedType)) row.verification_status = 'pending';
+
+    let { error: dbError } = await supabase.from('candidate_documents').insert(row);
+
+    // If verification_status doesn't exist yet (migration not run), drop it
+    // and retry -- the document itself still uploads fine either way.
+    if (dbError && 'verification_status' in row && (dbError.code === 'PGRST204' || dbError.message?.includes('verification_status'))) {
+      const rest = { ...row };
+      delete rest.verification_status;
+      ({ error: dbError } = await supabase.from('candidate_documents').insert(rest));
+    }
 
     if (dbError) {
       setFeedback({ type: 'error', message: `Save failed: ${dbError.message}` });
@@ -198,11 +241,19 @@ export default function DocumentLibrary() {
                   >
                     {DOC_LABELS[doc.doc_type]}
                   </span>
+                  {doc.verification_status && (
+                    <span className={`inline-block text-xs font-medium px-2 py-0.5 rounded-full ${VERIFICATION_BADGE[doc.verification_status]}`}>
+                      {doc.verification_status === 'pending' ? 'Pending review' : doc.verification_status === 'verified' ? 'Verified' : 'Rejected'}
+                    </span>
+                  )}
                   {doc.file_size_kb && (
                     <span className="text-xs text-slate-400">{formatSize(doc.file_size_kb)}</span>
                   )}
                   <span className="text-xs text-slate-400">· {formatDate(doc.created_at)}</span>
                 </div>
+                {doc.verification_status === 'rejected' && doc.verification_note && (
+                  <p className="text-xs text-red-600 mt-1">{doc.verification_note}</p>
+                )}
               </div>
               <div className="flex items-center gap-1 shrink-0">
                 <a

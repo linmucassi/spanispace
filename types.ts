@@ -14,6 +14,9 @@ export interface Job {
   company: string;
   location: string;
   applyLink: string;
+  /** How a candidate finishes applying. Absent on the static fallback data,
+   *  which is treated as 'on_platform'. */
+  applyMode?: 'on_platform' | 'redirect';
   expiryDate: string;
   /** ISO date the listing was created. Absent on the static fallback data. */
   postedDate?: string;
@@ -72,6 +75,9 @@ export interface Training {
 }
 
 export interface UniversityUpdate {
+  /** late_uni_apps.id -- absent for static fallback entries, which skip
+   *  interest capture since there's no row to attach it to. */
+  id?: string;
   institution: string;
   deadline: string;
   type: 'Late Application' | 'Standard' | 'Learnership';

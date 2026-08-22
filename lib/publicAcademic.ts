@@ -39,6 +39,7 @@ function normaliseName(name: string): string {
 
 function mapDbUniApp(row: DbUniApp): UniversityUpdate {
   return {
+    id: row.id,
     institution: row.institution,
     deadline: row.closing_date ?? '',
     type: (row.application_type ?? 'Standard') as UniversityUpdate['type'],

@@ -32,7 +32,7 @@ export default async function CompanyApplications() {
   if (jobIds.length > 0) {
     const { data } = await supabase
       .from('applications')
-      .select('*, job:jobs(title)')
+      .select('*, job:jobs(title, apply_mode)')
       .in('job_id', jobIds)
       .order('created_at', { ascending: false });
 

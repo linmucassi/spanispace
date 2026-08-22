@@ -10,10 +10,25 @@ import { useConfirm } from '@/components/useConfirm';
 export default function AdminJobs() {
   const [jobs, setJobs] = useState<DbJob[]>([]);
   const [filter, setFilter] = useState('all');
+  const [originFilter, setOriginFilter] = useState('all');
+
+  // Plain client-side read of ?origin=scraped (e.g. from the dashboard's
+  // "N scraped jobs waiting for review" link) -- avoided next/navigation's
+  // useSearchParams here since that forces this page into a Suspense
+  // boundary at build time for a one-off deep link.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const origin = params.get('origin');
+    if (origin) {
+      setOriginFilter(origin);
+      if (origin === 'scraped') setFilter('pending');
+    }
+  }, []);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [extendDays, setExtendDays] = useState(30);
   const [extending, setExtending] = useState(false);
+  const [approving, setApproving] = useState(false);
   const { confirm, ConfirmDialog } = useConfirm();
 
   const loadJobs = async () => {
@@ -24,6 +39,7 @@ export default function AdminJobs() {
     if (filter === 'pending') query = query.eq('vetted_status', 'pending');
     if (filter === 'verified') query = query.eq('vetted_status', 'verified');
     if (filter === 'rejected') query = query.eq('vetted_status', 'rejected');
+    if (originFilter !== 'all') query = query.eq('origin', originFilter);
 
     const { data } = await query;
     setJobs((data as DbJob[]) ?? []);
@@ -32,12 +48,28 @@ export default function AdminJobs() {
 
   useEffect(() => {
     loadJobs();
-  }, [filter]);
+  }, [filter, originFilter]);
 
   const updateStatus = async (id: string, vetted_status: string) => {
     const supabase = createClient();
     if (!supabase) return;
     await supabase.from('jobs').update({ vetted_status }).eq('id', id);
+    loadJobs();
+  };
+
+  // Scraped jobs land here as 'pending' for review (see
+  // supabase/add-application-journeys.sql) instead of auto-publishing, and a
+  // single scrape run can bring in dozens at once -- approving them one row
+  // at a time would be painful, so this reuses the same `selected` set the
+  // bulk expiry-extend action below already has.
+  const approveSelected = async () => {
+    if (selected.size === 0) return;
+    const supabase = createClient();
+    if (!supabase) return;
+    setApproving(true);
+    await supabase.from('jobs').update({ vetted_status: 'verified' }).in('id', Array.from(selected));
+    setApproving(false);
+    setSelected(new Set());
     loadJobs();
   };
 
@@ -100,7 +132,7 @@ export default function AdminJobs() {
       </div>
 
       {/* Filters */}
-      <div className="flex gap-2 mb-6">
+      <div className="flex flex-wrap items-center gap-2 mb-6">
         {['all', 'pending', 'verified', 'rejected'].map((f) => (
           <button
             key={f}
@@ -112,12 +144,29 @@ export default function AdminJobs() {
             {f.charAt(0).toUpperCase() + f.slice(1)}
           </button>
         ))}
+        <select
+          value={originFilter}
+          onChange={(e) => setOriginFilter(e.target.value)}
+          className="ml-auto px-3 py-2 rounded-lg text-sm font-medium bg-white border border-slate-200 text-slate-600"
+        >
+          <option value="all">All sources</option>
+          <option value="company">Company-posted</option>
+          <option value="admin_curated">Admin-curated</option>
+          <option value="scraped">Scraped</option>
+        </select>
       </div>
 
-      {/* Bulk expiry extension */}
+      {/* Bulk actions */}
       {selected.size > 0 && (
-        <div className="flex items-center gap-3 mb-4 px-4 py-3 bg-brand-50 border border-brand-200 rounded-xl text-sm">
+        <div className="flex flex-wrap items-center gap-3 mb-4 px-4 py-3 bg-brand-50 border border-brand-200 rounded-xl text-sm">
           <span className="font-medium text-brand-800">{selected.size} selected</span>
+          <button
+            onClick={approveSelected}
+            disabled={approving}
+            className="bg-green-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-green-700 disabled:opacity-50"
+          >
+            {approving ? 'Approving…' : 'Approve selected'}
+          </button>
           <span className="text-brand-700">Extend expiry by</span>
           <input
             type="number"
@@ -161,6 +210,7 @@ export default function AdminJobs() {
                   <th className="px-6 py-3">Title</th>
                   <th className="px-6 py-3">Location</th>
                   <th className="px-6 py-3">Type</th>
+                  <th className="px-6 py-3">Source</th>
                   <th className="px-6 py-3">Expiry</th>
                   <th className="px-6 py-3">Status</th>
                   <th className="px-6 py-3">Actions</th>
@@ -183,6 +233,18 @@ export default function AdminJobs() {
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-600">{job.location}</td>
                     <td className="px-6 py-4 text-sm text-slate-600">{job.job_type}</td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-bold ${
+                        job.origin === 'scraped' ? 'bg-slate-200 text-slate-700' :
+                        job.origin === 'admin_curated' ? 'bg-purple-100 text-purple-700' :
+                        'bg-blue-100 text-blue-700'
+                      }`}>
+                        {job.origin === 'scraped' ? 'Scraped' : job.origin === 'admin_curated' ? 'Admin' : 'Company'}
+                      </span>
+                      {job.apply_mode === 'redirect' && (
+                        <span className="ml-1 inline-flex px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-100 text-slate-600">Redirect</span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 text-sm text-slate-600 font-mono">
                       {job.expiry_date}
                       {isExpiringSoon(job.expiry_date) && (

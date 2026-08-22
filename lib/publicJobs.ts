@@ -20,6 +20,7 @@ type DbJob = {
   requirements: string | null;
   salary_range: string | null;
   poster_name: string | null;
+  apply_mode?: 'on_platform' | 'redirect';
   company_profiles: { company_name: string } | null;
 };
 
@@ -45,6 +46,7 @@ function mapDbJob(row: DbJob): Job {
     type: row.job_type as Job['type'],
     duration: row.duration ?? undefined,
     applyLink: row.apply_link ?? '',
+    applyMode: row.apply_mode ?? 'on_platform',
     expiryDate: row.expiry_date,
     postedDate: row.created_at,
     updatedDate: row.updated_at ?? row.created_at,

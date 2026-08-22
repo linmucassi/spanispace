@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { normalizeUrl } from '@/lib/normalizeUrl';
 
 export default function AdminNewJob() {
   const router = useRouter();
@@ -20,6 +21,8 @@ export default function AdminNewJob() {
     vetted_status: 'verified',
     poster_name: 'Spanispace',
     poster_email: '',
+    apply_mode: 'on_platform',
+    apply_link: '',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -30,6 +33,12 @@ export default function AdminNewJob() {
     e.preventDefault();
     setError('');
     setSaving(true);
+
+    if (form.apply_mode === 'redirect' && !form.apply_link.trim()) {
+      setError('Add an apply link, or switch back to accepting applications on Spanispace.');
+      setSaving(false);
+      return;
+    }
 
     const supabase = createClient();
     if (!supabase) {
@@ -51,6 +60,9 @@ export default function AdminNewJob() {
       poster_name: form.poster_name || null,
       poster_email: form.poster_email || null,
       status: 'active',
+      origin: 'admin_curated',
+      apply_mode: form.apply_mode,
+      apply_link: form.apply_mode === 'redirect' ? normalizeUrl(form.apply_link) : null,
     };
 
     let { error: dbError } = await supabase.from('jobs').insert(payload);
@@ -59,6 +71,14 @@ export default function AdminNewJob() {
     if (dbError && 'duration' in payload && (dbError.code === 'PGRST204' || dbError.message?.includes('duration'))) {
       const rest = { ...payload };
       delete rest.duration;
+      ({ error: dbError } = await supabase.from('jobs').insert(rest));
+    }
+
+    // Retry without origin/apply_mode if supabase/add-application-journeys.sql hasn't run yet
+    if (dbError && 'origin' in payload && (dbError.code === 'PGRST204' || dbError.message?.includes('origin') || dbError.message?.includes('apply_mode'))) {
+      const rest = { ...payload };
+      delete rest.origin;
+      delete rest.apply_mode;
       ({ error: dbError } = await supabase.from('jobs').insert(rest));
     }
 
@@ -146,6 +166,29 @@ export default function AdminNewJob() {
             </select>
           </div>
         </div>
+
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-2">How do candidates apply?</label>
+          <div className="flex flex-col sm:flex-row gap-3 text-sm">
+            <label className="flex items-center gap-2 border border-slate-200 rounded-xl px-4 py-3 flex-1 cursor-pointer has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50">
+              <input type="radio" name="apply_mode" value="on_platform" checked={form.apply_mode === 'on_platform'} onChange={handleChange} />
+              Accept applications on Spanispace
+            </label>
+            <label className="flex items-center gap-2 border border-slate-200 rounded-xl px-4 py-3 flex-1 cursor-pointer has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50">
+              <input type="radio" name="apply_mode" value="redirect" checked={form.apply_mode === 'redirect'} onChange={handleChange} />
+              Redirect to an external link
+            </label>
+          </div>
+        </div>
+
+        {form.apply_mode === 'redirect' && (
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Apply Link *</label>
+            <input name="apply_link" value={form.apply_link} onChange={handleChange} type="text" inputMode="url" required
+              placeholder="e.g. company.com/careers/role"
+              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none" />
+          </div>
+        )}
 
         {error && <p className="text-red-600 text-sm text-center">{error}</p>}
 

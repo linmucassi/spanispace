@@ -172,12 +172,19 @@ export default function JobDetailView({ job }: { job: PublicJobDetail }) {
             </div>
           ) : (
             !isExpired && (
-              <Link
-                href={`/jobs/${job.id}/apply`}
-                className="block w-full text-center bg-brand-600 text-white px-8 py-4 rounded-2xl font-bold shadow-lg hover:bg-brand-700 transition-all hover:scale-[1.02]"
-              >
-                {t('jobDetail.applyForPosition')}
-              </Link>
+              <div>
+                <Link
+                  href={`/jobs/${job.id}/apply`}
+                  className="block w-full text-center bg-brand-600 text-white px-8 py-4 rounded-2xl font-bold shadow-lg hover:bg-brand-700 transition-all hover:scale-[1.02]"
+                >
+                  {t('jobDetail.applyForPosition')}
+                </Link>
+                {job.applyMode === 'redirect' && (
+                  <p className="text-center text-xs text-ink-500 mt-2">
+                    You&apos;ll finish this application on {job.company}&apos;s site.
+                  </p>
+                )}
+              </div>
             )
           )}
         </div>

@@ -25,6 +25,10 @@ CREATE TABLE candidate_profiles (
   cv_url TEXT,
   verified BOOLEAN DEFAULT FALSE,
   profile_score INT DEFAULT 0 CHECK (profile_score >= 0 AND profile_score <= 100),
+  -- Candidate-controlled: opts into being visible/invitable by companies who
+  -- haven't received an application from them. Independent of `verified` --
+  -- see supabase/add-talent-sourcing-and-verification.sql.
+  open_to_offers BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -34,9 +38,13 @@ CREATE TABLE candidate_documents (
   id           UUID        DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id      UUID        REFERENCES users(id) ON DELETE CASCADE NOT NULL,
   name         TEXT        NOT NULL,
-  doc_type     TEXT        NOT NULL CHECK (doc_type IN ('cv', 'certificate', 'cover_letter', 'motivational_letter', 'other')),
+  doc_type     TEXT        NOT NULL CHECK (doc_type IN ('cv', 'certificate', 'cover_letter', 'motivational_letter', 'other', 'id_document', 'qualification', 'transcript')),
   file_url     TEXT        NOT NULL,
   file_size_kb INT,
+  -- Nullable, only meaningful for id_document/qualification/transcript --
+  -- see supabase/add-talent-sourcing-and-verification.sql.
+  verification_status TEXT CHECK (verification_status IN ('pending', 'verified', 'rejected')),
+  verification_note   TEXT,
   created_at   TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -73,6 +81,14 @@ CREATE TABLE jobs (
   poster_whatsapp TEXT,
   poster_email TEXT,
   status TEXT DEFAULT 'active' CHECK (status IN ('active', 'closed', 'draft')),
+  -- origin: who owns/posted it, drives dashboard visibility (companies only
+  -- ever see their own 'company' rows; admin sees everything).
+  -- apply_mode: how the candidate finishes -- 'on_platform' is the existing
+  -- full form, 'redirect' is a short capture form then off to apply_link.
+  -- Scraped rows are always 'scraped'/'redirect'. See
+  -- supabase/add-application-journeys.sql.
+  origin TEXT NOT NULL DEFAULT 'company' CHECK (origin IN ('company', 'admin_curated', 'scraped')),
+  apply_mode TEXT NOT NULL DEFAULT 'on_platform' CHECK (apply_mode IN ('on_platform', 'redirect')),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -93,6 +109,21 @@ CREATE TABLE applications (
   documents JSONB DEFAULT '[]'::jsonb,
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'reviewed', 'shortlisted', 'rejected', 'hired')),
   created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 5b. Job Invites (company invites a candidate to apply for a specific job --
+-- a signal, not an application; deliberately separate from `applications`,
+-- since accepting one just routes through that job's normal apply flow)
+CREATE TABLE job_invites (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  job_id UUID REFERENCES jobs(id) ON DELETE CASCADE NOT NULL,
+  company_id UUID REFERENCES company_profiles(id) ON DELETE CASCADE NOT NULL,
+  candidate_id UUID REFERENCES candidate_profiles(id) ON DELETE CASCADE NOT NULL,
+  message TEXT,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'declined')),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  responded_at TIMESTAMPTZ,
+  UNIQUE (job_id, candidate_id)
 );
 
 -- 6. Trainings / Bootcamps
@@ -154,6 +185,20 @@ CREATE TABLE late_uni_apps (
   status TEXT DEFAULT 'open' CHECK (status IN ('open', 'closed')),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 9b. University Application Interest (candidate clicked "Apply" on a
+-- late_uni_apps card -- always an external redirect, this just captures who
+-- before they leave). Fully separate from jobs/learnerships/applications,
+-- no company visibility at all -- admin and the candidate themselves only.
+CREATE TABLE university_application_interests (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  late_uni_app_id UUID REFERENCES late_uni_apps(id) ON DELETE CASCADE NOT NULL,
+  candidate_id UUID REFERENCES candidate_profiles(id) ON DELETE SET NULL,
+  full_name TEXT NOT NULL,
+  phone TEXT,
+  email TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- 10. Events
@@ -276,9 +321,11 @@ CREATE TABLE newsletter (
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE jobs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE applications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE job_invites ENABLE ROW LEVEL SECURITY;
 ALTER TABLE trainings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE learnerships ENABLE ROW LEVEL SECURITY;
 ALTER TABLE late_uni_apps ENABLE ROW LEVEL SECURITY;
+ALTER TABLE university_application_interests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE waitlist ENABLE ROW LEVEL SECURITY;
 ALTER TABLE newsletter ENABLE ROW LEVEL SECURITY;
@@ -394,6 +441,12 @@ CREATE POLICY "Public read active jobs" ON jobs FOR SELECT USING (status = 'acti
 CREATE POLICY "Public read active trainings" ON trainings FOR SELECT USING (status IN ('active', 'completed') AND vetted_status = 'verified');
 CREATE POLICY "Public read learnerships" ON learnerships FOR SELECT USING (true);
 CREATE POLICY "Public read late uni apps" ON late_uni_apps FOR SELECT USING (true);
+CREATE POLICY "Candidates insert own university interest" ON university_application_interests FOR INSERT WITH CHECK (
+  candidate_id IS NULL OR EXISTS (SELECT 1 FROM candidate_profiles cd WHERE cd.id = university_application_interests.candidate_id AND cd.user_id = auth.uid())
+);
+CREATE POLICY "Candidates read own university interest" ON university_application_interests FOR SELECT USING (
+  EXISTS (SELECT 1 FROM candidate_profiles cd WHERE cd.id = university_application_interests.candidate_id AND cd.user_id = auth.uid())
+);
 CREATE POLICY "Public read published events" ON events FOR SELECT USING (status IN ('published', 'ongoing', 'completed') AND vetted_status = 'verified');
 
 -- Public inserts (anyone can apply, submit jobs, join waitlist)
@@ -456,6 +509,29 @@ CREATE POLICY "Candidates update own profile" ON candidate_profiles FOR UPDATE U
 -- A company can see the profiles of candidates who applied to its jobs, and only those.
 CREATE POLICY "Companies read applicant profiles" ON candidate_profiles FOR SELECT USING (
   public.company_has_applicant(id)
+);
+-- Additive to the policy above (Postgres OR's multiple permissive SELECT
+-- policies together) -- opts a candidate into being visible/invitable by
+-- companies they haven't applied to yet. See
+-- supabase/add-talent-sourcing-and-verification.sql.
+CREATE POLICY "Companies read opted-in candidates" ON candidate_profiles FOR SELECT USING (
+  open_to_offers = true
+);
+
+CREATE POLICY "Companies manage own invites" ON job_invites FOR ALL USING (
+  EXISTS (SELECT 1 FROM company_profiles cp WHERE cp.id = job_invites.company_id AND cp.user_id = auth.uid())
+) WITH CHECK (
+  EXISTS (SELECT 1 FROM company_profiles cp WHERE cp.id = job_invites.company_id AND cp.user_id = auth.uid())
+  AND EXISTS (
+    SELECT 1 FROM candidate_profiles c WHERE c.id = job_invites.candidate_id
+    AND (c.open_to_offers = true OR public.company_has_applicant(c.id))
+  )
+);
+CREATE POLICY "Candidates read own invites" ON job_invites FOR SELECT USING (
+  EXISTS (SELECT 1 FROM candidate_profiles c WHERE c.id = job_invites.candidate_id AND c.user_id = auth.uid())
+);
+CREATE POLICY "Candidates respond to own invites" ON job_invites FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM candidate_profiles c WHERE c.id = job_invites.candidate_id AND c.user_id = auth.uid())
 );
 CREATE POLICY "Companies insert own profile" ON company_profiles FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Companies read own profile" ON company_profiles FOR SELECT USING (auth.uid() = user_id);
@@ -527,12 +603,18 @@ CREATE POLICY "Admin full access applications" ON applications FOR ALL USING (pu
 CREATE POLICY "Admin full access trainings" ON trainings FOR ALL USING (public.is_admin());
 CREATE POLICY "Admin full access learnerships" ON learnerships FOR ALL USING (public.is_admin());
 CREATE POLICY "Admin full access late_uni_apps" ON late_uni_apps FOR ALL USING (public.is_admin());
+CREATE POLICY "Admin full access university_application_interests" ON university_application_interests FOR ALL USING (public.is_admin());
 CREATE POLICY "Admin full access events" ON events FOR ALL USING (public.is_admin());
 CREATE POLICY "Admin full access waitlist" ON waitlist FOR ALL USING (public.is_admin());
 CREATE POLICY "Admin full access newsletter" ON newsletter FOR ALL USING (public.is_admin());
 CREATE POLICY "Admin full access enrollments" ON enrollments FOR ALL USING (public.is_admin());
 CREATE POLICY "Admin full access event_registrations" ON event_registrations FOR ALL USING (public.is_admin());
 CREATE POLICY "Admin full access candidate_profiles" ON candidate_profiles FOR ALL USING (public.is_admin());
+-- candidate_documents previously had only the owner-only policy plus
+-- fix-cv-completeness.sql's cv-only company policy -- needed for the
+-- id_document/qualification/transcript review queue.
+CREATE POLICY "Admin full access candidate_documents" ON candidate_documents FOR ALL USING (public.is_admin());
+CREATE POLICY "Admin full access job_invites" ON job_invites FOR ALL USING (public.is_admin());
 CREATE POLICY "Admin full access company_profiles" ON company_profiles FOR ALL USING (public.is_admin());
 CREATE POLICY "Admin full access job_views" ON job_views FOR ALL USING (public.is_admin());
 CREATE POLICY "Admin full access application_starts" ON application_starts FOR ALL USING (public.is_admin());
@@ -547,12 +629,19 @@ CREATE POLICY "Admin full access application_matches" ON application_matches FOR
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 DECLARE
-  v_role TEXT := COALESCE(NEW.raw_user_meta_data->>'role', 'candidate');
+  requested_role text := NEW.raw_user_meta_data->>'role';
+  safe_role text;
 BEGIN
-  INSERT INTO public.users (id, email, role)
-  VALUES (NEW.id, NEW.email, v_role);
+  -- Only 'company' or 'candidate' may come from signup. Anything else,
+  -- including 'admin', collapses to 'candidate'. Admins are provisioned out
+  -- of band with the service role, never through public signup (see
+  -- supabase/fix-security-hardening.sql, blocker B1).
+  safe_role := CASE WHEN requested_role = 'company' THEN 'company' ELSE 'candidate' END;
 
-  IF v_role = 'company' THEN
+  INSERT INTO public.users (id, email, role)
+  VALUES (NEW.id, NEW.email, safe_role);
+
+  IF safe_role = 'company' THEN
     INSERT INTO public.company_profiles (user_id, company_name, industry, location)
     VALUES (
       NEW.id,
@@ -560,10 +649,13 @@ BEGIN
       NEW.raw_user_meta_data->>'industry',
       NEW.raw_user_meta_data->>'location'
     );
-  ELSIF v_role = 'candidate' THEN
+  ELSE
     -- Without this a candidate has no profile row until they find and save
     -- /candidate/profile, so every application they make is written with
-    -- candidate_id NULL and never appears on their dashboard.
+    -- candidate_id NULL and never appears on their dashboard. full_name is
+    -- NOT NULL on candidate_profiles, so the email local part is a last
+    -- resort for accounts created outside the register form (e.g. Google
+    -- sign-in, which never sends full_name as 'full_name').
     INSERT INTO public.candidate_profiles (user_id, full_name, phone, location)
     VALUES (
       NEW.id,
@@ -575,7 +667,7 @@ BEGIN
 
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
@@ -619,10 +711,14 @@ CREATE INDEX idx_trainings_status ON trainings(status);
 CREATE INDEX idx_trainings_level ON trainings(level);
 CREATE INDEX idx_learnerships_expiry ON learnerships(expiry_date);
 CREATE INDEX idx_late_uni_closing ON late_uni_apps(closing_date);
+CREATE INDEX idx_university_interest_late_uni_app ON university_application_interests(late_uni_app_id);
+CREATE INDEX idx_jobs_origin ON jobs(origin);
 CREATE INDEX idx_events_status ON events(status);
 CREATE INDEX idx_events_start ON events(start_date);
 CREATE INDEX idx_job_views_job ON job_views(job_id);
 CREATE INDEX idx_application_starts_job ON application_starts(job_id);
+CREATE INDEX idx_job_invites_candidate ON job_invites(candidate_id);
+CREATE INDEX idx_job_invites_company ON job_invites(company_id);
 CREATE INDEX idx_message_threads_company ON message_threads(company_id);
 CREATE INDEX idx_message_threads_candidate ON message_threads(candidate_id);
 CREATE INDEX idx_messages_thread ON messages(thread_id);
