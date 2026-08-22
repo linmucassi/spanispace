@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { resolveCompanyMembership } from '@/lib/company/resolveCompanyMembership';
 
 const EVENT_TYPES = [
   'webinar',
@@ -53,13 +54,8 @@ export default function CompanyNewEvent() {
         return;
       }
 
-      const { data } = await supabase
-        .from('company_profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (data) setCompanyId(data.id);
+      const membership = await resolveCompanyMembership(supabase, user.id);
+      if (membership) setCompanyId(membership.companyId);
       setLoading(false);
     }
 

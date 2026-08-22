@@ -41,7 +41,7 @@ export default function AdminLogin() {
       .eq('id', data.user.id)
       .single();
 
-    if (!userData || userData.role !== 'admin') {
+    if (!userData || (userData.role !== 'admin' && userData.role !== 'super_admin')) {
       await supabase.auth.signOut();
       setError('Access denied. Admin privileges required.');
       setLoading(false);

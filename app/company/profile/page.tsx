@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { normalizeUrl } from '@/lib/normalizeUrl';
+import { resolveCompanyMembership, canManage, type CompanyMembership } from '@/lib/company/resolveCompanyMembership';
 import type { DbCompanyProfile } from '@/types/database';
 
 export default function CompanyProfile() {
@@ -14,6 +15,7 @@ export default function CompanyProfile() {
   const [success, setSuccess] = useState(false);
   const [profile, setProfile] = useState<DbCompanyProfile | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [membership, setMembership] = useState<CompanyMembership | null>(null);
 
   const [form, setForm] = useState({
     company_name: '',
@@ -42,11 +44,17 @@ export default function CompanyProfile() {
 
       setUserId(user.id);
 
-      const { data } = await supabase
-        .from('company_profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      // Owner (company_profiles.user_id) or team member (company_members) --
+      // see supabase/add-roles-invites-and-calendar.sql PART C. Loading by
+      // companyId (not user_id) is what lets a team member who isn't the
+      // owner see the real company profile instead of a blank "create a
+      // company" form.
+      const resolved = await resolveCompanyMembership(supabase, user.id);
+      setMembership(resolved);
+
+      const { data } = resolved
+        ? await supabase.from('company_profiles').select('*').eq('id', resolved.companyId).maybeSingle()
+        : { data: null };
 
       if (data) {
         setProfile(data as DbCompanyProfile);
@@ -59,7 +67,8 @@ export default function CompanyProfile() {
         });
       } else {
         // No company_profiles row yet (e.g. signup didn't provision one) --
-        // fall back to the signup metadata so the form isn't blank.
+        // fall back to the signup metadata so the form isn't blank. Only
+        // reachable for a brand-new owner with no membership at all.
         setForm({
           company_name: (user.user_metadata?.company_name as string) || '',
           industry: (user.user_metadata?.industry as string) || '',
@@ -80,6 +89,8 @@ export default function CompanyProfile() {
     setSuccess(false);
   };
 
+  const canEdit = !membership || canManage(membership.role);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -99,21 +110,46 @@ export default function CompanyProfile() {
       return;
     }
 
-    const { data, error: dbError } = await supabase
-      .from('company_profiles')
-      .upsert(
-        {
-          user_id: userId,
-          company_name: form.company_name,
-          industry: form.industry || null,
-          location: form.location || null,
-          website: form.website ? normalizeUrl(form.website) : null,
-          logo_url: form.logo_url ? normalizeUrl(form.logo_url) : null,
-        },
-        { onConflict: 'user_id' }
-      )
-      .select('*')
-      .single();
+    const fields = {
+      company_name: form.company_name,
+      industry: form.industry || null,
+      location: form.location || null,
+      website: form.website ? normalizeUrl(form.website) : null,
+      logo_url: form.logo_url ? normalizeUrl(form.logo_url) : null,
+    };
+
+    let data, dbError;
+    if (membership) {
+      // Existing company (owner or admin/manager editing via
+      // company_can_manage()) -- update by id, never upsert-by-user_id here:
+      // a team member has no company_profiles row of their own, so an
+      // upsert keyed on their user_id would create a second, orphaned
+      // company rather than editing the one they belong to.
+      ({ data, error: dbError } = await supabase
+        .from('company_profiles')
+        .update(fields)
+        .eq('id', membership.companyId)
+        .select('*')
+        .single());
+    } else {
+      // Brand-new owner, first save -- creates the row.
+      ({ data, error: dbError } = await supabase
+        .from('company_profiles')
+        .upsert({ user_id: userId, ...fields }, { onConflict: 'user_id' })
+        .select('*')
+        .single());
+
+      if (data && !dbError) {
+        // Keep company_members in sync so this owner shows up on
+        // /company/team immediately -- best effort, ignore a duplicate if
+        // one already exists (e.g. a concurrent invite acceptance).
+        await supabase
+          .from('company_members')
+          .insert({ company_id: data.id, user_id: userId, role: 'owner' })
+          .then(() => {}, () => {});
+        setMembership({ companyId: data.id, role: 'owner' });
+      }
+    }
 
     setSaving(false);
 
@@ -143,9 +179,16 @@ export default function CompanyProfile() {
         Update your company information visible to candidates
       </p>
 
+      {!canEdit && (
+        <div className="mb-6 text-sm text-amber-700 bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3">
+          Your role on this company account is read-only for profile changes. Ask an admin or owner to update it, or to change your role.
+        </div>
+      )}
+
+      <fieldset disabled={!canEdit}>
       <form
         onSubmit={handleSubmit}
-        className="space-y-5 bg-white rounded-2xl border border-slate-100 p-8 shadow-sm"
+        className="space-y-5 bg-white rounded-2xl border border-slate-100 p-8 shadow-sm disabled:opacity-75"
       >
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -271,16 +314,19 @@ export default function CompanyProfile() {
           </div>
         )}
 
-        <div className="pt-2">
-          <button
-            type="submit"
-            disabled={saving}
-            className="bg-brand-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-brand-700 transition-all disabled:opacity-50"
-          >
-            {saving ? 'Saving...' : 'Save Changes'}
-          </button>
-        </div>
+        {canEdit && (
+          <div className="pt-2">
+            <button
+              type="submit"
+              disabled={saving}
+              className="bg-brand-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-brand-700 transition-all disabled:opacity-50"
+            >
+              {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        )}
       </form>
+      </fieldset>
     </div>
   );
 }

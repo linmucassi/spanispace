@@ -28,14 +28,24 @@ export async function redirectToDashboard(
 
   switch (userData.role) {
     case 'admin':
+    case 'super_admin':
       router.push('/admin/dashboard');
       break;
     case 'company':
       router.push('/company/dashboard');
       break;
     case 'candidate':
-    default:
-      router.push('/candidate/dashboard');
+    default: {
+      // A candidate (or any other base role) added as company staff via
+      // company_members still routes to the company portal -- see
+      // supabase/add-roles-invites-and-calendar.sql PART C.
+      const { data: membership } = await supabase
+        .from('company_members')
+        .select('id')
+        .eq('user_id', userId)
+        .maybeSingle();
+      router.push(membership ? '/company/dashboard' : '/candidate/dashboard');
       break;
+    }
   }
 }

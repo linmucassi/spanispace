@@ -21,6 +21,7 @@ import {
 
 const navItems = [
   { name: 'Dashboard', href: '/company/dashboard', icon: LayoutDashboard },
+  { name: 'Calendar', href: '/company/calendar', icon: Calendar },
   { name: 'My Jobs', href: '/company/jobs', icon: Briefcase },
   { name: 'Applications', href: '/company/applications', icon: FileText },
   { name: 'Find Candidates', href: '/company/candidates', icon: Users },
@@ -28,6 +29,7 @@ const navItems = [
   { name: 'Messages', href: '/company/messages', icon: MessageSquare },
   { name: 'My Events', href: '/company/events', icon: Calendar },
   { name: 'My Training', href: '/company/training', icon: GraduationCap },
+  { name: 'Team', href: '/company/team', icon: Users },
   { name: 'Company Profile', href: '/company/profile', icon: Building2 },
 ];
 

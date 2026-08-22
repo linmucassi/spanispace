@@ -245,3 +245,63 @@ export interface AdminStats {
   pendingVerifications: number;
   openInvites: number;
 }
+
+export type PlatformRole = 'candidate' | 'company' | 'admin' | 'super_admin';
+export type CompanyRole = 'owner' | 'admin' | 'manager' | 'member' | 'viewer';
+
+export interface DbUser {
+  id: string;
+  email: string;
+  role: PlatformRole;
+  created_at: string;
+  updated_at: string;
+}
+
+// See supabase/add-roles-invites-and-calendar.sql PART C. One person
+// belongs to at most one company at a time in v1.
+export interface DbCompanyMember {
+  id: string;
+  company_id: string;
+  user_id: string;
+  role: CompanyRole;
+  added_by: string | null;
+  created_at: string;
+  users?: { email: string };
+  company_profiles?: { company_name: string };
+}
+
+// Deliberately not wired into handle_new_user() -- acceptance is an
+// explicit POST /api/invites/accept call after signUp() succeeds. See
+// supabase/add-roles-invites-and-calendar.sql PART B.
+export interface DbPlatformInvite {
+  id: string;
+  token: string;
+  email: string;
+  invite_type: 'platform_admin' | 'company_member' | 'referral';
+  company_id: string | null;
+  company_role: CompanyRole | null;
+  invited_by: string | null;
+  status: 'pending' | 'accepted' | 'revoked' | 'expired';
+  expires_at: string;
+  created_at: string;
+  accepted_at: string | null;
+  company_profiles?: { company_name: string };
+}
+
+export interface DbInterview {
+  id: string;
+  application_id: string;
+  company_id: string;
+  candidate_id: string;
+  scheduled_by: string | null;
+  proposed_start: string;
+  duration_minutes: number;
+  location: string | null;
+  notes: string | null;
+  status: 'proposed' | 'confirmed' | 'declined' | 'rescheduled' | 'cancelled' | 'completed';
+  created_at: string;
+  updated_at: string;
+  application?: { id: string; job: { title: string } | null };
+  company_profiles?: { company_name: string };
+  candidate_profiles?: { full_name: string };
+}

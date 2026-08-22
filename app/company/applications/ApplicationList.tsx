@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, CalendarPlus } from 'lucide-react';
 
 interface Application {
   id: string;
@@ -54,13 +54,55 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function ApplicationList({
   initialApplications,
+  companyId,
 }: {
   initialApplications: Application[];
+  companyId?: string;
 }) {
   const router = useRouter();
   const [filter, setFilter] = useState('all');
   const [expanded, setExpanded] = useState<string | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
+
+  const [schedulingFor, setSchedulingFor] = useState<string | null>(null);
+  const [interviewForm, setInterviewForm] = useState({ date: '', time: '', duration: '30', location: '', notes: '' });
+  const [scheduling, setScheduling] = useState(false);
+  const [scheduleError, setScheduleError] = useState('');
+  const [scheduledIds, setScheduledIds] = useState<Set<string>>(new Set());
+
+  const scheduleInterview = async (app: Application) => {
+    if (!companyId || !app.candidate_id) return;
+    setScheduling(true);
+    setScheduleError('');
+    const supabase = createClient();
+    if (!supabase) { setScheduling(false); return; }
+
+    if (!interviewForm.date || !interviewForm.time) {
+      setScheduleError('Pick a date and time.');
+      setScheduling(false);
+      return;
+    }
+    const proposedStart = new Date(`${interviewForm.date}T${interviewForm.time}`);
+
+    const { error } = await supabase.from('interviews').insert({
+      application_id: app.id,
+      company_id: companyId,
+      candidate_id: app.candidate_id,
+      proposed_start: proposedStart.toISOString(),
+      duration_minutes: Number(interviewForm.duration) || 30,
+      location: interviewForm.location || null,
+      notes: interviewForm.notes || null,
+    });
+
+    setScheduling(false);
+    if (error) {
+      setScheduleError(error.message);
+      return;
+    }
+    setScheduledIds((prev) => new Set(prev).add(app.id));
+    setSchedulingFor(null);
+    setInterviewForm({ date: '', time: '', duration: '30', location: '', notes: '' });
+  };
 
   const filters = ['all', 'pending', 'reviewed', 'shortlisted', 'rejected', 'hired'];
 
@@ -322,7 +364,86 @@ export default function ApplicationList({
                           Message
                         </Link>
                       )}
+                      {app.candidate_id && companyId && !scheduledIds.has(app.id) && (
+                        <button
+                          type="button"
+                          onClick={() => { setSchedulingFor(schedulingFor === app.id ? null : app.id); setScheduleError(''); }}
+                          className="px-3 py-1.5 text-xs font-bold bg-slate-50 text-slate-700 rounded-lg hover:bg-slate-100 transition-colors inline-flex items-center gap-1.5"
+                        >
+                          <CalendarPlus className="w-3.5 h-3.5" />
+                          Schedule Interview
+                        </button>
+                      )}
+                      {scheduledIds.has(app.id) && (
+                        <span className="px-3 py-1.5 text-xs font-bold bg-green-50 text-green-700 rounded-lg inline-flex items-center gap-1.5">
+                          <CalendarPlus className="w-3.5 h-3.5" />
+                          Interview proposed
+                        </span>
+                      )}
                     </div>
+
+                    {schedulingFor === app.id && (
+                      <div className="mt-3 p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                        <div className="grid grid-cols-2 gap-2">
+                          <input
+                            type="date"
+                            value={interviewForm.date}
+                            onChange={(e) => setInterviewForm({ ...interviewForm, date: e.target.value })}
+                            className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                          />
+                          <input
+                            type="time"
+                            value={interviewForm.time}
+                            onChange={(e) => setInterviewForm({ ...interviewForm, time: e.target.value })}
+                            className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <select
+                            value={interviewForm.duration}
+                            onChange={(e) => setInterviewForm({ ...interviewForm, duration: e.target.value })}
+                            className="rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white"
+                          >
+                            <option value="15">15 min</option>
+                            <option value="30">30 min</option>
+                            <option value="45">45 min</option>
+                            <option value="60">60 min</option>
+                          </select>
+                          <input
+                            type="text"
+                            placeholder="Location or video link"
+                            value={interviewForm.location}
+                            onChange={(e) => setInterviewForm({ ...interviewForm, location: e.target.value })}
+                            className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                          />
+                        </div>
+                        <textarea
+                          placeholder="Notes for the candidate (optional)"
+                          value={interviewForm.notes}
+                          onChange={(e) => setInterviewForm({ ...interviewForm, notes: e.target.value })}
+                          rows={2}
+                          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                        />
+                        {scheduleError && <p className="text-red-600 text-xs">{scheduleError}</p>}
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => scheduleInterview(app)}
+                            disabled={scheduling}
+                            className="px-3 py-1.5 text-xs font-bold bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-50"
+                          >
+                            {scheduling ? 'Sending...' : 'Send proposal'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSchedulingFor(null)}
+                            className="px-3 py-1.5 text-xs font-bold text-slate-500 hover:text-slate-700"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

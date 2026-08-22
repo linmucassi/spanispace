@@ -1,5 +1,6 @@
 import { createServerSupabase } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
+import { resolveCompanyMembership } from '@/lib/company/resolveCompanyMembership';
 
 const STATUS_STYLES: Record<string, string> = {
   pending: 'bg-amber-100 text-amber-700',
@@ -16,12 +17,9 @@ export default async function CompanyInvites() {
   } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const { data: company } = await supabase
-    .from('company_profiles')
-    .select('id')
-    .eq('user_id', user.id)
-    .single();
-  if (!company) redirect('/company/profile');
+  const membership = await resolveCompanyMembership(supabase, user.id);
+  if (!membership) redirect('/company/profile');
+  const company = { id: membership.companyId };
 
   const { data } = await supabase
     .from('job_invites')

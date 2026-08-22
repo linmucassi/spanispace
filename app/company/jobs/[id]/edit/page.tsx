@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { normalizeUrl } from '@/lib/normalizeUrl';
+import { resolveCompanyMembership } from '@/lib/company/resolveCompanyMembership';
 
 const JOB_TYPES = [
   'Full-time',
@@ -76,13 +77,9 @@ export default function CompanyEditJob() {
         return;
       }
 
-      const { data: company } = await supabase
-        .from('company_profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
+      const membership = await resolveCompanyMembership(supabase, user.id);
 
-      if (!company) {
+      if (!membership) {
         setError('Company profile not found.');
         setLoading(false);
         return;
@@ -92,7 +89,7 @@ export default function CompanyEditJob() {
         .from('jobs')
         .select('*')
         .eq('id', jobId)
-        .eq('company_id', company.id)
+        .eq('company_id', membership.companyId)
         .single();
 
       if (jobError || !job) {

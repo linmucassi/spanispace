@@ -1,5 +1,15 @@
 import Link from 'next/link';
 import { createServerSupabase } from '@/lib/supabase/server';
+import InterviewActions from './InterviewActions';
+
+const interviewStatusColors: Record<string, string> = {
+  proposed: 'bg-amber-100 text-amber-800',
+  confirmed: 'bg-green-100 text-green-800',
+  declined: 'bg-slate-100 text-slate-600',
+  rescheduled: 'bg-blue-100 text-blue-800',
+  cancelled: 'bg-slate-100 text-slate-600',
+  completed: 'bg-slate-100 text-slate-600',
+};
 
 const statusColors: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-800',
@@ -86,6 +96,19 @@ export default async function CandidateApplicationsPage() {
     }));
   }
 
+  // Interviews scheduled against these applications, keyed by application_id
+  // -- one interview per application in practice, so the first match is fine.
+  const interviewByApplication: Record<string, { id: string; proposed_start: string; duration_minutes: number; location: string | null; status: string }> = {};
+  if (profile?.id && applications.length > 0) {
+    const { data: interviews } = await supabase
+      .from('interviews')
+      .select('id, application_id, proposed_start, duration_minutes, location, status')
+      .in('application_id', applications.map((a) => a.id));
+    for (const iv of interviews ?? []) {
+      if (!interviewByApplication[iv.application_id]) interviewByApplication[iv.application_id] = iv;
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -124,11 +147,14 @@ export default async function CandidateApplicationsPage() {
                   <th className="px-6 py-3">Company / Poster</th>
                   <th className="px-6 py-3">Location</th>
                   <th className="px-6 py-3">Status</th>
+                  <th className="px-6 py-3">Interview</th>
                   <th className="px-6 py-3">Applied Date</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {applications.map((app) => (
+                {applications.map((app) => {
+                  const interview = interviewByApplication[app.id];
+                  return (
                   <tr
                     key={app.id}
                     className="hover:bg-slate-50 transition-colors"
@@ -163,6 +189,22 @@ export default async function CandidateApplicationsPage() {
                         {app.status}
                       </span>
                     </td>
+                    <td className="px-6 py-4">
+                      {interview ? (
+                        <div>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${interviewStatusColors[interview.status] ?? 'bg-slate-100 text-slate-700'}`}>
+                            {interview.status}
+                          </span>
+                          <p className="text-xs text-slate-500 mt-1">
+                            {new Date(interview.proposed_start).toLocaleString('en-ZA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                            {interview.location ? ` · ${interview.location}` : ''}
+                          </p>
+                          <InterviewActions interviewId={interview.id} status={interview.status} />
+                        </div>
+                      ) : (
+                        <span className="text-sm text-slate-400">-</span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 text-sm text-slate-500">
                       {new Date(app.created_at).toLocaleDateString('en-ZA', {
                         day: 'numeric',
@@ -171,7 +213,8 @@ export default async function CandidateApplicationsPage() {
                       })}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
