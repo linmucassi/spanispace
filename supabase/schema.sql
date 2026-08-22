@@ -547,12 +547,19 @@ CREATE POLICY "Admin full access application_matches" ON application_matches FOR
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 DECLARE
-  v_role TEXT := COALESCE(NEW.raw_user_meta_data->>'role', 'candidate');
+  requested_role text := NEW.raw_user_meta_data->>'role';
+  safe_role text;
 BEGIN
-  INSERT INTO public.users (id, email, role)
-  VALUES (NEW.id, NEW.email, v_role);
+  -- Only 'company' or 'candidate' may come from signup. Anything else,
+  -- including 'admin', collapses to 'candidate'. Admins are provisioned out
+  -- of band with the service role, never through public signup (see
+  -- supabase/fix-security-hardening.sql, blocker B1).
+  safe_role := CASE WHEN requested_role = 'company' THEN 'company' ELSE 'candidate' END;
 
-  IF v_role = 'company' THEN
+  INSERT INTO public.users (id, email, role)
+  VALUES (NEW.id, NEW.email, safe_role);
+
+  IF safe_role = 'company' THEN
     INSERT INTO public.company_profiles (user_id, company_name, industry, location)
     VALUES (
       NEW.id,
@@ -560,10 +567,13 @@ BEGIN
       NEW.raw_user_meta_data->>'industry',
       NEW.raw_user_meta_data->>'location'
     );
-  ELSIF v_role = 'candidate' THEN
+  ELSE
     -- Without this a candidate has no profile row until they find and save
     -- /candidate/profile, so every application they make is written with
-    -- candidate_id NULL and never appears on their dashboard.
+    -- candidate_id NULL and never appears on their dashboard. full_name is
+    -- NOT NULL on candidate_profiles, so the email local part is a last
+    -- resort for accounts created outside the register form (e.g. Google
+    -- sign-in, which never sends full_name as 'full_name').
     INSERT INTO public.candidate_profiles (user_id, full_name, phone, location)
     VALUES (
       NEW.id,
@@ -575,7 +585,7 @@ BEGIN
 
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
