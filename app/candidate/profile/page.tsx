@@ -24,6 +24,7 @@ interface ProfileData {
   github_url: string;
   avatar_url: string | null;
   professional_summary: string;
+  open_to_offers: boolean;
 }
 
 const emptyProfile: ProfileData = {
@@ -37,6 +38,7 @@ const emptyProfile: ProfileData = {
   github_url: '',
   avatar_url: null,
   professional_summary: '',
+  open_to_offers: false,
 };
 
 export default function CandidateProfilePage() {
@@ -94,6 +96,7 @@ export default function CandidateProfilePage() {
         github_url: data.github_url ?? '',
         avatar_url: data.avatar_url ?? null,
         professional_summary: data.professional_summary ?? '',
+        open_to_offers: data.open_to_offers ?? false,
       });
     }
 
@@ -170,6 +173,7 @@ export default function CandidateProfilePage() {
       portfolio_url: profile.portfolio_url ? normalizeUrl(profile.portfolio_url) : null,
       linkedin_url: profile.linkedin_url ? normalizeUrl(profile.linkedin_url) : null,
       github_url: profile.github_url ? normalizeUrl(profile.github_url) : null,
+      open_to_offers: profile.open_to_offers,
     };
 
     let { error } = await supabase
@@ -179,6 +183,15 @@ export default function CandidateProfilePage() {
         { onConflict: 'user_id' }
       );
 
+    // If open_to_offers doesn't exist yet (migration not run), drop it and retry.
+    if (error && (error.code === 'PGRST204' || error.message?.includes('open_to_offers'))) {
+      const { open_to_offers: _dropped, ...rest } = baseRow;
+      void _dropped;
+      ({ error } = await supabase
+        .from('candidate_profiles')
+        .upsert({ ...rest, professional_summary: profile.professional_summary || null }, { onConflict: 'user_id' }));
+    }
+
     // If the professional_summary column does not exist yet (migration not
     // run), save the rest of the profile instead of failing outright.
     let summaryDegraded = false;
@@ -187,6 +200,11 @@ export default function CandidateProfilePage() {
       ({ error } = await supabase
         .from('candidate_profiles')
         .upsert(baseRow, { onConflict: 'user_id' }));
+      if (error && (error.code === 'PGRST204' || error.message?.includes('open_to_offers'))) {
+        const { open_to_offers: _dropped, ...rest } = baseRow;
+        void _dropped;
+        ({ error } = await supabase.from('candidate_profiles').upsert(rest, { onConflict: 'user_id' }));
+      }
     }
 
     if (error) {
@@ -426,6 +444,28 @@ export default function CandidateProfilePage() {
               />
             </div>
           </div>
+        </div>
+
+        {/* Talent pool visibility */}
+        <div className="p-6 space-y-3">
+          <h2 className="text-base font-semibold text-slate-900">Talent Pool Visibility</h2>
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={profile.open_to_offers}
+              onChange={(e) => {
+                setProfile((prev) => ({ ...prev, open_to_offers: e.target.checked }));
+                setFeedback(null);
+              }}
+              className="mt-0.5 w-4 h-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+            />
+            <span className="text-sm text-slate-700">
+              Be discoverable — let companies find and invite you to apply, even for jobs you haven't applied to yet.
+              <span className="block text-xs text-slate-500 mt-0.5">
+                Off by default. Companies you've never applied to can only see your profile while this is on.
+              </span>
+            </span>
+          </label>
         </div>
 
         {/* Education */}

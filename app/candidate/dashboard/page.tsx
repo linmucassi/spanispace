@@ -45,9 +45,12 @@ export default async function CandidateDashboard() {
   }
 
   // Fetch candidate profile
+  // select('*') here (rather than an explicit list) so this page keeps
+  // working whether or not open_to_offers/verified-adjacent columns have
+  // landed yet -- see supabase/add-talent-sourcing-and-verification.sql.
   const { data: profile } = await supabase
     .from('candidate_profiles')
-    .select('id, full_name, profile_score, phone, location, skills, portfolio_url, linkedin_url, github_url, avatar_url, professional_summary')
+    .select('*')
     .eq('user_id', user.id)
     .maybeSingle();
 
@@ -107,6 +110,32 @@ export default async function CandidateDashboard() {
       ...a,
       job: Array.isArray(a.job) ? a.job[0] ?? null : a.job,
     }));
+  }
+
+  // Document verification status -- profile.verified is a standing badge,
+  // flipped only by an explicit admin action (app/admin/candidate-verification),
+  // not auto-derived. "Pending" just means at least one verification-type
+  // document is awaiting that review.
+  let verificationState: 'verified' | 'pending' | 'not_started' = 'not_started';
+  if (profile?.verified) {
+    verificationState = 'verified';
+  } else {
+    const { count: pendingVerifications } = await supabase
+      .from('candidate_documents')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('verification_status', 'pending');
+    if ((pendingVerifications ?? 0) > 0) verificationState = 'pending';
+  }
+
+  let pendingInvites = 0;
+  if (candidateId) {
+    const { count } = await supabase
+      .from('job_invites')
+      .select('*', { count: 'exact', head: true })
+      .eq('candidate_id', candidateId)
+      .eq('status', 'pending');
+    pendingInvites = count ?? 0;
   }
 
   // Fetch enrollments count
@@ -214,6 +243,51 @@ export default async function CandidateDashboard() {
         profile={{ ...(profile ?? {}), hasCv }}
         hasApplied={totalApplications > 0}
       />
+
+      {/* Talent pool / verification / invites */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="bg-white rounded-xl border border-slate-200 p-5 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-slate-900">Profile Verification</p>
+            <p className="text-sm text-slate-500 mt-0.5">
+              {verificationState === 'verified'
+                ? 'Verified — companies see this badge on your profile.'
+                : verificationState === 'pending'
+                  ? 'Documents submitted, waiting on admin review.'
+                  : 'Upload an ID document to start verification.'}
+            </p>
+          </div>
+          <span
+            className={`shrink-0 inline-flex px-2.5 py-1 rounded-full text-xs font-bold ${
+              verificationState === 'verified'
+                ? 'bg-green-100 text-green-700'
+                : verificationState === 'pending'
+                  ? 'bg-amber-100 text-amber-700'
+                  : 'bg-slate-100 text-slate-500'
+            }`}
+          >
+            {verificationState === 'verified' ? 'Verified' : verificationState === 'pending' ? 'Pending' : 'Not started'}
+          </span>
+        </div>
+        <Link
+          href="/candidate/invites"
+          className="bg-white rounded-xl border border-slate-200 p-5 flex items-center justify-between gap-3 hover:border-brand-300 transition-colors"
+        >
+          <div>
+            <p className="text-sm font-semibold text-slate-900">Invitations</p>
+            <p className="text-sm text-slate-500 mt-0.5">
+              {pendingInvites > 0
+                ? `${pendingInvites} ${pendingInvites === 1 ? 'company wants' : 'companies want'} you to apply`
+                : 'Companies can invite you to apply once you opt in'}
+            </p>
+          </div>
+          {pendingInvites > 0 && (
+            <span className="shrink-0 inline-flex px-2.5 py-1 rounded-full text-xs font-bold bg-brand-100 text-brand-700">
+              {pendingInvites}
+            </span>
+          )}
+        </Link>
+      </div>
 
       {/* Training progress */}
       {trainingProgress.length > 0 && (

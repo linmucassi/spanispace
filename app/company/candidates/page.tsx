@@ -19,12 +19,48 @@ export default async function CompanyCandidates() {
 
   if (!company) redirect('/company/profile');
 
-  // Fetch all candidate profiles (RLS scopes this to candidates who applied
-  // to this company's jobs -- see "Companies read applicant profiles")
+  // Fetch all candidate profiles -- RLS now returns two groups: candidates
+  // who applied to this company's jobs ("Companies read applicant
+  // profiles"), and candidates who opted into the talent pool ("Companies
+  // read opted-in candidates", additive). See
+  // supabase/add-talent-sourcing-and-verification.sql.
   const { data: candidates } = await supabase
     .from('candidate_profiles')
     .select('*')
     .order('profile_score', { ascending: false, nullsFirst: false });
+
+  // This company's own active jobs, for the "Invite to apply" picker.
+  const { data: companyJobs } = await supabase
+    .from('jobs')
+    .select('id, title')
+    .eq('company_id', company.id)
+    .eq('status', 'active')
+    .order('created_at', { ascending: false });
+
+  // Which of these candidates actually applied to any of our jobs, active or
+  // not (matches company_has_applicant()'s own scope) vs. only visible
+  // because they opted into the talent pool -- badge-only, doesn't affect
+  // visibility (RLS already decided that).
+  const { data: allCompanyJobs } = await supabase
+    .from('jobs')
+    .select('id')
+    .eq('company_id', company.id);
+  const allJobIds = (allCompanyJobs ?? []).map((j) => j.id);
+  let applicantCandidateIds = new Set<string>();
+  if (allJobIds.length > 0) {
+    const { data: apps } = await supabase
+      .from('applications')
+      .select('candidate_id')
+      .in('job_id', allJobIds);
+    applicantCandidateIds = new Set((apps ?? []).map((a) => a.candidate_id).filter(Boolean));
+  }
+
+  // Invites this company has already sent, so the UI doesn't offer to
+  // re-invite someone with a pending/accepted invite.
+  const { data: invites } = await supabase
+    .from('job_invites')
+    .select('candidate_id, job_id, status')
+    .eq('company_id', company.id);
 
   // candidate_profiles.cv_url predates the multi-document library and
   // nothing writes to it anymore -- the real CV lives in candidate_documents
@@ -60,7 +96,12 @@ export default async function CompanyCandidates() {
         </p>
       </div>
 
-      <CandidateSearch initialCandidates={candidatesWithCv as any[]} />
+      <CandidateSearch
+        initialCandidates={candidatesWithCv as any[]}
+        applicantCandidateIds={Array.from(applicantCandidateIds)}
+        companyJobs={companyJobs ?? []}
+        existingInvites={invites ?? []}
+      />
     </div>
   );
 }

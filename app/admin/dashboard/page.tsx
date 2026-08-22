@@ -30,7 +30,7 @@ export default function AdminDashboard() {
       const now = new Date();
       const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-      const [jobs, pendingJobs, scrapedPendingJobs, apps, weekApps, trainings, learnerships, weekUniInterest, recent] =
+      const [jobs, pendingJobs, scrapedPendingJobs, apps, weekApps, trainings, learnerships, weekUniInterest, pendingVerifications, openInvites, recent] =
         await Promise.all([
           supabase.from('jobs').select('id', { count: 'exact', head: true }),
           supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('vetted_status', 'pending'),
@@ -42,6 +42,8 @@ export default function AdminDashboard() {
           // supabase/add-application-journeys.sql, not the old standalone table.
           supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('job_type', 'Learnership'),
           supabase.from('university_application_interests').select('id', { count: 'exact', head: true }).gte('created_at', weekAgo),
+          supabase.from('candidate_documents').select('id', { count: 'exact', head: true }).eq('verification_status', 'pending'),
+          supabase.from('job_invites').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
           supabase.from('applications').select('*, job:jobs(title)').order('created_at', { ascending: false }).limit(10),
         ]);
 
@@ -55,6 +57,8 @@ export default function AdminDashboard() {
         totalTrainings: trainings.count ?? 0,
         totalLearnerships: learnerships.count ?? 0,
         weekUniversityInterest: weekUniInterest.count ?? 0,
+        pendingVerifications: pendingVerifications.count ?? 0,
+        openInvites: openInvites.count ?? 0,
       });
 
       setRecentApps((recent.data as any[]) ?? []);
@@ -112,6 +116,11 @@ export default function AdminDashboard() {
         <StatsCard label="Total Jobs" value={stats.totalJobs} color="text-slate-900" />
         <StatsCard label="Trainings" value={stats.totalTrainings} color="text-slate-900" />
         <StatsCard label="Learnerships" value={stats.totalLearnerships} color="text-slate-900" />
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <StatsCard label="Pending Verifications" value={stats.pendingVerifications} color="text-amber-600" />
+        <StatsCard label="Open Invites" value={stats.openInvites} color="text-brand-600" />
       </div>
 
       {stats.scrapedPendingJobs > 0 && (
