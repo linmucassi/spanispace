@@ -25,6 +25,8 @@ export default async function ApplyPage({ params }: Props) {
       jobRole={job.role}
       jobCompany={job.company}
       jobSource={job.source}
+      applyMode={job.applyMode ?? 'on_platform'}
+      applyLink={job.applyLink || null}
     />
   );
 }

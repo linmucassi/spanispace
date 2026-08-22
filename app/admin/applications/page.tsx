@@ -7,6 +7,7 @@ import type { DbApplication } from '@/types/database';
 export default function AdminApplications() {
   const [apps, setApps] = useState<DbApplication[]>([]);
   const [filter, setFilter] = useState('all');
+  const [originFilter, setOriginFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
 
@@ -14,7 +15,7 @@ export default function AdminApplications() {
     const supabase = createClient();
     if (!supabase) { setLoading(false); return; }
 
-    let query = supabase.from('applications').select('*, job:jobs(title, location, job_type)').order('created_at', { ascending: false });
+    let query = supabase.from('applications').select('*, job:jobs(title, location, job_type, origin, apply_mode)').order('created_at', { ascending: false });
     if (filter !== 'all') query = query.eq('status', filter);
 
     const { data } = await query;
@@ -23,6 +24,10 @@ export default function AdminApplications() {
   };
 
   useEffect(() => { loadApps(); }, [filter]);
+
+  const visibleApps = originFilter === 'all'
+    ? apps
+    : apps.filter((app) => (app as any).job?.origin === originFilter);
 
   const updateStatus = async (id: string, status: string) => {
     const supabase = createClient();
@@ -38,7 +43,7 @@ export default function AdminApplications() {
         <p className="text-slate-500 text-sm">Review and manage job applications</p>
       </div>
 
-      <div className="flex gap-2 mb-6">
+      <div className="flex flex-wrap items-center gap-2 mb-6">
         {['all', 'pending', 'reviewed', 'shortlisted', 'rejected', 'hired'].map((f) => (
           <button key={f} onClick={() => setFilter(f)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -47,6 +52,16 @@ export default function AdminApplications() {
             {f.charAt(0).toUpperCase() + f.slice(1)}
           </button>
         ))}
+        <select
+          value={originFilter}
+          onChange={(e) => setOriginFilter(e.target.value)}
+          className="ml-auto px-3 py-2 rounded-lg text-sm font-medium bg-white border border-slate-200 text-slate-600"
+        >
+          <option value="all">All sources</option>
+          <option value="company">Company-posted</option>
+          <option value="admin_curated">Admin-curated</option>
+          <option value="scraped">Scraped</option>
+        </select>
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
@@ -54,16 +69,27 @@ export default function AdminApplications() {
           <div className="flex items-center justify-center h-32">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-600" />
           </div>
-        ) : apps.length === 0 ? (
+        ) : visibleApps.length === 0 ? (
           <div className="px-6 py-12 text-center text-slate-400">No applications found.</div>
         ) : (
           <div className="divide-y divide-slate-100">
-            {apps.map((app) => (
+            {visibleApps.map((app) => (
               <div key={app.id} className="hover:bg-slate-50/50 transition-colors">
                 <div className="px-6 py-4 flex items-center justify-between cursor-pointer" onClick={() => setExpanded(expanded === app.id ? null : app.id)}>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-slate-900">{app.full_name}</p>
-                    <p className="text-xs text-slate-500">{(app as any).job?.title ?? 'Unknown job'} &middot; {app.phone}</p>
+                    <p className="text-xs text-slate-500 flex flex-wrap items-center gap-1.5">
+                      {(app as any).job?.title ?? 'Unknown job'} &middot; {app.phone}
+                      {(app as any).job?.job_type === 'Learnership' && (
+                        <span className="inline-flex px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-purple-100 text-purple-700">Learnership</span>
+                      )}
+                      {(app as any).job?.origin === 'scraped' && (
+                        <span className="inline-flex px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-200 text-slate-700">Scraped</span>
+                      )}
+                      {(app as any).job?.apply_mode === 'redirect' && (
+                        <span className="inline-flex px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-blue-100 text-blue-700">Redirected</span>
+                      )}
+                    </p>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-bold ${

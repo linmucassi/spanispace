@@ -73,6 +73,14 @@ CREATE TABLE jobs (
   poster_whatsapp TEXT,
   poster_email TEXT,
   status TEXT DEFAULT 'active' CHECK (status IN ('active', 'closed', 'draft')),
+  -- origin: who owns/posted it, drives dashboard visibility (companies only
+  -- ever see their own 'company' rows; admin sees everything).
+  -- apply_mode: how the candidate finishes -- 'on_platform' is the existing
+  -- full form, 'redirect' is a short capture form then off to apply_link.
+  -- Scraped rows are always 'scraped'/'redirect'. See
+  -- supabase/add-application-journeys.sql.
+  origin TEXT NOT NULL DEFAULT 'company' CHECK (origin IN ('company', 'admin_curated', 'scraped')),
+  apply_mode TEXT NOT NULL DEFAULT 'on_platform' CHECK (apply_mode IN ('on_platform', 'redirect')),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -154,6 +162,20 @@ CREATE TABLE late_uni_apps (
   status TEXT DEFAULT 'open' CHECK (status IN ('open', 'closed')),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 9b. University Application Interest (candidate clicked "Apply" on a
+-- late_uni_apps card -- always an external redirect, this just captures who
+-- before they leave). Fully separate from jobs/learnerships/applications,
+-- no company visibility at all -- admin and the candidate themselves only.
+CREATE TABLE university_application_interests (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  late_uni_app_id UUID REFERENCES late_uni_apps(id) ON DELETE CASCADE NOT NULL,
+  candidate_id UUID REFERENCES candidate_profiles(id) ON DELETE SET NULL,
+  full_name TEXT NOT NULL,
+  phone TEXT,
+  email TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- 10. Events
@@ -279,6 +301,7 @@ ALTER TABLE applications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE trainings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE learnerships ENABLE ROW LEVEL SECURITY;
 ALTER TABLE late_uni_apps ENABLE ROW LEVEL SECURITY;
+ALTER TABLE university_application_interests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE waitlist ENABLE ROW LEVEL SECURITY;
 ALTER TABLE newsletter ENABLE ROW LEVEL SECURITY;
@@ -394,6 +417,12 @@ CREATE POLICY "Public read active jobs" ON jobs FOR SELECT USING (status = 'acti
 CREATE POLICY "Public read active trainings" ON trainings FOR SELECT USING (status IN ('active', 'completed') AND vetted_status = 'verified');
 CREATE POLICY "Public read learnerships" ON learnerships FOR SELECT USING (true);
 CREATE POLICY "Public read late uni apps" ON late_uni_apps FOR SELECT USING (true);
+CREATE POLICY "Candidates insert own university interest" ON university_application_interests FOR INSERT WITH CHECK (
+  candidate_id IS NULL OR EXISTS (SELECT 1 FROM candidate_profiles cd WHERE cd.id = university_application_interests.candidate_id AND cd.user_id = auth.uid())
+);
+CREATE POLICY "Candidates read own university interest" ON university_application_interests FOR SELECT USING (
+  EXISTS (SELECT 1 FROM candidate_profiles cd WHERE cd.id = university_application_interests.candidate_id AND cd.user_id = auth.uid())
+);
 CREATE POLICY "Public read published events" ON events FOR SELECT USING (status IN ('published', 'ongoing', 'completed') AND vetted_status = 'verified');
 
 -- Public inserts (anyone can apply, submit jobs, join waitlist)
@@ -527,6 +556,7 @@ CREATE POLICY "Admin full access applications" ON applications FOR ALL USING (pu
 CREATE POLICY "Admin full access trainings" ON trainings FOR ALL USING (public.is_admin());
 CREATE POLICY "Admin full access learnerships" ON learnerships FOR ALL USING (public.is_admin());
 CREATE POLICY "Admin full access late_uni_apps" ON late_uni_apps FOR ALL USING (public.is_admin());
+CREATE POLICY "Admin full access university_application_interests" ON university_application_interests FOR ALL USING (public.is_admin());
 CREATE POLICY "Admin full access events" ON events FOR ALL USING (public.is_admin());
 CREATE POLICY "Admin full access waitlist" ON waitlist FOR ALL USING (public.is_admin());
 CREATE POLICY "Admin full access newsletter" ON newsletter FOR ALL USING (public.is_admin());
@@ -547,12 +577,19 @@ CREATE POLICY "Admin full access application_matches" ON application_matches FOR
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 DECLARE
-  v_role TEXT := COALESCE(NEW.raw_user_meta_data->>'role', 'candidate');
+  requested_role text := NEW.raw_user_meta_data->>'role';
+  safe_role text;
 BEGIN
-  INSERT INTO public.users (id, email, role)
-  VALUES (NEW.id, NEW.email, v_role);
+  -- Only 'company' or 'candidate' may come from signup. Anything else,
+  -- including 'admin', collapses to 'candidate'. Admins are provisioned out
+  -- of band with the service role, never through public signup (see
+  -- supabase/fix-security-hardening.sql, blocker B1).
+  safe_role := CASE WHEN requested_role = 'company' THEN 'company' ELSE 'candidate' END;
 
-  IF v_role = 'company' THEN
+  INSERT INTO public.users (id, email, role)
+  VALUES (NEW.id, NEW.email, safe_role);
+
+  IF safe_role = 'company' THEN
     INSERT INTO public.company_profiles (user_id, company_name, industry, location)
     VALUES (
       NEW.id,
@@ -560,10 +597,13 @@ BEGIN
       NEW.raw_user_meta_data->>'industry',
       NEW.raw_user_meta_data->>'location'
     );
-  ELSIF v_role = 'candidate' THEN
+  ELSE
     -- Without this a candidate has no profile row until they find and save
     -- /candidate/profile, so every application they make is written with
-    -- candidate_id NULL and never appears on their dashboard.
+    -- candidate_id NULL and never appears on their dashboard. full_name is
+    -- NOT NULL on candidate_profiles, so the email local part is a last
+    -- resort for accounts created outside the register form (e.g. Google
+    -- sign-in, which never sends full_name as 'full_name').
     INSERT INTO public.candidate_profiles (user_id, full_name, phone, location)
     VALUES (
       NEW.id,
@@ -575,7 +615,7 @@ BEGIN
 
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
@@ -619,6 +659,8 @@ CREATE INDEX idx_trainings_status ON trainings(status);
 CREATE INDEX idx_trainings_level ON trainings(level);
 CREATE INDEX idx_learnerships_expiry ON learnerships(expiry_date);
 CREATE INDEX idx_late_uni_closing ON late_uni_apps(closing_date);
+CREATE INDEX idx_university_interest_late_uni_app ON university_application_interests(late_uni_app_id);
+CREATE INDEX idx_jobs_origin ON jobs(origin);
 CREATE INDEX idx_events_status ON events(status);
 CREATE INDEX idx_events_start ON events(start_date);
 CREATE INDEX idx_job_views_job ON job_views(job_id);

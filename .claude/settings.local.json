@@ -15,7 +15,9 @@
       "Bash(curl:*)",
       "Bash(netlify status:*)",
       "PowerShell(Get-ChildItem \"c:\\\\Users\\\\linda\\\\Dev\\\\work\\\\spanispace\\\\public\\\\assets\\\\logos\" | Select-Object Name, @{N='KB';E={[math]::Round\\($_.Length/1KB,1\\)}})",
-      "Bash(npx eslint *)"
+      "Bash(npx eslint *)",
+      "Bash(gh run *)",
+      "Bash(node -e ' *)"
     ]
   }
 }

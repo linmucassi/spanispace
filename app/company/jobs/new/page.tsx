@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { normalizeUrl } from '@/lib/normalizeUrl';
 
 const JOB_TYPES = [
   'Full-time',
@@ -35,6 +36,8 @@ export default function CompanyNewJob() {
     duration: '',
     salary_range: '',
     expiry_date: '',
+    apply_mode: 'on_platform',
+    apply_link: '',
   });
 
   useEffect(() => {
@@ -88,6 +91,12 @@ export default function CompanyNewJob() {
       return;
     }
 
+    if (form.apply_mode === 'redirect' && !form.apply_link.trim()) {
+      setError('Add the link to your careers page, or switch back to accepting applications on Spanispace.');
+      setSaving(false);
+      return;
+    }
+
     const supabase = createClient();
     if (!supabase) {
       setError('Unable to connect to database.');
@@ -107,6 +116,8 @@ export default function CompanyNewJob() {
       expiry_date: form.expiry_date,
       vetted_status: 'pending',
       status: 'active',
+      apply_mode: form.apply_mode,
+      apply_link: form.apply_mode === 'redirect' ? normalizeUrl(form.apply_link) : null,
     };
 
     let { error: dbError } = await supabase.from('jobs').insert(payload);
@@ -115,6 +126,14 @@ export default function CompanyNewJob() {
     if (dbError && 'duration' in payload && (dbError.code === 'PGRST204' || dbError.message?.includes('duration'))) {
       const rest = { ...payload };
       delete rest.duration;
+      ({ error: dbError } = await supabase.from('jobs').insert(rest));
+    }
+
+    // Retry without apply_mode if supabase/add-application-journeys.sql hasn't run yet
+    // (apply_link itself is a pre-existing column, so it's kept either way)
+    if (dbError && 'apply_mode' in payload && (dbError.code === 'PGRST204' || dbError.message?.includes('apply_mode'))) {
+      const rest = { ...payload };
+      delete rest.apply_mode;
       ({ error: dbError } = await supabase.from('jobs').insert(rest));
     }
 
@@ -301,6 +320,43 @@ export default function CompanyNewJob() {
             />
           </div>
         </div>
+
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            How do candidates apply?
+          </label>
+          <div className="flex flex-col sm:flex-row gap-3 text-sm">
+            <label className="flex items-center gap-2 border border-slate-200 rounded-xl px-4 py-3 flex-1 cursor-pointer has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50">
+              <input type="radio" name="apply_mode" value="on_platform" checked={form.apply_mode === 'on_platform'} onChange={handleChange} />
+              Accept applications on Spanispace
+            </label>
+            <label className="flex items-center gap-2 border border-slate-200 rounded-xl px-4 py-3 flex-1 cursor-pointer has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50">
+              <input type="radio" name="apply_mode" value="redirect" checked={form.apply_mode === 'redirect'} onChange={handleChange} />
+              Send applicants to our careers page
+            </label>
+          </div>
+        </div>
+
+        {form.apply_mode === 'redirect' && (
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Careers Page / Apply Link *
+            </label>
+            <input
+              name="apply_link"
+              value={form.apply_link}
+              onChange={handleChange}
+              type="text"
+              inputMode="url"
+              required
+              placeholder="e.g. careers.yourcompany.com/junior-dev"
+              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
+            />
+            <p className="text-xs text-slate-500 mt-1.5">
+              We&apos;ll still capture applicant details on Spanispace before sending them here, so you and Spanispace admin both see who applied.
+            </p>
+          </div>
+        )}
 
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-3">

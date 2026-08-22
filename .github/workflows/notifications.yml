@@ -5,11 +5,21 @@ name: Email Notifications
 #     registration alerts land here within the hour of the real event)
 #   - daily: populate expiry alerts + profile nudges, then drain
 #   - weekly (Monday): populate the digest, then drain
+#
+# The daily/weekly crons deliberately land at :20 past the hour, not :00.
+# They used to be '0 5 * * *' / '0 6 * * 1', which fire at the exact same
+# instant as the hourly '0 * * * *' cron once a day. GitHub then queues two
+# runs of this workflow back-to-back, and the second one to start would
+# intermittently come up with an empty secrets context -- every logged
+# failure (6/6 over 9 days, all in the 05:00-07:40 UTC window right after
+# that hour's hourly run) was exactly this collision: the daily-gated step
+# failing with "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY" while the
+# same secrets worked fine on every other run. See 14 Aug 2026 changelog.
 on:
   schedule:
     - cron: '0 * * * *'
-    - cron: '0 5 * * *'
-    - cron: '0 6 * * 1'
+    - cron: '20 5 * * *'
+    - cron: '20 6 * * 1'
   workflow_dispatch:
 
 jobs:
@@ -32,21 +42,21 @@ jobs:
         run: npm ci
 
       - name: Run expiry alerts (daily schedule only)
-        if: github.event.schedule == '0 5 * * *' || github.event_name == 'workflow_dispatch'
+        if: github.event.schedule == '20 5 * * *' || github.event_name == 'workflow_dispatch'
         run: npx tsx scripts/run-expiry-alerts.ts
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
       - name: Run profile nudges (daily schedule only)
-        if: github.event.schedule == '0 5 * * *' || github.event_name == 'workflow_dispatch'
+        if: github.event.schedule == '20 5 * * *' || github.event_name == 'workflow_dispatch'
         run: npx tsx scripts/run-profile-nudges.ts
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
       - name: Run weekly digest (Monday schedule only)
-        if: github.event.schedule == '0 6 * * 1' || github.event_name == 'workflow_dispatch'
+        if: github.event.schedule == '20 6 * * 1' || github.event_name == 'workflow_dispatch'
         run: npx tsx scripts/run-weekly-digest.ts
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
