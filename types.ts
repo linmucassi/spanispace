@@ -75,6 +75,9 @@ export interface Training {
 }
 
 export interface UniversityUpdate {
+  /** late_uni_apps.id -- absent for static fallback entries, which skip
+   *  interest capture since there's no row to attach it to. */
+  id?: string;
   institution: string;
   deadline: string;
   type: 'Late Application' | 'Standard' | 'Learnership';

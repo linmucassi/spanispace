@@ -11,6 +11,19 @@ export default function AdminJobs() {
   const [jobs, setJobs] = useState<DbJob[]>([]);
   const [filter, setFilter] = useState('all');
   const [originFilter, setOriginFilter] = useState('all');
+
+  // Plain client-side read of ?origin=scraped (e.g. from the dashboard's
+  // "N scraped jobs waiting for review" link) -- avoided next/navigation's
+  // useSearchParams here since that forces this page into a Suspense
+  // boundary at build time for a one-off deep link.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const origin = params.get('origin');
+    if (origin) {
+      setOriginFilter(origin);
+      if (origin === 'scraped') setFilter('pending');
+    }
+  }, []);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [extendDays, setExtendDays] = useState(30);

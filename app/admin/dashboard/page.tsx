@@ -104,6 +104,7 @@ export default function AdminDashboard() {
         <StatsCard label="Active Jobs" value={stats.activeJobs} color="text-slate-900" />
         <StatsCard label="Pending Approval" value={stats.pendingJobs} color="text-amber-600" />
         <StatsCard label="Applications (7d)" value={stats.weekApplications} color="text-brand-600" />
+        <StatsCard label="University Interest (7d)" value={stats.weekUniversityInterest} color="text-brand-600" />
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -112,6 +113,15 @@ export default function AdminDashboard() {
         <StatsCard label="Trainings" value={stats.totalTrainings} color="text-slate-900" />
         <StatsCard label="Learnerships" value={stats.totalLearnerships} color="text-slate-900" />
       </div>
+
+      {stats.scrapedPendingJobs > 0 && (
+        <Link
+          href="/admin/jobs?origin=scraped"
+          className="block mb-8 px-5 py-4 bg-amber-50 border border-amber-200 rounded-2xl text-sm font-medium text-amber-800 hover:bg-amber-100 transition-colors"
+        >
+          {stats.scrapedPendingJobs} scraped job{stats.scrapedPendingJobs === 1 ? '' : 's'} waiting for review before going live →
+        </Link>
+      )}
 
       {/* Recent Applications */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">

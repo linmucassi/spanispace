@@ -1,10 +1,137 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ACADEMIC_UPDATES } from '../data/constants';
 import { useTranslation } from '../lib/i18n/context';
+import { createClient } from '../lib/supabase/client';
 import type { UniversityUpdate } from '../types';
+
+// Captures who's applying before sending them to the institution's own
+// portal -- Colleges/Universities had zero application tracking at all
+// before this (just a bare external link). Fully separate from
+// jobs/learnerships (see supabase/add-application-journeys.sql): its own
+// table, its own route, no company visibility, admin + the candidate only.
+function UniversityInterestModal({
+  update,
+  onClose,
+}: {
+  update: UniversityUpdate;
+  onClose: () => void;
+}) {
+  const [form, setForm] = useState({ fullName: '', phone: '', email: '' });
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    async function prefill() {
+      const supabase = createClient();
+      if (!supabase) return;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: profile } = await supabase
+        .from('candidate_profiles')
+        .select('full_name, phone')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      setForm((prev) => ({
+        fullName: profile?.full_name ?? prev.fullName,
+        phone: profile?.phone ?? prev.phone,
+        email: user.email ?? prev.email,
+      }));
+    }
+    prefill();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.fullName.trim()) {
+      setError('Your full name is required.');
+      return;
+    }
+    setSubmitting(true);
+    setError('');
+
+    try {
+      const res = await fetch('/api/university-interest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lateUniAppId: update.id, ...form }),
+      });
+      if (!res.ok) {
+        const result = await res.json().catch(() => null);
+        setError(result?.error ?? 'Something went wrong. Please try again.');
+        setSubmitting(false);
+        return;
+      }
+    } catch {
+      setError('Something went wrong. Please try again.');
+      setSubmitting(false);
+      return;
+    }
+
+    setSubmitting(false);
+    setDone(true);
+    if (update.applyLink) window.open(update.applyLink, '_blank', 'noopener');
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={onClose}>
+      <div
+        className="bg-white rounded-2xl shadow-xl border border-ink-100 p-6 max-w-sm w-full"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {done ? (
+          <div className="text-center py-2">
+            <p className="font-bold text-ink-900 mb-2">Details saved</p>
+            <p className="text-sm text-ink-600 mb-4">
+              We&apos;ve opened {update.institution}&apos;s application page in a new tab. Didn&apos;t open?{' '}
+              {update.applyLink && (
+                <a href={update.applyLink} target="_blank" rel="noopener noreferrer" className="text-brand-600 font-semibold hover:underline">
+                  Continue to {update.institution} →
+                </a>
+              )}
+            </p>
+            <button onClick={onClose} className="text-sm text-ink-500 hover:text-ink-700">Close</button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <p className="font-bold text-ink-900 mb-1">Apply to {update.institution}</p>
+            <p className="text-xs text-ink-500 mb-3">Leave your details, then you&apos;ll be sent to their site to finish applying.</p>
+            <input
+              placeholder="Full name *"
+              value={form.fullName}
+              onChange={(e) => setForm({ ...form, fullName: e.target.value })}
+              required
+              className="block w-full rounded-xl border border-ink-200 px-3 py-2 text-sm focus:border-brand-500 outline-none"
+            />
+            <input
+              placeholder="Phone"
+              value={form.phone}
+              onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              className="block w-full rounded-xl border border-ink-200 px-3 py-2 text-sm focus:border-brand-500 outline-none"
+            />
+            <input
+              placeholder="Email"
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              className="block w-full rounded-xl border border-ink-200 px-3 py-2 text-sm focus:border-brand-500 outline-none"
+            />
+            {error && <p className="text-red-600 text-xs">{error}</p>}
+            <div className="flex gap-2 pt-1">
+              <button type="submit" disabled={submitting} className="flex-1 bg-brand-600 text-white py-2 rounded-xl text-sm font-bold hover:bg-brand-700 disabled:opacity-50">
+                {submitting ? 'Continuing...' : 'Continue to application'}
+              </button>
+              <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-ink-500 hover:text-ink-700">Cancel</button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
 
 interface AcademicPortalProps {
   updates?: UniversityUpdate[];
@@ -70,6 +197,7 @@ const AcademicPortal: React.FC<AcademicPortalProps> = ({ updates }) => {
   const now = new Date();
   const { t } = useTranslation();
   const items = updates ?? ACADEMIC_UPDATES;
+  const [modalFor, setModalFor] = useState<UniversityUpdate | null>(null);
 
   // This page exists so nobody misses a closing date, and it was rendering every
   // institution in source order, so the first screen was a wall of DEADLINE
@@ -130,14 +258,24 @@ const AcademicPortal: React.FC<AcademicPortalProps> = ({ updates }) => {
                     )}
                   </div>
                   {update.applyLink && !isPast && (
-                    <Link
-                      href={update.applyLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs bg-brand-600 text-white px-4 py-1.5 rounded-lg font-semibold hover:bg-brand-700 transition-colors"
-                    >
-                      {t('academic.apply')}
-                    </Link>
+                    update.id ? (
+                      <button
+                        type="button"
+                        onClick={() => setModalFor(update)}
+                        className="text-xs bg-brand-600 text-white px-4 py-1.5 rounded-lg font-semibold hover:bg-brand-700 transition-colors"
+                      >
+                        {t('academic.apply')}
+                      </button>
+                    ) : (
+                      <Link
+                        href={update.applyLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs bg-brand-600 text-white px-4 py-1.5 rounded-lg font-semibold hover:bg-brand-700 transition-colors"
+                      >
+                        {t('academic.apply')}
+                      </Link>
+                    )
                   )}
                 </div>
               </div>
@@ -173,6 +311,7 @@ const AcademicPortal: React.FC<AcademicPortalProps> = ({ updates }) => {
           </details>
         )}
       </div>
+      {modalFor && <UniversityInterestModal update={modalFor} onClose={() => setModalFor(null)} />}
     </section>
   );
 };
