@@ -16,6 +16,8 @@ export interface DbJob {
   poster_whatsapp: string | null;
   poster_email: string | null;
   status: 'active' | 'closed' | 'draft';
+  origin: 'company' | 'admin_curated' | 'scraped';
+  apply_mode: 'on_platform' | 'redirect';
   created_at: string;
   updated_at: string;
 }
@@ -80,6 +82,19 @@ export interface DbLateUniApp {
   status: 'open' | 'closed';
   created_at: string;
   updated_at: string;
+}
+
+// Fully separate from jobs/learnerships/applications, per product decision --
+// see supabase/add-application-journeys.sql.
+export interface DbUniversityInterest {
+  id: string;
+  late_uni_app_id: string;
+  candidate_id: string | null;
+  full_name: string;
+  phone: string | null;
+  email: string | null;
+  created_at: string;
+  late_uni_app?: DbLateUniApp;
 }
 
 export interface DbEvent {
@@ -204,8 +219,10 @@ export interface AdminStats {
   totalJobs: number;
   activeJobs: number;
   pendingJobs: number;
+  scrapedPendingJobs: number;
   totalApplications: number;
   weekApplications: number;
   totalTrainings: number;
   totalLearnerships: number;
+  weekUniversityInterest: number;
 }

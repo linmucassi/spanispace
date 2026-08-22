@@ -30,14 +30,18 @@ export default function AdminDashboard() {
       const now = new Date();
       const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-      const [jobs, pendingJobs, apps, weekApps, trainings, learnerships, recent] =
+      const [jobs, pendingJobs, scrapedPendingJobs, apps, weekApps, trainings, learnerships, weekUniInterest, recent] =
         await Promise.all([
           supabase.from('jobs').select('id', { count: 'exact', head: true }),
           supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('vetted_status', 'pending'),
+          supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('vetted_status', 'pending').eq('origin', 'scraped'),
           supabase.from('applications').select('id', { count: 'exact', head: true }),
           supabase.from('applications').select('id', { count: 'exact', head: true }).gte('created_at', weekAgo),
           supabase.from('trainings').select('id', { count: 'exact', head: true }),
-          supabase.from('learnerships').select('id', { count: 'exact', head: true }),
+          // Learnerships are `jobs` rows (job_type = 'Learnership') as of
+          // supabase/add-application-journeys.sql, not the old standalone table.
+          supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('job_type', 'Learnership'),
+          supabase.from('university_application_interests').select('id', { count: 'exact', head: true }).gte('created_at', weekAgo),
           supabase.from('applications').select('*, job:jobs(title)').order('created_at', { ascending: false }).limit(10),
         ]);
 
@@ -45,10 +49,12 @@ export default function AdminDashboard() {
         totalJobs: jobs.count ?? 0,
         activeJobs: (jobs.count ?? 0) - (pendingJobs.count ?? 0),
         pendingJobs: pendingJobs.count ?? 0,
+        scrapedPendingJobs: scrapedPendingJobs.count ?? 0,
         totalApplications: apps.count ?? 0,
         weekApplications: weekApps.count ?? 0,
         totalTrainings: trainings.count ?? 0,
         totalLearnerships: learnerships.count ?? 0,
+        weekUniversityInterest: weekUniInterest.count ?? 0,
       });
 
       setRecentApps((recent.data as any[]) ?? []);

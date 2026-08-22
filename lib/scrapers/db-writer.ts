@@ -6,17 +6,6 @@
 import { getSupabaseAdmin } from '../supabase/admin'
 import type { ScrapedJob, ScrapedEvent } from './types'
 
-async function getCuratedCompanyId(): Promise<string | null> {
-  const supabase = getSupabaseAdmin()
-  const { data } = await supabase
-    .from('company_profiles')
-    .select('id')
-    .eq('company_name', 'Spanispace Curated')
-    .limit(1)
-    .maybeSingle()
-  return (data as { id: string } | null)?.id ?? null
-}
-
 // Reject jobs whose title or poster_name contain non-Latin characters
 // (CJK, Arabic, Cyrillic, etc. from global job boards are not relevant for SA audiences)
 function isLatinJob(job: ScrapedJob): boolean {
@@ -77,7 +66,6 @@ async function updateJobWithFallback(
 
 export async function writeJobs(jobs: ScrapedJob[]): Promise<{ inserted: number; refreshed: number; errors: string[] }> {
   const supabase = getSupabaseAdmin()
-  const companyId = await getCuratedCompanyId()
   const errors: string[] = []
   let inserted = 0
   let refreshed = 0
@@ -151,9 +139,14 @@ export async function writeJobs(jobs: ScrapedJob[]): Promise<{ inserted: number;
 
   // 3) Bulk insert new rows. All rows in a chunk carry the same keys, so the
   //    schema fallbacks apply chunk-wide: drop duration if the column is
-  //    missing, downgrade new job_type values if the CHECK is old.
-  const buildRow = (job: ScrapedJob, opts: { withDuration: boolean; downgrade: boolean }) => ({
-    company_id: companyId ?? null,
+  //    missing, downgrade new job_type values if the CHECK is old, drop
+  //    origin/apply_mode if supabase/add-application-journeys.sql hasn't run
+  //    yet on this database. company_id stays NULL and vetted_status stays
+  //    'pending' regardless -- scraped jobs are never auto-owned by a shared
+  //    company account and always go through the normal admin review queue,
+  //    see supabase/add-application-journeys.sql for why.
+  const buildRow = (job: ScrapedJob, opts: { withDuration: boolean; withOrigin: boolean; downgrade: boolean }) => ({
+    company_id: null,
     title: job.title,
     description: job.description,
     requirements: job.requirements,
@@ -163,21 +156,23 @@ export async function writeJobs(jobs: ScrapedJob[]): Promise<{ inserted: number;
     salary_range: job.salary_range || null,
     apply_link: job.apply_link,
     expiry_date: job.expiry_date,
-    vetted_status: 'verified',
+    vetted_status: 'pending',
     poster_name: job.poster_name,
     status: 'active',
+    ...(opts.withOrigin ? { origin: 'scraped', apply_mode: 'redirect' } : {}),
   })
 
   for (const group of chunk(newJobs, INSERT_CHUNK)) {
     let withDuration = durationColumnKnown
+    let withOrigin = true
     let downgrade = false
     let lastMessage = ''
     let ok = false
 
-    for (let i = 0; i < 3 && !ok; i++) {
+    for (let i = 0; i < 4 && !ok; i++) {
       const { error } = await supabase
         .from('jobs')
-        .insert(group.map((j) => buildRow(j, { withDuration, downgrade })))
+        .insert(group.map((j) => buildRow(j, { withDuration, withOrigin, downgrade })))
       if (!error) {
         ok = true
         break
@@ -186,6 +181,10 @@ export async function writeJobs(jobs: ScrapedJob[]): Promise<{ inserted: number;
       if (withDuration && isSchemaError(error.code, lastMessage, 'duration')) {
         withDuration = false
         durationColumnKnown = false
+        continue
+      }
+      if (withOrigin && (isSchemaError(error.code, lastMessage, 'origin') || isSchemaError(error.code, lastMessage, 'apply_mode'))) {
+        withOrigin = false
         continue
       }
       if (!downgrade && lastMessage.includes('job_type')) {

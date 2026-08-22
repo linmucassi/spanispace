@@ -14,6 +14,9 @@ export interface Job {
   company: string;
   location: string;
   applyLink: string;
+  /** How a candidate finishes applying. Absent on the static fallback data,
+   *  which is treated as 'on_platform'. */
+  applyMode?: 'on_platform' | 'redirect';
   expiryDate: string;
   /** ISO date the listing was created. Absent on the static fallback data. */
   postedDate?: string;

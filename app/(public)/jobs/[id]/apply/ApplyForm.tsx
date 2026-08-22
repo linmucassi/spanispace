@@ -16,6 +16,8 @@ type Props = {
   jobRole: string;
   jobCompany: string;
   jobSource: 'db' | 'static';
+  applyMode: 'on_platform' | 'redirect';
+  applyLink: string | null;
 };
 
 const DOC_LABELS: Record<string, string> = {
@@ -34,7 +36,7 @@ const DOC_COLORS: Record<string, string> = {
   other: 'bg-ink-100 text-ink-600',
 };
 
-export default function ApplyForm({ jobId, jobRole, jobCompany, jobSource }: Props) {
+export default function ApplyForm({ jobId, jobRole, jobCompany, jobSource, applyMode, applyLink }: Props) {
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -42,6 +44,11 @@ export default function ApplyForm({ jobId, jobRole, jobCompany, jobSource }: Pro
       logJobEvent('application_starts', jobId);
     }
   }, [jobId, jobSource]);
+
+  // Redirect-mode listings: the moment the capture form succeeds, open the
+  // real employer's site in a new tab so the candidate can finish there.
+  // Fired once per successful submit, not on every re-render.
+  const [redirected, setRedirected] = useState(false);
 
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -119,6 +126,13 @@ export default function ApplyForm({ jobId, jobRole, jobCompany, jobSource }: Pro
     }
     loadProfileAndDocs();
   }, [jobId, jobSource]);
+
+  useEffect(() => {
+    if (submitted && applyMode === 'redirect' && applyLink && !redirected) {
+      setRedirected(true);
+      window.open(applyLink, '_blank', 'noopener');
+    }
+  }, [submitted, applyMode, applyLink, redirected]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -262,6 +276,7 @@ export default function ApplyForm({ jobId, jobRole, jobCompany, jobSource }: Pro
   }
 
   if (submitted) {
+    const isRedirect = applyMode === 'redirect' && applyLink;
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="max-w-md w-full text-center">
@@ -281,10 +296,27 @@ export default function ApplyForm({ jobId, jobRole, jobCompany, jobSource }: Pro
             </svg>
           </div>
           <h1 className="text-3xl font-bold text-ink-900 mb-3">
-            {t('apply.successTitle')}
+            {isRedirect ? 'Details saved' : t('apply.successTitle')}
           </h1>
           <p className="text-ink-600 mb-8">
-            {emailSent ? t('apply.successEmailed') : t('apply.successMessage')}
+            {isRedirect
+              ? `We've opened ${jobCompany}'s application page in a new tab so you can finish there. Didn't open?`
+              : emailSent
+                ? t('apply.successEmailed')
+                : t('apply.successMessage')}
+            {isRedirect && (
+              <>
+                {' '}
+                <a
+                  href={applyLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-brand-600 font-semibold hover:underline"
+                >
+                  Continue to {jobCompany} →
+                </a>
+              </>
+            )}
           </p>
           <Link
             href={`/jobs/${jobId}`}
@@ -311,11 +343,16 @@ export default function ApplyForm({ jobId, jobRole, jobCompany, jobSource }: Pro
           <h1 className="text-2xl font-bold text-ink-900 mb-2">
             {t('apply.title')}
           </h1>
-          <p className="text-ink-500 mb-8">
+          <p className="text-ink-500 mb-2">
             {t('apply.applyingFor')}:{' '}
             <span className="font-semibold text-ink-700">{jobRole}</span> at{' '}
             <span className="font-semibold text-ink-700">{jobCompany}</span>
           </p>
+          {applyMode === 'redirect' && (
+            <p className="text-ink-500 mb-6 text-sm bg-brand-50 border border-brand-100 rounded-2xl px-4 py-3">
+              Leave your details here, then you&apos;ll be sent to {jobCompany}&apos;s own site to finish applying.
+            </p>
+          )}
 
           {/* Signed-out applications cannot be linked to an account, so they
               never reach the candidate's dashboard and cannot be deduplicated.
@@ -477,7 +514,11 @@ export default function ApplyForm({ jobId, jobRole, jobCompany, jobSource }: Pro
               disabled={submitting}
               className="w-full bg-brand-600 text-white py-3.5 rounded-full font-bold hover:bg-brand-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {submitting ? t('apply.submitting') : t('apply.submit')}
+              {submitting
+                ? t('apply.submitting')
+                : applyMode === 'redirect'
+                  ? 'Continue to application'
+                  : t('apply.submit')}
             </button>
           </form>
         </div>

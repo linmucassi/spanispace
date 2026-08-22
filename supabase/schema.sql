@@ -73,6 +73,14 @@ CREATE TABLE jobs (
   poster_whatsapp TEXT,
   poster_email TEXT,
   status TEXT DEFAULT 'active' CHECK (status IN ('active', 'closed', 'draft')),
+  -- origin: who owns/posted it, drives dashboard visibility (companies only
+  -- ever see their own 'company' rows; admin sees everything).
+  -- apply_mode: how the candidate finishes -- 'on_platform' is the existing
+  -- full form, 'redirect' is a short capture form then off to apply_link.
+  -- Scraped rows are always 'scraped'/'redirect'. See
+  -- supabase/add-application-journeys.sql.
+  origin TEXT NOT NULL DEFAULT 'company' CHECK (origin IN ('company', 'admin_curated', 'scraped')),
+  apply_mode TEXT NOT NULL DEFAULT 'on_platform' CHECK (apply_mode IN ('on_platform', 'redirect')),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -154,6 +162,20 @@ CREATE TABLE late_uni_apps (
   status TEXT DEFAULT 'open' CHECK (status IN ('open', 'closed')),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 9b. University Application Interest (candidate clicked "Apply" on a
+-- late_uni_apps card -- always an external redirect, this just captures who
+-- before they leave). Fully separate from jobs/learnerships/applications,
+-- no company visibility at all -- admin and the candidate themselves only.
+CREATE TABLE university_application_interests (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  late_uni_app_id UUID REFERENCES late_uni_apps(id) ON DELETE CASCADE NOT NULL,
+  candidate_id UUID REFERENCES candidate_profiles(id) ON DELETE SET NULL,
+  full_name TEXT NOT NULL,
+  phone TEXT,
+  email TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- 10. Events
@@ -279,6 +301,7 @@ ALTER TABLE applications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE trainings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE learnerships ENABLE ROW LEVEL SECURITY;
 ALTER TABLE late_uni_apps ENABLE ROW LEVEL SECURITY;
+ALTER TABLE university_application_interests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE waitlist ENABLE ROW LEVEL SECURITY;
 ALTER TABLE newsletter ENABLE ROW LEVEL SECURITY;
@@ -394,6 +417,12 @@ CREATE POLICY "Public read active jobs" ON jobs FOR SELECT USING (status = 'acti
 CREATE POLICY "Public read active trainings" ON trainings FOR SELECT USING (status IN ('active', 'completed') AND vetted_status = 'verified');
 CREATE POLICY "Public read learnerships" ON learnerships FOR SELECT USING (true);
 CREATE POLICY "Public read late uni apps" ON late_uni_apps FOR SELECT USING (true);
+CREATE POLICY "Candidates insert own university interest" ON university_application_interests FOR INSERT WITH CHECK (
+  candidate_id IS NULL OR EXISTS (SELECT 1 FROM candidate_profiles cd WHERE cd.id = university_application_interests.candidate_id AND cd.user_id = auth.uid())
+);
+CREATE POLICY "Candidates read own university interest" ON university_application_interests FOR SELECT USING (
+  EXISTS (SELECT 1 FROM candidate_profiles cd WHERE cd.id = university_application_interests.candidate_id AND cd.user_id = auth.uid())
+);
 CREATE POLICY "Public read published events" ON events FOR SELECT USING (status IN ('published', 'ongoing', 'completed') AND vetted_status = 'verified');
 
 -- Public inserts (anyone can apply, submit jobs, join waitlist)
@@ -527,6 +556,7 @@ CREATE POLICY "Admin full access applications" ON applications FOR ALL USING (pu
 CREATE POLICY "Admin full access trainings" ON trainings FOR ALL USING (public.is_admin());
 CREATE POLICY "Admin full access learnerships" ON learnerships FOR ALL USING (public.is_admin());
 CREATE POLICY "Admin full access late_uni_apps" ON late_uni_apps FOR ALL USING (public.is_admin());
+CREATE POLICY "Admin full access university_application_interests" ON university_application_interests FOR ALL USING (public.is_admin());
 CREATE POLICY "Admin full access events" ON events FOR ALL USING (public.is_admin());
 CREATE POLICY "Admin full access waitlist" ON waitlist FOR ALL USING (public.is_admin());
 CREATE POLICY "Admin full access newsletter" ON newsletter FOR ALL USING (public.is_admin());
@@ -629,6 +659,8 @@ CREATE INDEX idx_trainings_status ON trainings(status);
 CREATE INDEX idx_trainings_level ON trainings(level);
 CREATE INDEX idx_learnerships_expiry ON learnerships(expiry_date);
 CREATE INDEX idx_late_uni_closing ON late_uni_apps(closing_date);
+CREATE INDEX idx_university_interest_late_uni_app ON university_application_interests(late_uni_app_id);
+CREATE INDEX idx_jobs_origin ON jobs(origin);
 CREATE INDEX idx_events_status ON events(status);
 CREATE INDEX idx_events_start ON events(start_date);
 CREATE INDEX idx_job_views_job ON job_views(job_id);
