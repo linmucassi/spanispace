@@ -51,17 +51,11 @@ export default async function CompanyDashboard() {
 
   // Get company membership -- owner (company_profiles.user_id, unchanged)
   // or team member (company_members). See
-  // supabase/add-roles-invites-and-calendar.sql PART C.
+  // supabase/add-roles-invites-and-calendar.sql PART C. companyName comes
+  // back on the same query, no second round trip needed.
   const membership = await resolveCompanyMembership(supabase, user.id);
   if (!membership) redirect('/company/profile');
-
-  const { data: companyRow } = await supabase
-    .from('company_profiles')
-    .select('id, company_name')
-    .eq('id', membership.companyId)
-    .single();
-  if (!companyRow) redirect('/company/profile');
-  const company = companyRow;
+  const company = { id: membership.companyId, company_name: membership.companyName };
 
   // Get all job IDs for this company first
   const { data: companyJobs } = await supabase
