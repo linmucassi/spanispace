@@ -4,13 +4,19 @@
 // Cleanup: deletes records that expired more than 90 days ago.
 
 import { getSupabaseAdmin } from '../supabase/admin'
+import { isMojibake } from '../textQuality'
 import type { ScrapedJob, ScrapedEvent } from './types'
 
 // Reject jobs whose title or poster_name contain non-Latin characters
-// (CJK, Arabic, Cyrillic, etc. from global job boards are not relevant for SA audiences)
+// (CJK, Arabic, Cyrillic, etc. from global job boards are not relevant for SA audiences),
+// or mojibake of one of those scripts -- a source not honouring its own
+// charset can produce text that's garbled but still lands entirely within
+// the Latin range this first check allows through. See lib/textQuality.ts.
 function isLatinJob(job: ScrapedJob): boolean {
   const nonLatin = /[^ -ɏ\s]/u;
-  return !nonLatin.test(job.title) && !nonLatin.test(job.poster_name ?? '');
+  if (nonLatin.test(job.title) || nonLatin.test(job.poster_name ?? '')) return false;
+  if (isMojibake(job.title) || isMojibake(job.poster_name)) return false;
+  return true;
 }
 
 // If supabase/add-informal-jobs.sql has not been run yet, the jobs table

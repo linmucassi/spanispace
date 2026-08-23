@@ -1,6 +1,7 @@
 import { createServerSupabase } from '@/lib/supabase/server';
 import { JOBS as STATIC_JOBS } from '@/data/constants';
 import { isSouthAfricanJob } from '@/lib/jobLocation';
+import { isMojibake } from '@/lib/textQuality';
 import type { Job } from '@/types';
 import { VettedStatus } from '@/types';
 
@@ -25,12 +26,17 @@ type DbJob = {
 };
 
 // Reject jobs whose title or company name contains characters outside Latin-extended range
-// (catches CJK, Arabic, Cyrillic, etc. that slip in from global scrapers)
+// (catches CJK, Arabic, Cyrillic, etc. that slip in from global scrapers), or mojibake of
+// one of those scripts -- garbled but still entirely within the Latin range the first check
+// allows through (found live 23 Aug 2026: 2 rows, both readable only after this). See
+// lib/textQuality.ts. This is defense-in-depth, not the only gate -- the scraper's own
+// isLatinJob() (lib/scrapers/db-writer.ts) is the primary filter at write time; this catches
+// anything already in the table, or written some other way.
 function isEnglishReadable(job: DbJob): boolean {
   const nonLatin = /[^\u0000-ɏ\s]/u;
-  if (nonLatin.test(job.title)) return false;
   const company = job.company_profiles?.company_name ?? job.poster_name ?? '';
-  if (nonLatin.test(company)) return false;
+  if (nonLatin.test(job.title) || nonLatin.test(company)) return false;
+  if (isMojibake(job.title) || isMojibake(company)) return false;
   return true;
 }
 

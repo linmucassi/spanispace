@@ -3,7 +3,7 @@
 **Platform:** Talent Bridge for South African Job Seekers
 **Founders:** Linda & Percy | **Location:** Gauteng, South Africa
 **Mission:** Empower 100,000+ SA youth with job-ready skills and direct employment pathways by 2030
-**Last Updated:** 22 August 2026
+**Last Updated:** 23 August 2026
 
 ---
 

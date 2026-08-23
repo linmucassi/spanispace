@@ -12,6 +12,7 @@ import type { CompanyRole } from '@/types/database';
 export interface CompanyMembership {
   companyId: string;
   role: CompanyRole;
+  companyName: string;
 }
 
 // role IN ('owner','admin','manager','member') -- everything operational
@@ -31,20 +32,24 @@ export function canManage(role: CompanyRole): boolean {
 // unchanged from before this feature, so an existing owner's behavior is
 // byte-for-byte identical), then falls back to company_members for anyone
 // added as staff. Single call site per page, one query in the common case.
+// Returns company_name too (a plain column on the same row/join, no extra
+// round trip) so callers like app/company/dashboard/page.tsx don't need a
+// second query just to get the name back.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function resolveCompanyMembership(supabase: SupabaseClient<any>, userId: string): Promise<CompanyMembership | null> {
   const { data: owned } = await supabase
     .from('company_profiles')
-    .select('id')
+    .select('id, company_name')
     .eq('user_id', userId)
     .maybeSingle();
-  if (owned) return { companyId: owned.id, role: 'owner' };
+  if (owned) return { companyId: owned.id, role: 'owner', companyName: owned.company_name };
 
   const { data: member } = await supabase
     .from('company_members')
-    .select('company_id, role')
+    .select('company_id, role, company_profiles(company_name)')
     .eq('user_id', userId)
     .maybeSingle();
   if (!member) return null;
-  return { companyId: member.company_id, role: member.role as CompanyRole };
+  const companyProfile = Array.isArray(member.company_profiles) ? member.company_profiles[0] : member.company_profiles;
+  return { companyId: member.company_id, role: member.role as CompanyRole, companyName: companyProfile?.company_name ?? '' };
 }
