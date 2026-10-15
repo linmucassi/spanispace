@@ -4,13 +4,41 @@
 // Cleanup: deletes records that expired more than 90 days ago.
 
 import { getSupabaseAdmin } from '../supabase/admin'
+import { repairEncoding } from '../textQuality'
 import type { ScrapedJob, ScrapedEvent } from './types'
 
-// Reject jobs whose title or poster_name contain non-Latin characters
-// (CJK, Arabic, Cyrillic, etc. from global job boards are not relevant for SA audiences)
-function isLatinJob(job: ScrapedJob): boolean {
-  const nonLatin = /[^ -ɏ\s]/u;
-  return !nonLatin.test(job.title) && !nonLatin.test(job.poster_name ?? '');
+// Every free-text field on a scraped job -- not just title/poster_name.
+// Found live 23 Aug 2026 that the corruption this repairs (multi-byte UTF-8
+// misread as Latin-1 somewhere upstream) hits description/requirements/
+// location/salary_range/duration just as often as title, e.g. a real
+// en-dash in "1-3+ years" corrupting into invisible control characters.
+// See lib/textQuality.ts for the mechanism and why repair (not just reject)
+// is the right fix for the non-foreign-script case.
+const TEXT_FIELDS = ['title', 'description', 'requirements', 'location', 'poster_name', 'salary_range', 'duration'] as const
+
+// Repairs every text field in place, and reports whether any of them turned
+// out to be genuine foreign-script content after repair (CJK/Arabic/
+// Cyrillic/etc. from global job boards, not relevant for SA audiences --
+// the same policy this file has always had, now correctly evaluated against
+// the *repaired* text rather than the still-corrupted original).
+function repairAndCheckJob(job: ScrapedJob): { job: ScrapedJob; isForeignScript: boolean } {
+  const repaired = { ...job } as ScrapedJob
+  let isForeignScript = false
+  for (const field of TEXT_FIELDS) {
+    const value = repaired[field] as string | undefined
+    if (typeof value !== 'string') continue
+    const result = repairEncoding(value)
+    ;(repaired as unknown as Record<string, unknown>)[field] = result.text
+    if (result.isForeignScript) isForeignScript = true
+  }
+  // Non-mojibake non-Latin script (e.g. a source that sends genuine CJK
+  // text with no encoding corruption at all) still needs to be caught --
+  // repairEncoding() only fires on text containing the C1-control
+  // corruption signature, so a clean CJK string passes through untouched
+  // and must be checked separately here.
+  const nonLatin = /[^ -ɏ\s]/u
+  if (nonLatin.test(repaired.title) || nonLatin.test(repaired.poster_name ?? '')) isForeignScript = true
+  return { job: repaired, isForeignScript }
 }
 
 // If supabase/add-informal-jobs.sql has not been run yet, the jobs table
@@ -70,7 +98,11 @@ export async function writeJobs(jobs: ScrapedJob[]): Promise<{ inserted: number;
   let inserted = 0
   let refreshed = 0
 
-  const cleanJobs = jobs.filter(isLatinJob)
+  // Repair encoding corruption on every job's text fields before anything
+  // else -- dedup/existing-row healing below should never work off text
+  // that's still garbled. Foreign-script jobs (genuinely irrelevant for SA
+  // audiences, not corrupted) are dropped here same as before.
+  const cleanJobs = jobs.map(repairAndCheckJob).filter((r) => !r.isForeignScript).map((r) => r.job)
   const nowIso = new Date().toISOString()
 
   // 1) Bulk dedupe: find which apply_links already exist. Also fetch the
@@ -207,12 +239,35 @@ function daysAhead(days: number): string {
   return d.toISOString().split('T')[0]
 }
 
+// Never had a script/encoding filter of any kind before -- unlike jobs,
+// which at least had a (previously incomplete) non-Latin check. Same
+// repair-then-reject-foreign-script treatment as writeJobs, see
+// repairAndCheckJob above and lib/textQuality.ts.
+const EVENT_TEXT_FIELDS = ['title', 'description', 'location'] as const
+
+function repairAndCheckEvent(ev: ScrapedEvent): { event: ScrapedEvent; isForeignScript: boolean } {
+  const repaired = { ...ev } as ScrapedEvent
+  let isForeignScript = false
+  for (const field of EVENT_TEXT_FIELDS) {
+    const value = repaired[field] as string | undefined
+    if (typeof value !== 'string') continue
+    const result = repairEncoding(value)
+    ;(repaired as unknown as Record<string, unknown>)[field] = result.text
+    if (result.isForeignScript) isForeignScript = true
+  }
+  const nonLatin = /[^ -ɏ\s]/u
+  if (nonLatin.test(repaired.title)) isForeignScript = true
+  return { event: repaired, isForeignScript }
+}
+
 export async function writeEvents(events: ScrapedEvent[]): Promise<{ inserted: number; errors: string[] }> {
   const supabase = getSupabaseAdmin()
   const errors: string[] = []
   let inserted = 0
 
-  for (const ev of events) {
+  for (const rawEv of events) {
+    const { event: ev, isForeignScript } = repairAndCheckEvent(rawEv)
+    if (isForeignScript) continue
     try {
       const { data: existing } = await supabase
         .from('events')

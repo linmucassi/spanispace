@@ -11,7 +11,7 @@ import WorkExperience, { type WorkExperienceEntry } from '@/components/candidate
 import Education from '@/components/candidate/Education';
 import AvatarUpload from '@/components/candidate/AvatarUpload';
 import CvAutofill, { type CvAutofillResult } from '@/components/candidate/CvAutofill';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Check } from 'lucide-react';
 
 interface ProfileData {
   full_name: string;
@@ -41,6 +41,19 @@ const emptyProfile: ProfileData = {
   open_to_offers: false,
 };
 
+type SectionFeedback = { type: 'success' | 'error'; message: string } | null;
+
+// Small "Saved ✓" pill shown briefly after a section saves, instead of a
+// page-wide banner -- lets each section report its own result without
+// stealing focus from whatever the candidate is doing in another section.
+function SavedTick() {
+  return (
+    <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
+      <Check className="w-3.5 h-3.5" /> Saved
+    </span>
+  );
+}
+
 export default function CandidateProfilePage() {
   const [profile, setProfile] = useState<ProfileData>(emptyProfile);
   // full_name stays one column in the DB (see lib/name.ts) -- these two are
@@ -50,16 +63,28 @@ export default function CandidateProfilePage() {
   const [email, setEmail] = useState('');
   const [userId, setUserId] = useState<string | null>(null);
   const [skillInput, setSkillInput] = useState('');
-  const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [feedback, setFeedback] = useState<{
-    type: 'success' | 'error';
-    message: string;
-  } | null>(null);
   const [workEntries, setWorkEntries] = useState<WorkExperienceEntry[]>([]);
   const [building, setBuilding] = useState(false);
   const [buildError, setBuildError] = useState('');
   const [workRefreshKey, setWorkRefreshKey] = useState(0);
+
+  // Every section below saves itself independently (candidate_profiles is
+  // one row, but nobody should have to scroll to the bottom and re-save
+  // the whole thing just because they changed one field near the top).
+  // Education and Work Experience already worked this way before this
+  // change (their own tables, their own components); this brings the rest
+  // of the page in line with that instead of the old single bottom button.
+  const [personalSaving, setPersonalSaving] = useState(false);
+  const [personalFeedback, setPersonalFeedback] = useState<SectionFeedback>(null);
+  const [talentSaving, setTalentSaving] = useState(false);
+  const [talentSaved, setTalentSaved] = useState(false);
+  const [skillsSaving, setSkillsSaving] = useState(false);
+  const [skillsSaved, setSkillsSaved] = useState(false);
+  const [onlineSaving, setOnlineSaving] = useState(false);
+  const [onlineFeedback, setOnlineFeedback] = useState<SectionFeedback>(null);
+  const [summarySaving, setSummarySaving] = useState(false);
+  const [summaryFeedback, setSummaryFeedback] = useState<SectionFeedback>(null);
 
   async function loadProfile() {
     const supabase = createClient();
@@ -107,7 +132,6 @@ export default function CandidateProfilePage() {
 
   function handleChange(field: keyof ProfileData, value: string | null) {
     setProfile((prev) => ({ ...prev, [field]: value }));
-    setFeedback(null);
   }
 
   function handleNameChange(part: 'first' | 'last', value: string) {
@@ -116,7 +140,66 @@ export default function CandidateProfilePage() {
     if (part === 'first') setFirstName(value);
     else setLastName(value);
     setProfile((prev) => ({ ...prev, full_name: joinFullName(nextFirst, nextLast) }));
-    setFeedback(null);
+  }
+
+  // Every candidate already has a candidate_profiles row by the time they
+  // reach this page (handle_new_user() creates one at signup), so a plain
+  // scoped update is enough here -- no need for upsert's "create the row"
+  // branch, which also sidesteps full_name's NOT NULL constraint tripping
+  // up a save that only touches e.g. skills.
+  async function updateProfileFields(fields: Record<string, unknown>): Promise<string | null> {
+    if (!userId) return 'You must be signed in.';
+    const supabase = createClient();
+    if (!supabase) return 'Supabase is not configured.';
+    const { error } = await supabase.from('candidate_profiles').update(fields).eq('user_id', userId);
+    return error?.message ?? null;
+  }
+
+  async function savePersonalInfo(e: React.FormEvent) {
+    e.preventDefault();
+    if (!profile.full_name.trim()) {
+      setPersonalFeedback({ type: 'error', message: 'Full name is required.' });
+      return;
+    }
+    setPersonalSaving(true);
+    setPersonalFeedback(null);
+    const error = await updateProfileFields({
+      full_name: profile.full_name,
+      phone: profile.phone || null,
+      whatsapp: profile.whatsapp || null,
+      location: profile.location || null,
+    });
+    setPersonalSaving(false);
+    setPersonalFeedback(error ? { type: 'error', message: error } : { type: 'success', message: 'Saved.' });
+  }
+
+  // Single checkbox, immediate meaning -- saves the moment it's toggled
+  // rather than needing a separate button click.
+  async function toggleOpenToOffers(checked: boolean) {
+    setProfile((prev) => ({ ...prev, open_to_offers: checked }));
+    setTalentSaving(true);
+    setTalentSaved(false);
+    const error = await updateProfileFields({ open_to_offers: checked });
+    setTalentSaving(false);
+    if (error) {
+      // Revert on failure (e.g. migration not run yet) so the toggle
+      // doesn't claim a state that was never actually persisted.
+      setProfile((prev) => ({ ...prev, open_to_offers: !checked }));
+    } else {
+      setTalentSaved(true);
+      setTimeout(() => setTalentSaved(false), 2000);
+    }
+  }
+
+  async function persistSkills(nextSkills: string[]) {
+    setSkillsSaving(true);
+    setSkillsSaved(false);
+    const error = await updateProfileFields({ skills: nextSkills });
+    setSkillsSaving(false);
+    if (!error) {
+      setSkillsSaved(true);
+      setTimeout(() => setSkillsSaved(false), 2000);
+    }
   }
 
   function addSkills() {
@@ -125,18 +208,17 @@ export default function CandidateProfilePage() {
       .split(',')
       .map((s) => s.trim())
       .filter((s) => s.length > 0 && !profile.skills.includes(s));
-    setProfile((prev) => ({
-      ...prev,
-      skills: [...prev.skills, ...newSkills],
-    }));
+    if (newSkills.length === 0) { setSkillInput(''); return; }
+    const nextSkills = [...profile.skills, ...newSkills];
+    setProfile((prev) => ({ ...prev, skills: nextSkills }));
     setSkillInput('');
+    persistSkills(nextSkills);
   }
 
   function removeSkill(skill: string) {
-    setProfile((prev) => ({
-      ...prev,
-      skills: prev.skills.filter((s) => s !== skill),
-    }));
+    const nextSkills = profile.skills.filter((s) => s !== skill);
+    setProfile((prev) => ({ ...prev, skills: nextSkills }));
+    persistSkills(nextSkills);
   }
 
   function handleSkillKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -146,92 +228,30 @@ export default function CandidateProfilePage() {
     }
   }
 
-  async function handleSave() {
-    setSaving(true);
-    setFeedback(null);
-
-    const supabase = createClient();
-    if (!supabase) {
-      setFeedback({ type: 'error', message: 'Supabase is not configured.' });
-      setSaving(false);
-      return;
-    }
-
-    if (!userId) {
-      setFeedback({ type: 'error', message: 'You must be signed in.' });
-      setSaving(false);
-      return;
-    }
-
-    const baseRow = {
-      user_id: userId,
-      full_name: profile.full_name,
-      phone: profile.phone || null,
-      whatsapp: profile.whatsapp || null,
-      location: profile.location || null,
-      skills: profile.skills,
+  async function saveOnlinePresence(e: React.FormEvent) {
+    e.preventDefault();
+    setOnlineSaving(true);
+    setOnlineFeedback(null);
+    const error = await updateProfileFields({
       portfolio_url: profile.portfolio_url ? normalizeUrl(profile.portfolio_url) : null,
       linkedin_url: profile.linkedin_url ? normalizeUrl(profile.linkedin_url) : null,
       github_url: profile.github_url ? normalizeUrl(profile.github_url) : null,
-      open_to_offers: profile.open_to_offers,
-    };
+    });
+    setOnlineSaving(false);
+    setOnlineFeedback(error ? { type: 'error', message: error } : { type: 'success', message: 'Saved.' });
+  }
 
-    let { error } = await supabase
-      .from('candidate_profiles')
-      .upsert(
-        { ...baseRow, professional_summary: profile.professional_summary || null },
-        { onConflict: 'user_id' }
-      );
-
-    // If open_to_offers doesn't exist yet (migration not run), drop it and retry.
-    if (error && (error.code === 'PGRST204' || error.message?.includes('open_to_offers'))) {
-      const { open_to_offers: _dropped, ...rest } = baseRow;
-      void _dropped;
-      ({ error } = await supabase
-        .from('candidate_profiles')
-        .upsert({ ...rest, professional_summary: profile.professional_summary || null }, { onConflict: 'user_id' }));
-    }
-
-    // If the professional_summary column does not exist yet (migration not
-    // run), save the rest of the profile instead of failing outright.
-    let summaryDegraded = false;
-    if (error && (error.code === 'PGRST204' || error.message?.includes('professional_summary'))) {
-      summaryDegraded = true;
-      ({ error } = await supabase
-        .from('candidate_profiles')
-        .upsert(baseRow, { onConflict: 'user_id' }));
-      if (error && (error.code === 'PGRST204' || error.message?.includes('open_to_offers'))) {
-        const { open_to_offers: _dropped, ...rest } = baseRow;
-        void _dropped;
-        ({ error } = await supabase.from('candidate_profiles').upsert(rest, { onConflict: 'user_id' }));
-      }
-    }
-
-    if (error) {
-      setFeedback({
-        type: 'error',
-        message: `Save failed: ${error.message}`,
-      });
-      setSaving(false);
-      return;
-    }
-
-    // Reload from DB to confirm what was actually persisted. When the summary
-    // could not be stored, keep the user's text on screen and say so honestly
-    // instead of silently wiping it and claiming success.
-    const summaryText = profile.professional_summary;
-    await loadProfile();
-    if (summaryDegraded) {
-      setProfile((prev) => ({ ...prev, professional_summary: summaryText }));
-      setFeedback({
-        type: 'error',
-        message:
-          'Profile saved, but your professional summary could not be stored yet because the database update has not run. Your text is still below, copy it somewhere safe and save again once the update is live.',
-      });
-    } else {
-      setFeedback({ type: 'success', message: 'Profile saved successfully.' });
-    }
-    setSaving(false);
+  async function saveSummary(e: React.FormEvent) {
+    e.preventDefault();
+    setSummarySaving(true);
+    setSummaryFeedback(null);
+    const error = await updateProfileFields({ professional_summary: profile.professional_summary || null });
+    setSummarySaving(false);
+    setSummaryFeedback(
+      error
+        ? { type: 'error', message: error.includes('professional_summary') ? 'This isn’t available yet, please try again later.' : error }
+        : { type: 'success', message: 'Saved.' }
+    );
   }
 
   async function handleBuildSummary() {
@@ -250,10 +270,7 @@ export default function CandidateProfilePage() {
         .join('\n\n')
         .trim();
       setProfile((prev) => ({ ...prev, professional_summary: text }));
-      setFeedback({
-        type: 'success',
-        message: 'Professional profile built. Read it, make it yours, then press Save Profile.',
-      });
+      setSummaryFeedback({ type: 'success', message: 'Built. Read it, make it yours, then press Save.' });
     } catch {
       setBuildError('Could not build your profile. Please try again.');
     } finally {
@@ -267,23 +284,38 @@ export default function CandidateProfilePage() {
   // than replace for the same reason. Work experience entries are inserted
   // directly (same shape WorkExperience.tsx itself inserts), then the
   // component is remounted via workRefreshKey so it reloads and shows them --
-  // simpler than teaching that self-contained component a new prop.
+  // simpler than teaching that self-contained component a new prop. Since
+  // every section now saves itself, this writes each affected section
+  // straight to the DB rather than just updating local state and waiting for
+  // a bottom Save click that no longer exists.
   async function handleCvExtracted(result: CvAutofillResult) {
     if (result.full_name?.trim()) {
       const { firstName: fn, lastName: ln } = splitFullName(result.full_name.trim());
       setFirstName(fn);
       setLastName(ln);
     }
-    setProfile((prev) => ({
-      ...prev,
-      full_name: result.full_name?.trim() || prev.full_name,
-      phone: result.phone?.trim() || prev.phone,
-      location: result.location?.trim() || prev.location,
-      professional_summary: result.professional_summary?.trim() || prev.professional_summary,
-      linkedin_url: result.linkedin_url?.trim() || prev.linkedin_url,
-      github_url: result.github_url?.trim() || prev.github_url,
-      skills: Array.from(new Set([...prev.skills, ...result.skills])),
-    }));
+    const nextSkills = Array.from(new Set([...profile.skills, ...result.skills]));
+    const next: ProfileData = {
+      ...profile,
+      full_name: result.full_name?.trim() || profile.full_name,
+      phone: result.phone?.trim() || profile.phone,
+      location: result.location?.trim() || profile.location,
+      professional_summary: result.professional_summary?.trim() || profile.professional_summary,
+      linkedin_url: result.linkedin_url?.trim() || profile.linkedin_url,
+      github_url: result.github_url?.trim() || profile.github_url,
+      skills: nextSkills,
+    };
+    setProfile(next);
+
+    await updateProfileFields({
+      full_name: next.full_name,
+      phone: next.phone || null,
+      location: next.location || null,
+      professional_summary: next.professional_summary || null,
+      linkedin_url: next.linkedin_url ? normalizeUrl(next.linkedin_url) : null,
+      github_url: next.github_url ? normalizeUrl(next.github_url) : null,
+      skills: next.skills,
+    });
 
     if (result.work_experience.length > 0 && userId) {
       const supabase = createClient();
@@ -308,10 +340,7 @@ export default function CandidateProfilePage() {
       }
     }
 
-    setFeedback({
-      type: 'success',
-      message: 'Details filled in from your CV. Review them below, then press Save Profile.',
-    });
+    setPersonalFeedback({ type: 'success', message: 'Filled in from your CV and saved. Review below.' });
   }
 
   if (loading) {
@@ -331,7 +360,7 @@ export default function CandidateProfilePage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">My Profile</h1>
           <p className="text-slate-500 mt-1">
-            Keep your profile up to date so employers can find you.
+            Keep your profile up to date so employers can find you. Each section saves on its own.
           </p>
         </div>
         <Link
@@ -342,26 +371,17 @@ export default function CandidateProfilePage() {
         </Link>
       </div>
 
-      {feedback && (
-        <div
-          className={`px-4 py-3 rounded-lg text-sm font-medium ${
-            feedback.type === 'success'
-              ? 'bg-green-50 text-green-800 border border-green-200'
-              : 'bg-red-50 text-red-800 border border-red-200'
-          }`}
-        >
-          {feedback.message}
-        </div>
-      )}
-
       <CvAutofill onExtracted={handleCvExtracted} />
 
       <div className="bg-white rounded-xl border border-slate-200 divide-y divide-slate-200">
         {/* Personal Information */}
-        <div className="p-6 space-y-5">
-          <h2 className="text-base font-semibold text-slate-900">
-            Personal Information
-          </h2>
+        <form onSubmit={savePersonalInfo} className="p-6 space-y-5">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-base font-semibold text-slate-900">
+              Personal Information
+            </h2>
+            {personalFeedback?.type === 'success' && <SavedTick />}
+          </div>
 
           {userId && (
             <AvatarUpload
@@ -444,19 +464,34 @@ export default function CandidateProfilePage() {
               />
             </div>
           </div>
-        </div>
 
-        {/* Talent pool visibility */}
+          {personalFeedback?.type === 'error' && <p className="text-red-600 text-sm">{personalFeedback.message}</p>}
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={personalSaving || !profile.full_name.trim()}
+              className="px-5 py-2 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {personalSaving ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+        </form>
+
+        {/* Talent pool visibility -- saves instantly on toggle, no button */}
         <div className="p-6 space-y-3">
-          <h2 className="text-base font-semibold text-slate-900">Talent Pool Visibility</h2>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-base font-semibold text-slate-900">Talent Pool Visibility</h2>
+            {talentSaving ? (
+              <span className="text-xs text-slate-400">Saving...</span>
+            ) : talentSaved ? (
+              <SavedTick />
+            ) : null}
+          </div>
           <label className="flex items-start gap-3 cursor-pointer">
             <input
               type="checkbox"
               checked={profile.open_to_offers}
-              onChange={(e) => {
-                setProfile((prev) => ({ ...prev, open_to_offers: e.target.checked }));
-                setFeedback(null);
-              }}
+              onChange={(e) => toggleOpenToOffers(e.target.checked)}
               className="mt-0.5 w-4 h-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
             />
             <span className="text-sm text-slate-700">
@@ -474,9 +509,16 @@ export default function CandidateProfilePage() {
           <Education />
         </div>
 
-        {/* Skills */}
+        {/* Skills -- saves on each add/remove, no separate button */}
         <div className="p-6 space-y-5">
-          <h2 className="text-base font-semibold text-slate-900">Skills</h2>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-base font-semibold text-slate-900">Skills</h2>
+            {skillsSaving ? (
+              <span className="text-xs text-slate-400">Saving...</span>
+            ) : skillsSaved ? (
+              <SavedTick />
+            ) : null}
+          </div>
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -524,8 +566,11 @@ export default function CandidateProfilePage() {
         </div>
 
         {/* Online Presence */}
-        <div className="p-6 space-y-4">
-          <h2 className="text-base font-semibold text-slate-900">Online Presence</h2>
+        <form onSubmit={saveOnlinePresence} className="p-6 space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-base font-semibold text-slate-900">Online Presence</h2>
+            {onlineFeedback?.type === 'success' && <SavedTick />}
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -567,7 +612,17 @@ export default function CandidateProfilePage() {
               />
             </div>
           </div>
-        </div>
+          {onlineFeedback?.type === 'error' && <p className="text-red-600 text-sm">{onlineFeedback.message}</p>}
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={onlineSaving}
+              className="px-5 py-2 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {onlineSaving ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+        </form>
       </div>
 
       {/* Work Experience — the raw material of the professional profile */}
@@ -587,14 +642,17 @@ export default function CandidateProfilePage() {
       </div>
 
       {/* Professional Profile — informal work, presented professionally */}
-      <div className="bg-white rounded-xl border border-slate-200">
-        <div className="px-6 pt-6 pb-2">
-          <h2 className="text-base font-semibold text-slate-900">Your Professional Profile</h2>
-          <p className="text-sm text-slate-500 mt-0.5">
-            One press turns your work history into a professional summary
-            employers take seriously. Edit it until it sounds like you, then
-            save. It is yours to use in applications and your CV.
-          </p>
+      <form onSubmit={saveSummary} className="bg-white rounded-xl border border-slate-200">
+        <div className="px-6 pt-6 pb-2 flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base font-semibold text-slate-900">Your Professional Profile</h2>
+            <p className="text-sm text-slate-500 mt-0.5">
+              One press turns your work history into a professional summary
+              employers take seriously. Edit it until it sounds like you, then
+              save. It is yours to use in applications and your CV.
+            </p>
+          </div>
+          {summaryFeedback?.type === 'success' && <SavedTick />}
         </div>
         <div className="px-6 pb-6 pt-4 space-y-3">
           <textarea
@@ -605,26 +663,36 @@ export default function CandidateProfilePage() {
             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
           />
           {buildError && <p className="text-red-600 text-sm">{buildError}</p>}
+          {summaryFeedback?.type === 'error' && <p className="text-red-600 text-sm">{summaryFeedback.message}</p>}
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <p className="text-xs text-slate-400">
               {workEntries.length === 0
                 ? 'Add at least one work experience above to use the builder.'
                 : `Built from your ${workEntries.length} work experience ${workEntries.length === 1 ? 'entry' : 'entries'}.`}
             </p>
-            <button
-              type="button"
-              onClick={handleBuildSummary}
-              disabled={building || workEntries.length === 0}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Sparkles className="w-4 h-4" />
-              {building ? 'Building your profile...' : 'Build My Professional Profile'}
-            </button>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleBuildSummary}
+                disabled={building || workEntries.length === 0}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-brand-50 text-brand-700 text-sm font-medium rounded-lg hover:bg-brand-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Sparkles className="w-4 h-4" />
+                {building ? 'Building...' : 'Build for me'}
+              </button>
+              <button
+                type="submit"
+                disabled={summarySaving}
+                className="px-5 py-2 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {summarySaving ? 'Saving...' : 'Save'}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      </form>
 
-      {/* Documents library — saved independently on upload, not part of the Save button */}
+      {/* Documents library — saved independently on upload */}
       <div className="bg-white rounded-xl border border-slate-200">
         <div className="px-6 pt-6 pb-2">
           <h2 className="text-base font-semibold text-slate-900">My Documents</h2>
@@ -635,17 +703,6 @@ export default function CandidateProfilePage() {
         <div className="px-6 pb-6 pt-4">
           <DocumentLibrary />
         </div>
-      </div>
-
-      {/* Save */}
-      <div className="flex justify-end">
-        <button
-          onClick={handleSave}
-          disabled={saving || !profile.full_name.trim()}
-          className="px-6 py-2.5 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {saving ? 'Saving...' : 'Save Profile'}
-        </button>
       </div>
     </div>
   );

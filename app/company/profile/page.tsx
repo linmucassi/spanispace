@@ -147,7 +147,7 @@ export default function CompanyProfile() {
           .from('company_members')
           .insert({ company_id: data.id, user_id: userId, role: 'owner' })
           .then(() => {}, () => {});
-        setMembership({ companyId: data.id, role: 'owner' });
+        setMembership({ companyId: data.id, role: 'owner', companyName: data.company_name });
       }
     }
 

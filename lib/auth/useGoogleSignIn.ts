@@ -72,6 +72,14 @@ export function useGoogleSignIn({ onSignedIn, onError }: UseGoogleSignInOptions)
             return;
           }
 
+          // Fire and forget: a Google account is created already confirmed,
+          // so nothing here gates access -- it only sends the welcome mail
+          // that stands in for the confirmation email this flow never
+          // triggers. keepalive so the request still completes once
+          // onSignedIn navigates away, and no body because the route reads
+          // the recipient from the verified session, not from the client.
+          void fetch('/api/auth/welcome', { method: 'POST', keepalive: true }).catch(() => {});
+
           try {
             await onSignedInRef.current(data.user.id);
           } finally {

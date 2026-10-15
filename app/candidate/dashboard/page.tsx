@@ -58,106 +58,82 @@ export default async function CandidateDashboard() {
   const fullName = profile?.full_name ?? user.email?.split('@')[0] ?? 'there';
   const profileScore = profile?.profile_score ?? 0;
 
-  // The CV lives in candidate_documents (multi-document library), not
-  // candidate_profiles.cv_url -- that column predates the library and
-  // nothing writes to it anymore.
-  const { count: cvCount } = await supabase
-    .from('candidate_documents')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id)
-    .eq('doc_type', 'cv');
-  const hasCv = (cvCount ?? 0) > 0;
+  // Everything below only depends on user.id/candidateId, both already
+  // known -- fire all of it in parallel instead of one await after another.
+  // This page had grown to 8+ sequential round trips (each ~150-300ms
+  // measured against the live project), compounding into multi-second loads
+  // on every visit; Promise.all turns that into "slowest one query" instead
+  // of "sum of all of them."
+  const noCount = Promise.resolve({ count: 0 as number | null });
+  const noRows = Promise.resolve({ data: null, error: null });
 
-  // Fetch applications
-  let totalApplications = 0;
-  let shortlistedCount = 0;
-  let applicationsLoadFailed = false;
-  let recentApplications: {
-    id: string;
-    status: string;
-    created_at: string;
-    job: { title: string } | null;
-  }[] = [];
+  const [
+    cvCountRes,
+    totalApplicationsRes,
+    shortlistedRes,
+    recentApplicationsRes,
+    pendingVerificationsRes,
+    pendingInvitesRes,
+    activeEnrollmentsRes,
+    academyRes,
+  ] = await Promise.all([
+    // The CV lives in candidate_documents (multi-document library), not
+    // candidate_profiles.cv_url -- that column predates the library and
+    // nothing writes to it anymore.
+    supabase.from('candidate_documents').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('doc_type', 'cv'),
+    candidateId
+      ? supabase.from('applications').select('*', { count: 'exact', head: true }).eq('candidate_id', candidateId)
+      : noCount,
+    candidateId
+      ? supabase.from('applications').select('*', { count: 'exact', head: true }).eq('candidate_id', candidateId).eq('status', 'shortlisted')
+      : noCount,
+    candidateId
+      ? supabase.from('applications').select('id, status, created_at, job:jobs(title)').eq('candidate_id', candidateId).order('created_at', { ascending: false }).limit(10)
+      : noRows,
+    // Document verification status -- profile.verified is a standing badge,
+    // flipped only by an explicit admin action
+    // (app/admin/candidate-verification), not auto-derived. "Pending" just
+    // means at least one verification-type document is awaiting that
+    // review. Skipped entirely once already verified.
+    profile?.verified
+      ? noCount
+      : supabase.from('candidate_documents').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('verification_status', 'pending'),
+    candidateId
+      ? supabase.from('job_invites').select('*', { count: 'exact', head: true }).eq('candidate_id', candidateId).eq('status', 'pending')
+      : noCount,
+    candidateId
+      ? supabase.from('enrollments').select('*', { count: 'exact', head: true }).eq('candidate_id', candidateId).eq('status', 'enrolled')
+      : noCount,
+    // Training progress on the static Academy courses (data/courses.ts),
+    // keyed on the auth user directly rather than the candidate profile --
+    // see supabase/add-academy-progress.sql.
+    supabase.from('academy_lesson_progress').select('course_slug, lesson_number').eq('user_id', user.id),
+  ]);
 
-  if (candidateId) {
-    const { count } = await supabase
-      .from('applications')
-      .select('*', { count: 'exact', head: true })
-      .eq('candidate_id', candidateId);
-    totalApplications = count ?? 0;
+  const hasCv = (cvCountRes.count ?? 0) > 0;
+  const totalApplications = totalApplicationsRes.count ?? 0;
+  const shortlistedCount = shortlistedRes.count ?? 0;
 
-    const { count: shortlisted } = await supabase
-      .from('applications')
-      .select('*', { count: 'exact', head: true })
-      .eq('candidate_id', candidateId)
-      .eq('status', 'shortlisted');
-    shortlistedCount = shortlisted ?? 0;
-
-    const { data: apps, error: appsError } = await supabase
-      .from('applications')
-      .select('id, status, created_at, job:jobs(title)')
-      .eq('candidate_id', candidateId)
-      .order('created_at', { ascending: false })
-      .limit(10);
-
-    // A failed read must not render as "you have not applied to any jobs yet".
-    if (appsError) {
-      console.error('[candidate/dashboard] could not load applications:', appsError.message);
-      applicationsLoadFailed = true;
-    }
-
-    recentApplications = (apps ?? []).map((a) => ({
-      ...a,
-      job: Array.isArray(a.job) ? a.job[0] ?? null : a.job,
-    }));
+  // A failed read must not render as "you have not applied to any jobs yet".
+  const applicationsLoadFailed = Boolean('error' in recentApplicationsRes && recentApplicationsRes.error);
+  if (applicationsLoadFailed) {
+    console.error('[candidate/dashboard] could not load applications:', (recentApplicationsRes as any).error?.message);
   }
+  const recentApplications = ((recentApplicationsRes.data as any[]) ?? []).map((a) => ({
+    ...a,
+    job: Array.isArray(a.job) ? a.job[0] ?? null : a.job,
+  }));
 
-  // Document verification status -- profile.verified is a standing badge,
-  // flipped only by an explicit admin action (app/admin/candidate-verification),
-  // not auto-derived. "Pending" just means at least one verification-type
-  // document is awaiting that review.
-  let verificationState: 'verified' | 'pending' | 'not_started' = 'not_started';
-  if (profile?.verified) {
-    verificationState = 'verified';
-  } else {
-    const { count: pendingVerifications } = await supabase
-      .from('candidate_documents')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('verification_status', 'pending');
-    if ((pendingVerifications ?? 0) > 0) verificationState = 'pending';
-  }
+  const verificationState: 'verified' | 'pending' | 'not_started' = profile?.verified
+    ? 'verified'
+    : (pendingVerificationsRes.count ?? 0) > 0
+      ? 'pending'
+      : 'not_started';
 
-  let pendingInvites = 0;
-  if (candidateId) {
-    const { count } = await supabase
-      .from('job_invites')
-      .select('*', { count: 'exact', head: true })
-      .eq('candidate_id', candidateId)
-      .eq('status', 'pending');
-    pendingInvites = count ?? 0;
-  }
+  const pendingInvites = pendingInvitesRes.count ?? 0;
+  const activeEnrollments = activeEnrollmentsRes.count ?? 0;
 
-  // Fetch enrollments count
-  let activeEnrollments = 0;
-  if (candidateId) {
-    const { count } = await supabase
-      .from('enrollments')
-      .select('*', { count: 'exact', head: true })
-      .eq('candidate_id', candidateId)
-      .eq('status', 'enrolled');
-    activeEnrollments = count ?? 0;
-  }
-
-  // Training progress on the static Academy courses (data/courses.ts), keyed
-  // on the auth user directly rather than the candidate profile -- see
-  // supabase/add-academy-progress.sql. Grouped client-side since there are
-  // only ever a handful of courses.
-  const { data: academyRows } = await supabase
-    .from('academy_lesson_progress')
-    .select('course_slug, lesson_number')
-    .eq('user_id', user.id);
-
+  const academyRows = academyRes.data;
   const trainingProgress = COURSES.map((course) => {
     const completed = (academyRows ?? []).filter((r) => r.course_slug === course.slug).length;
     return { course, completed };
