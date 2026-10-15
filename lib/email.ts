@@ -296,3 +296,56 @@ export function profileNudgeEmail({
   );
   return { subject, html, text };
 }
+
+type WelcomeEmailInput = { firstName: string; role: 'candidate' | 'company' };
+
+// Sent once, on first signup. The password signup path already gets Supabase's
+// own confirmation mail, so in practice this is what a Google signup gets
+// instead: signInWithIdToken trusts Google's email_verified claim and creates
+// the account already confirmed, so GoTrue never sends anything and the signup
+// would otherwise be completely silent. See app/api/auth/welcome/route.ts.
+export function welcomeEmail({
+  firstName,
+  role,
+}: WelcomeEmailInput): { subject: string; html: string; text: string } {
+  const name = (firstName.trim().split(/\s+/)[0] || 'there').slice(0, 40);
+  const isCompany = role === 'company';
+
+  const subject = isCompany
+    ? 'Your Spanispace company account is ready'
+    : 'Welcome to Spanispace';
+
+  const ctaHref = isCompany
+    ? 'https://spanispace.com/company/dashboard'
+    : 'https://spanispace.com/candidate/profile';
+  const ctaLabel = isCompany ? 'Go to my dashboard' : 'Complete my profile';
+
+  const nextStep = isCompany
+    ? 'Post your first listing and it goes live to candidates across South Africa. You can review every application from the same dashboard.'
+    : 'Finish your profile next — companies search complete profiles first, and it takes a couple of minutes. Then start applying.';
+
+  const text = [
+    `Hi ${name},`,
+    '',
+    `Your Spanispace account is set up and ready to use. You signed in with Google, so there is nothing to verify — you are good to go.`,
+    '',
+    nextStep,
+    '',
+    ctaHref,
+    '',
+    'The Spanispace team',
+  ].join('\n');
+
+  const html = wrapEmail(
+    `<p style="margin:0 0 16px;font-size:16px;">Hi ${escapeHtml(name)},</p>
+     <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">
+       Your Spanispace account is set up and ready to use. You signed in with Google, so there's
+       nothing to verify — you're good to go.
+     </p>
+     <p style="margin:0 0 24px;font-size:16px;line-height:1.6;">${escapeHtml(nextStep)}</p>`,
+    ctaHref,
+    ctaLabel
+  );
+
+  return { subject, html, text };
+}

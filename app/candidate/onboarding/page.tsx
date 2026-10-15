@@ -10,7 +10,6 @@
 // wherever they were headed (?next=) once this form is saved.
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useTranslation } from '@/lib/i18n/context';
 import { joinFullName, splitFullName } from '@/lib/name';
@@ -29,7 +28,6 @@ function safeNext(raw: string | null): string {
 }
 
 export default function CandidateOnboardingPage() {
-  const router = useRouter();
   const { t } = useTranslation();
 
   const [firstName, setFirstName] = useState('');
@@ -111,8 +109,16 @@ export default function CandidateOnboardingPage() {
         return;
       }
 
+      // A hard navigation, not router.push(): this exact URL was very likely
+      // just visited moments ago as the original attempt that middleware
+      // redirected *away from* (candidate had no phone yet). Next's client
+      // Router Cache can replay that cached redirect on a router.push() to
+      // the same path instead of asking the server to re-check -- bouncing
+      // the candidate straight back here even though the save above just
+      // succeeded. A full page load forces middleware to re-evaluate against
+      // the phone number that was just written, with no cache in the way.
       const next = new URLSearchParams(window.location.search).get('next');
-      router.push(safeNext(next));
+      window.location.href = safeNext(next);
     } catch (err) {
       // A thrown exception here (network failure, client init error, etc.)
       // would otherwise leave `saving` stuck true forever with no visible
