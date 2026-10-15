@@ -20,6 +20,12 @@ Main gaps found (none fixed yet):
 
 Also corrected in the roadmap: PR #10 was merged on 11 Aug 2026, but the roadmap still described it as open. The "What's Built" Legal row moved from ✅ to 🟡 and now links to the checklist. The scraper row and Phase 1 email-notifications note now mention the keepalive workflow and checklist item #18.
 
+## All outstanding production migrations confirmed run
+
+Linda confirmed that every SQL file in the roadmap's "Outstanding: Production Migrations" list has been run against production. That covers the 22 Aug signup fix (`fix-candidate-signup-search-path.sql`), `fix-security-hardening.sql` (issue #8), `fix-cv-completeness.sql`, the 22 Aug feature migrations (application journeys, talent sourcing and verification, roles, invites and calendar) and everything from the July and August lists. In `docs/ROADMAP.md`, every "migration pending", "needs deploy" or "unverified" row in What's Built is now ✅ Live, and the Google OAuth row is no longer 🔴. The Outstanding Migrations section has a "cleared" banner, and the issue #8 checkbox is ticked.
+
+Still to confirm: the issue #8 admin-audit and demotion step, the super_admin bootstrap `UPDATE` (otherwise `/admin/users` and admin invites don't work), and the post-migration smoke test.
+
 ## Files changed
 - `.github/workflows/keepalive.yml` (new)
 - `docs/ROADMAP.md`
