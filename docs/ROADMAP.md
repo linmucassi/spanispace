@@ -3,7 +3,7 @@
 **Platform:** Talent Bridge for South African Job Seekers
 **Founders:** Linda & Percy | **Location:** Gauteng, South Africa
 **Mission:** Empower 100,000+ SA youth with job-ready skills and direct employment pathways by 2030
-**Last Updated:** 23 August 2026
+**Last Updated:** 15 October 2026
 
 ---
 
@@ -23,9 +23,9 @@ The platform is live on Netlify with a full Next.js 16 + React 19 + Supabase sta
 | Database | ✅ Live | 19 tables, RLS policies, Supabase PostgreSQL |
 | i18n | ✅ Live | English + isiZulu, 157+ strings |
 | File uploads | ✅ Live | Multi-document library (CV, certificates, cover/motivational letters) via Supabase Storage |
-| Legal | ✅ Live | POPIA-compliant Privacy Policy + SA Terms of Service |
+| Legal | 🟡 Partial | Privacy Policy + SA Terms of Service are live, but the 15 Oct 2026 audit found gaps: no signup consent or age check, no account deletion, no unsubscribe link, no refund policy, no ECT s43 business details, and an unsupported "2,400+ Verified Jobs" hero claim. See [Legal & Compliance Checklist](#legal--compliance-checklist-added-15-oct-2026). |
 | Waitlist | ❌ Removed 9 Aug 2026 | Real registration/login replaced it — see below |
-| Job/event auto-refresh | ✅ Live, actually working as of 14 Aug 2026 | Daily GitHub Actions scraper (RemoteOK, Remotive, Adzuna, Eventbrite → Supabase). Previously documented as live, but had in fact failed on every single run since it was added in June 2026 (53/53) — `daily-scraper.yml` had no real `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` GitHub secrets, same root cause as the Email Notifications fix below. Fixed the same day; first successful run wrote 71 new jobs, 7 refreshed. |
+| Job/event auto-refresh | ✅ Live, actually working as of 14 Aug 2026 | Daily GitHub Actions scraper (RemoteOK, Remotive, Adzuna, Eventbrite → Supabase). Previously documented as live, but had in fact failed on every single run since it was added in June 2026 (53/53) — `daily-scraper.yml` had no real `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` GitHub secrets, same root cause as the Email Notifications fix below. Fixed the same day; first successful run wrote 71 new jobs, 7 refreshed. **15 Oct 2026:** GitHub warned that this workflow and Email Notifications would be auto-disabled after 60 days without a push (last push 23 Aug, so cutoff around 22 Oct). Added a monthly `.github/workflows/keepalive.yml` that re-enables both through the API. It only takes effect once it's merged to `staging`. |
 | Job title/keyword search | ✅ Live | `/jobs` had a job-type dropdown (Full-time/Remote/etc.) and a SA-location toggle, but no way to search by role, e.g. "Pharmacist" — reported by Linda. Added a text input to `components/JobBoard.tsx`, client-side substring match (case-insensitive) against `job.role` and `job.company`, resets to page 1 on change, same filter array data already fetched by `lib/publicJobs.ts` (no new query/migration needed). No `category` field exists on `jobs` (only `job_type`, a fixed enum) so free-text title search was the only fit, not a new category. 14 Aug 2026. |
 | Dashboard sidebar logo dark-on-dark | ✅ Fixed 14 Aug 2026 | Candidate/company/admin sidebar logo (`bg-slate-900` background) was rendering the dark `logo-wordmark.png` with no filter, so it was effectively invisible — reported by Linda. Each sidebar's own mobile top bar and `Footer.tsx` already turn the same asset white via `brightness-0 invert` (there's no separate white logo file); the desktop sidebar logo in all three sidebar components was just missing those classes. Added to `CandidateSidebar.tsx`, `CompanySidebar.tsx`, `AdminSidebar.tsx`. |
 | AI CV Audit | ✅ Live | Gemini-powered CV review at `/candidate/cv-audit`. Upload-based since 13 Aug 2026 (was paste-only); switched from Claude to Gemini the same day for its free tier — see changelog. |
@@ -165,6 +165,37 @@ Full pre-launch audit of the live site, 9 Aug 2026. Branch `fix/ship-check-launc
 
 **Note on closing these on GitHub:** this environment has no `gh` CLI and no GitHub API write access — issues can be fixed here but not marked Closed from here. Closing #1 and #2 (and merging #10) on GitHub itself is a manual step.
 
+> **Update 15 Oct 2026:** PR #10 was in fact merged on 11 Aug 2026 — the "open, unmerged" heading above is stale. Issues #8, #9 and #11 are still founder-side actions.
+
+### Legal & Compliance Checklist (added 15 Oct 2026)
+
+20-item consumer-protection / privacy checklist from Linda, audited against the code on 15 Oct 2026. SA law it mostly maps to: **POPIA** (privacy, consent, children's data, deletion, direct marketing), **CPA** (fees, refunds, misleading claims, reviews) and **ECT Act s43** (business details a website must display). Status: ✅ in place · 🟡 partial · ❌ missing · 🔍 not yet audited.
+
+| # | Item | Status | Finding / next step |
+|---|------|--------|---------------------|
+| 1 | Privacy policy | 🟡 | `app/(public)/privacy` exists (POPIA rights, retention, AI, documents, scraped jobs). Information Officer is unnamed ("reachable at the address below") — blocked on Issue #11. |
+| 2 | Terms of service | ✅ | `app/(public)/terms`, 15 sections incl. AI disclaimer and third-party listings. Review again once paid tiers launch. |
+| 3 | Refund policy | ❌ | Terms §6 only says "our refund policy will be communicated at the time of enrolment". Paid training levels exist (PR #7), so a written policy (incl. CPA 5-day cooling-off for online sales, ECT s44) is needed before taking any payment. |
+| 4 | Cookie policy | 🟡 | Privacy §8 states essential cookies only, no analytics/advertising cookies. Fine as a section; no separate page needed while that's true. |
+| 5 | Cookie consent banner | 🟡 | Not built. With essential-only cookies a full consent banner isn't strictly required, but a one-line notice is good practice. **Becomes mandatory the moment any analytics/marketing script is added.** |
+| 6 | Form consents | ❌ | `app/(auth)/register/page.tsx` has no "I agree to the Terms and Privacy Policy" checkbox/notice. The footer newsletter signup (`components/Footer.tsx`) collects emails with no consent wording — POPIA s69 direct-marketing needs opt-in. Applications/redirect capture forms also need a "your details will be shared with {employer}" line. |
+| 7 | No unnecessary data (minimisation) | 🔍 | Review every field on candidate onboarding/profile and the redirect-capture form; ID documents (talent verification) are the highest-risk data — confirm retention and admin-only access. |
+| 8 | Audit third-party SDKs | 🟡 | Client-side third parties found: Google Identity Services (`accounts.google.com/gsi/client`) and Google Fonts via `next/font` (self-hosted at build, no runtime call). Server-side processors: Supabase, Resend, Gemini (CV text), Netlify, Zoho. All need listing in privacy §4 by name, and Gemini's cross-border transfer (POPIA s72) called out. |
+| 9 | Remove dark patterns | 🔍 | No audit yet. Check: auto-apply defaults, pre-ticked toggles (`open_to_offers`), how hard account closure is, confirm-shaming copy. |
+| 10 | Remove hidden fees | 🔍 | Paid training levels exist — check prices are shown in ZAR, VAT-inclusive, before the user commits. Company Pro/Enterprise tiers are referenced in `llms.txt` but not priced anywhere. |
+| 11 | Remove fake reviews | 🔍 | `/success-stories` and `components/SuccessStories.tsx` need checking that every story is a real, consenting person. Precedent: 12 fabricated job listings were found in production on 22 Aug 2026. |
+| 12 | Remove unsupported claims | ❌ | `components/Hero.tsx` shows **"2,400+ Verified Jobs"** — the 23 Aug scan found 338 rows in `jobs`, and scraped jobs are `vetted_status = 'pending'`, not verified. Also check "30+ Training Programs" and the other hero stat. Either compute these live or remove them (CPA s41 misleading representation). |
+| 13 | Accessibility: alt text | 🔍 | `<img>` tags in `app/(auth)/layout.tsx`, `app/company/profile/page.tsx`, `components/AcademicPortal.tsx`, `components/Navbar.tsx` need an alt check. |
+| 14 | Colour contrast | 🔍 | Dark theme uses `text-slate-400` on slate/near-black backgrounds — run Lighthouse/axe against WCAG AA (4.5:1). |
+| 15 | Keyboard navigation | 🔍 | Check mobile drawer, CalendarView, modals (`useConfirm`) for focus trap, Esc to close, visible focus rings, and clickable `div`s. |
+| 16 | Business details (ECT s43) | ❌ | Footer has no registered name, registration number, physical address, phone or contact email. "About us" and "Partnerships" footer links are dead (`href="#"`). Add a footer block + `/about` or `/contact` page. |
+| 17 | Children's data / age consent | ❌ | No age gate or date-of-birth check at signup. POPIA s34–35 requires a competent person's consent for under-18s. Learners/students are a core audience, so decide: 18+ only (add an attestation checkbox) or a guardian-consent flow. |
+| 18 | Unsubscribe link in emails | ❌ | `lib/email.ts` sends via Resend with no unsubscribe link or `List-Unsubscribe` header. `schema.sql` has an `unsubscribed_at` column but nothing reads or sets it. Needed for POPIA s69 and for Gmail/Yahoo bulk-sender rules. Transactional mail (password reset) is exempt; notification digests are not. |
+| 19 | Licence fonts/images | 🟡 | Archivo and Inter are OFL (fine). Institution logos on the landing page, course images and any stock photos need a source/licence record — logos of universities/SETAs may need permission. |
+| 20 | Data deletion request | ❌ | Privacy §7 promises a right to deletion, but there's no "delete my account" button or API anywhere in the app. Build a self-serve request (candidate + company settings) that deletes auth user, profile, documents bucket objects and applications, plus an admin path for emailed requests. |
+
+**Suggested order:** 12 (one-line fix, live misleading claim) → 6 + 17 (signup checkbox covers both) → 16 → 20 → 18 → 3 before any payment → the 🔍 audits (7, 9–11, 13–15) as one accessibility/UX pass.
+
 ### Tech Stack
 
 - **Frontend:** Next.js 16.1.6 (App Router), React 19.2.3, TypeScript, Tailwind CSS 4
@@ -223,7 +254,7 @@ Full pre-launch audit of the live site, 9 Aug 2026. Branch `fix/ship-check-launc
 - Learnership/deadline expiry alerts (7-day and 1-day) — targets the `jobs` table (learnerships live there as `job_type = 'Learnership'`, not the separate admin-only `learnerships` table), notifying the posting company or `poster_email`
 - Weekly digest of new jobs matching candidate skills — plain case-insensitive keyword matching against job title/description/requirements, not embeddings (that's Phase 4)
 - New templates in `lib/email.ts`, sender in `scripts/run-notification-sender.ts`, producers in `scripts/run-expiry-alerts.ts` / `run-profile-nudges.ts` / `run-weekly-digest.ts`
-- No unsubscribe/email-preferences mechanism yet — worth revisiting under [Security & Compliance](#security--compliance) before this reaches meaningful volume
+- No unsubscribe/email-preferences mechanism yet (checklist item #18, [Legal & Compliance Checklist](#legal--compliance-checklist-added-15-oct-2026)) — worth revisiting under [Security & Compliance](#security--compliance) before this reaches meaningful volume
 
 **Tech:** GitHub Actions cron (hourly drain, daily periodic checks, weekly digest) + Resend, matching the existing scraper pattern
 
@@ -430,6 +461,7 @@ Full pre-launch audit of the live site, 9 Aug 2026. Branch `fix/ship-check-launc
 - School/university career centre partnerships
 
 ### Security & Compliance
+- Work through the [Legal & Compliance Checklist](#legal--compliance-checklist-added-15-oct-2026) (20 items, added 15 Oct 2026)
 - Regular dependency updates (npm audit)
 - POPIA compliance review as features are added (especially messaging, now scheduled for 0.5)
 - Rate limiting on public API endpoints (job posting, applications, cv-audit)
