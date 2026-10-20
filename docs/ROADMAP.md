@@ -335,17 +335,127 @@ Full pre-launch audit of the live site, 9 Aug 2026. Branch `fix/ship-check-launc
 
 ---
 
-### Phase 2b — Spanispace Services marketplace (specified 20 Oct 2026, not started)
-> Goal: let verified individuals offer short-term everyday services (cleaning, laundry, painting, plumbing and more) that any user can hire, with Spanispace earning a booking fee from the requester.
+### Phase 2b — Spanispace Services marketplace (planned 20 Oct 2026, not started)
+> Goal: let verified individuals offer short-term everyday services (cleaning, laundry, painting, plumbing and more) that any user, including companies, can hire. Spanispace earns a flat booking fee from the requester.
 
-Full spec: [project-details.md §7](project-details.md#7-new-feature-spanispace-services). Summary:
-- **Providers:** new "Offer services" signup, or opt-in from an existing candidate account (they stay a candidate too). Enrolment, then admin verification (ID, selfie, SAPS police clearance, proof of address, trade certificates where needed), then a Service Provider Agreement before the listing goes live
-- **Requesters:** any signed-in user can search, message and hire
-- **No contact details before payment:** phone numbers, emails, links and handles are blocked server-side in service chats and on profiles (`lib/services/contactGuard.ts`) until the booking is `confirmed`. Today's `MessagesInbox` inserts straight from the client, so service messages need an API route or trigger
-- **Fees:** the Spanispace booking fee is separate from the service price, shown upfront, and charged to the requester only once a structured offer is accepted. Only the payment webhook can confirm a booking and unlock contact
-- **Phases:** S1 enrolment and verification → S2 public search → S3 guarded messaging → S4 offers, payment and unlock → S5 reviews, reports and disputes → S6 escrow (later)
-- **Blocked on decisions:** fee model and amount, payment gateway (shared with 2.1), police clearance approach, launch categories, refund/cancellation policy (compliance item 3)
-- **New migration:** `supabase/add-service-marketplace.sql` (not yet written)
+Full spec: [project-details.md §7](project-details.md#7-new-feature-spanispace-services).
+
+**Decisions (Linda, 20 Oct 2026):**
+
+| Topic | Decision |
+|-------|----------|
+| Booking fee | **R10 flat per booking**, any category, any price. Charged to the requester, separate from the service price |
+| Payment gateway | **None exists yet.** Pick one in S4.0, and reuse it later for Phase 2.1 subscriptions |
+| Criminal check | The **provider uploads a SAPS Police Clearance Certificate**, reviewed by an admin (cheaper than a check service) |
+| Middleman disclaimer | **Required.** Spanispace is not responsible for service quality, or for crimes committed by providers or requesters (draft in spec §7.14, needs a lawyer) |
+| Categories | **All at launch.** Regulated trades still need a trade certificate per category |
+| Company hiring | **Yes, as a separate flow:** Manager+ RBAC, multi-provider and recurring jobs, tax invoices, site contact (spec §7.13) |
+| Cancellation/refunds | Policy drafted in spec §7.7a. Provider fault means a full refund. A requester cancelling more than 24 hours ahead gets a R10 credit. A requester cancelling within 24 hours gets nothing |
+
+**Ground rules for every step:**
+- Contact blocking is enforced on the server, never only in the client.
+- Only the payment webhook can confirm a booking or unlock contact.
+- Keep company↔candidate `message_threads` untouched. Service chats get their own tables.
+
+#### S0 — Legal and terms (do first; blocks S4 go-live, not S1 build)
+- [ ] Add a "Spanispace Services" section to `app/(public)/terms`: marketplace role, independent contractors, the R10 fee, the no-circumvention rule, the middleman disclaimer
+- [ ] Add the Service Provider Agreement page at `/services/provider-agreement`, versioned (`SERVICE_TERMS_VERSION` constant)
+- [ ] Add the cancellation policy page at `/services/cancellation-policy` (the spec §7.7a table)
+- [ ] Update `app/(public)/privacy`:
+  - police clearance as POPIA §26 special personal information, with explicit consent and a retention period
+  - service message scanning, and admin access to service threads during disputes
+  - the payment gateway as a processor
+- [ ] Add a safety guide page for requesters and providers
+- [ ] Get an SA attorney to review the disclaimer (CPA s48–51 limits), the cancellation policy (ECT s42/s44 cooling-off), and whether VAT applies to the R10
+- **Done when:** all four pages are live and the attorney's sign-off is noted here
+
+#### S1 — Foundations: providers, enrolment, verification
+- [ ] Write the migration `supabase/add-service-marketplace.sql` (also mirror it into `schema.sql`):
+  - tables `service_categories` (seeded with all categories, with a `requires_qualification` flag), `service_providers`, `provider_services`, `provider_strikes`
+  - new `candidate_documents` types `police_clearance`, `proof_of_address`, `trade_certificate`, `selfie`
+  - a `SECURITY DEFINER` helper `is_service_provider()`
+  - RLS so only verified, active providers are publicly readable, with documents admin-only
+- [ ] Add an "Offer services" tab to `app/(auth)/register/page.tsx`. It creates a candidate account plus a `service_providers` row. **Do not touch `handle_new_user()`**: create the provider row in an explicit API call after signup, the same lesson as the invites work in Aug 2026
+- [ ] Add an "Offer my services" opt-in entry from `/candidate/dashboard` and `/candidate/profile`
+- [ ] Build the enrolment wizard at `/candidate/services/enrol`, with these steps:
+  1. categories and rates
+  2. service area and travel radius
+  3. availability
+  4. portfolio photos
+  5. document uploads (ID, selfie, police clearance, proof of address, trade certificates for regulated categories)
+  6. agreement and consent tick boxes, storing `terms_version` and `terms_accepted_at`
+- [ ] Enforce 18+ at enrolment, derived from the SA ID number or checked by an admin
+- [ ] Build the admin verification queue at `/admin/service-providers`:
+  - view the documents
+  - approve or reject with a note
+  - set `police_clearance_expires_at` (issue date + 12 months)
+  - approve or reject each regulated category separately
+- [ ] Build the provider dashboard at `/candidate/services`: status, listing on/off, edit profile
+- [ ] Add `lib/services/contactGuard.ts` (needed here already) and run it over every provider profile field on save
+- **Done when:** a candidate can enrol, an admin can verify them, and a verified provider can switch their listing on. Unverified providers appear nowhere publicly
+
+#### S2 — Discovery
+- [ ] Build `/services` (search with filters for category, province/city, availability, price, rating, verified only) and `/services/[category]` landing pages
+- [ ] Build the public provider profile at `/services/provider/[id]`: first name and last initial, photo, categories, area, rates, badges ("ID and police clearance checked on [date]"), reviews. **No contact details.** The disclaimer line appears at the bottom
+- [ ] Anonymous visitors see a summary only, and must sign in to see the full profile and message
+- [ ] Add the new pages to the navbar, `sitemap.ts` and `llms.txt`, and add the English and isiZulu strings
+- **Done when:** a signed-out visitor can find a verified provider by category and area, and nothing on the page exposes a phone number, email or link
+
+#### S3 — Guarded messaging
+- [ ] Migration: add `service_threads` (with nullable `company_id` and `service_job_id`), `service_messages` (`kind` text/offer/system, `blocked`) and `contact_violations`, plus an `is_service_thread_party()` helper. **No client INSERT policy on `service_messages`**
+- [ ] Add the send route `POST /api/services/messages`. It authenticates the sender, checks party membership, and runs `contactGuard` on the new message plus the sender's last 5 messages (this catches numbers split across messages). While the thread's `contact_unlocked` is false, a match is rejected and logged
+- [ ] Write `contactGuard` and test it against:
+  - SA number formats (`0XX`, `+27`, `27`, with spaces, dots or dashes, in brackets)
+  - digit-words in English and isiZulu, and look-alike characters (`o` for `0`, `l` for `1`)
+  - plain and obfuscated emails ("at", "dot", "[at]")
+  - URLs, `wa.me`, `@handles`, and phrases such as "WhatsApp me" or "call me"
+- [ ] No attachments in pre-agreement threads
+- [ ] Add a service inbox at `/services/messages`, reusing the `MessagesInbox` layout, that posts through the API. It warns the sender live while they type
+- [ ] Auto-flag accounts with 3 or more violations in 7 days to the admin
+- **Done when:** a test suite of at least 40 evasion strings is all blocked, ordinary job-description text is not (for example "2 rooms, 3 hours, R350"), and a direct Supabase client insert into `service_messages` is refused by RLS
+
+#### S4 — Agreement, payment, unlock
+- [ ] **S4.0 Choose the gateway.** Compare Paystack, PayFast, Peach and Yoco on the real cost of a **R10 charge** (fixed plus percentage fees), refund API, signed webhooks, sandbox and onboarding requirements (company registration and bank account). Recommendation: Paystack, unless the costs clearly favour another. Record the decision here
+- [ ] Migration: add `service_bookings` (status lifecycle per spec §7.5, `platform_fee` copied from `SERVICE_BOOKING_FEE_CENTS = 1000`, `terms_accepted_at`, `disclaimer_accepted_at`), `service_payments` (with an idempotency key) and `service_credits`
+- [ ] Offer card in chat: the provider sends the scope, dates and service price. The requester sees **the service price (paid to the provider) and the R10 Spanispace fee as separate lines**. Only the latest offer can be accepted
+- [ ] Checkout at `POST /api/services/bookings/[id]/pay`. Requires the disclaimer and immediate-unlock tick boxes. Applies an available credit first (a R10 credit makes it free and skips the gateway)
+- [ ] Webhook at `POST /api/services/webhook`: verify the signature, record the payment idempotently, and only then set `confirmed`, `paid_at` and `contact_unlocked = true` (service role). Post a system message in the thread showing both parties' verified phone numbers
+- [ ] Add a cron that expires offers accepted but unpaid for 48 hours
+- [ ] Implement the cancellation rules from spec §7.7a:
+  - refunds through the gateway API
+  - R10 credits, at most one per 30 days, expiring after 12 months
+  - provider strikes
+- [ ] Email receipts through `lib/email.ts`, with a link to the cancellation policy (depends on Resend being configured, see Issue #9)
+- [ ] Add a requester bookings page at `/services/bookings`
+- **Done when:** a sandbox payment unlocks contact; replaying the same webhook does not double-process; a failed payment leaves the thread locked; a provider cancellation refunds in full; a requester cancelling more than 24 hours ahead gets a credit
+
+#### S5 — Company hiring
+- [ ] Migration: add `service_jobs`, and make RLS use `company_members` (Manager or above books, everyone else reads only)
+- [ ] Build `/company/services`: browse and shortlist, create a job (site address, site contact, PO reference, access/PPE notes), book several providers (R10 each), set up recurring bookings
+- [ ] Only verified companies can book
+- [ ] The unlock shares only the designated site contact with the provider
+- [ ] Generate tax invoices in the company's registered name (and VAT number if Spanispace is VAT-registered). Refunds are issued as credit notes
+- **Done when:** a verified company Manager can book 3 cleaners for one job and download one invoice, and a company Viewer cannot book
+
+#### S6 — Reputation and safety
+- [ ] Add `service_reviews`: only on `completed` bookings, one per party. Company reviews are labelled "Reviewed by a verified business"
+- [ ] Add a report button on profiles, threads and bookings, backed by `service_reports` and an admin queue at `/admin/service-reports` (reports, disputes, contact violations)
+- [ ] Pause a listing automatically at 3 strikes in 90 days or on a safety report. An admin can suspend instantly
+- [ ] Send police clearance expiry reminders at 30 and 7 days. On expiry the badge is removed and the listing paused
+- **Done when:** a safety report pauses the listing within one request, and an expired clearance hides the provider from search
+
+#### S7 — Later
+- Escrow and payouts for the service price
+- A background-check API as an optional upgrade
+- R10 credit bundles to reduce gateway overhead
+- Monthly invoicing for companies
+- Mobile app support
+
+**Dependencies and risks:**
+- Resend is not configured (Issue #9), so receipts and notifications won't send until it is.
+- Compliance checklist items 3 (refund policy), 6 (consent), 17 (age) and 20 (deletion) all intersect with this phase.
+- A R10 fee may be heavily eroded by gateway fees, so check this in S4.0.
+- Contact blocking can be evaded with images or voice. v1 bans attachments before the agreement and relies on reports and strikes.
 
 ---
 
@@ -513,6 +623,7 @@ Full spec: [project-details.md §7](project-details.md#7-new-feature-spanispace-
 | Company visibility & self-service parity | Q3 2026 | Job view/drop-off analytics, company-created events/training, messaging live |
 | 1,000 registered candidates | Q3–Q4 2026 | Email notifications + Google auth live |
 | First 5 paying companies | Q4 2026 | Stripe billing + company analytics |
+| Spanispace Services live (S0–S4) | Q1 2027 | Verified providers, guarded messaging, R10 booking fee via payment gateway |
 | 100 verified badges issued | Q1 2027 | Assessment engine live |
 | 10,000 registered candidates | Q1 2027 | AI matching + skills gap engine |
 | Mobile app beta | Q3 2027 | React Native app on Play Store |

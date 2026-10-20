@@ -174,15 +174,43 @@ This is the core technical requirement. Until a booking is `confirmed` (fee paid
 
 ### 7.7 Fees and payments
 
-- **The Spanispace booking fee** is charged to the requester and is separate from the provider's service price. Options to decide:
-  - a flat fee per booking (for example R49), or
-  - a percentage of the agreed service price with a minimum and maximum (for example 10%, R30 to R300), or
-  - tiered by category
+- **The Spanispace booking fee is a flat R10 per booking** (decided 20 Oct 2026). It is the same for every category and every service price, and it is charged to the requester. It is separate from the provider's service price, which Spanispace never touches in v1.
+  - Store the fee in one config value (`SERVICE_BOOKING_FEE_CENTS = 1000`), and copy it onto each booking as `platform_fee` when the offer is accepted. Changing the fee later then never rewrites past bookings.
+  - **Company bookings** pay R10 per provider booked (see §7.13).
 - Fees are shown in ZAR, VAT-inclusive if Spanispace is VAT-registered, **before** the requester accepts the offer (CPA, and checklist item 10).
 - Charged only after both parties have agreed, on offer acceptance. There is no charge for enquiries or browsing.
-- **Payment provider:** a South African gateway with card, instant EFT and webhook support. Candidates are Paystack, PayFast, Peach Payments and Yoco, and the choice should be shared with Phase 2.1 subscriptions so there is one integration.
-- **Refunds and cancellations** need a written policy before launch (compliance item 3). Proposed: full refund if the provider cancels or doesn't show, partial or none for a late requester cancellation, admin discretion on disputes. This must also cover the ECT Act cooling-off rules.
+- **Payment gateway: none exists yet** (decided 20 Oct 2026). Choosing and integrating one is step S4.0 of the plan, and the same gateway will later serve company subscriptions (Phase 2.1). Requirements:
+  - card and instant EFT
+  - signed webhooks
+  - refunds through the API
+  - a sandbox
+  - South African settlement in ZAR
+  - **low fixed per-transaction fees.** With a R10 fee, a fixed charge of R1–R2 plus a percentage takes a large share of every booking. Compare the gateways on the real cost of a R10 charge before choosing.
+
+  Candidates are Paystack, PayFast, Peach Payments and Yoco. Recommendation: **Paystack**, for its API, webhooks and documentation quality, unless the cost comparison on a R10 charge clearly favours another. A later option is prepaid credit bundles (for example R50 for 5 bookings), which cut the per-transaction overhead.
 - **v2 option, escrow:** the requester pays service price plus fee into the platform. Spanispace releases the payout to the provider on completion, minus the fee. This protects both sides better, but makes Spanispace a payment intermediary, so it needs a gateway with split or marketplace payouts and more compliance work. Out of scope for v1.
+
+### 7.7a Cancellation and refund policy (v1)
+
+The R10 fee pays for a **confirmed, contact-unlocked booking**, and that is delivered the moment the payment clears. Refunding a requester after the unlock would let anyone pay, take the number, cancel and then book the provider directly. So refunds depend on who caused the cancellation.
+
+| # | Situation | Outcome |
+|---|-----------|---------|
+| 1 | Either party cancels **before the fee is paid** (enquiry, offer sent, offer accepted but unpaid) | Free. Nothing is charged |
+| 2 | An accepted offer is **not paid within 48 hours** | The offer expires, there is no charge, and the provider is free to take other work |
+| 3 | The **provider cancels** after the fee is paid | **Full refund** to the original payment method. The provider gets a reliability strike |
+| 4 | The **provider doesn't show up** (requester reports it within 48 hours of the start time, and an admin confirms it) | **Full refund**. The provider gets a strike |
+| 5 | The provider is **suspended or loses verification** before the job date | **Full refund**. The requester is told and helped to find another provider |
+| 6 | The **requester cancels** after paying, **more than 24 hours before the start** | No cash refund. A **R10 booking credit** for a future booking, at most one per 30 days, valid for 12 months |
+| 7 | The **requester cancels within 24 hours** of the start, or doesn't show up | No refund, no credit |
+| 8 | **Duplicate charge, failed booking or a technical error** by Spanispace | **Full refund**, always |
+| 9 | **Dispute over quality or the service price** (job done badly, a price disagreement) | Spanispace is not a party to the service contract (§7.14). Refunding the R10 fee is at admin discretion, and the service price is between the two parties. Spanispace may warn or suspend the provider |
+| 10 | Provider **strikes**: 3 strikes in 90 days | Listing paused automatically, pending admin review |
+
+- **Timelines:** cash refunds are issued within 7 business days, through the gateway's refund API. Credits are applied automatically at the next checkout.
+- **Company bookings:** the same rules, but a refund is issued as a credit note against the company's invoice (§7.13).
+- **Cooling-off (ECT Act s44):** the unlock is delivered immediately, with the requester's consent. The checkout must therefore carry an explicit tick box: "I understand my contact details unlock immediately and the booking fee is non-refundable except as set out in the cancellation policy". **Have a lawyer confirm** that the ECT s42 exclusion for services started with consent covers this before launch.
+- The policy is published at `/services/cancellation-policy`, linked from checkout, the terms and every booking receipt. This also closes compliance checklist item 3 for Services.
 
 ### 7.8 Proposed data model
 
@@ -200,6 +228,12 @@ New migration: `supabase/add-service-marketplace.sql`.
 | `service_reviews` | `booking_id` (unique per reviewer), `reviewer_id`, `reviewee_id`, `rating` 1–5, `comment` |
 | `contact_violations` | `id`, `user_id`, `thread_id`, `matched_pattern`, `created_at` (append-only, admin-read) |
 | `service_reports` | User reports of safety issues and disputes: `booking_id`/`thread_id`, `reporter_id`, `reason`, `status` |
+| `service_jobs` | Company jobs only: `id`, `company_id`, `title`, `site_address`, `site_contact_name`/`phone`, `po_reference`, `recurrence` (none/weekly/monthly), `created_by`. Groups several `service_bookings` |
+| `service_payments` | One row per gateway charge or refund: `booking_id`, `gateway`, `gateway_reference`, `amount_cents`, `kind` (`charge`/`refund`), `status`, raw webhook payload. Also an idempotency key, so a webhook replay never double-confirms |
+| `service_credits` | R10 rebooking credits (§7.7a rule 6): `user_id`, `amount_cents`, `source_booking_id`, `expires_at`, `used_on_booking_id` |
+| `provider_strikes` | `provider_id`, `booking_id`, `reason` (`provider_cancel`/`no_show`/`conduct`), `created_at`. 3 strikes in 90 days pauses the listing |
+
+`service_threads` and `service_bookings` also carry a nullable `company_id` and `service_job_id` for company hiring (§7.13). `service_bookings` stores `terms_accepted_at` and `disclaimer_accepted_at`, the checkout tick boxes.
 
 RLS rules to apply:
 - Only verified, active providers appear in public search.
@@ -238,22 +272,76 @@ RLS rules to apply:
 
 ### 7.11 Delivery phases
 
+The full step-by-step implementation plan, with tasks, files and done criteria, is in [ROADMAP.md Phase 2b](ROADMAP.md#phase-2b--spanispace-services-marketplace-planned-20-oct-2026-not-started). Summary:
+
 | Phase | Scope |
 |-------|-------|
-| **S1: Foundations** | Migration, categories, provider enrolment (opt-in and new signup), document upload, admin verification queue, Service Provider Agreement and terms acceptance |
+| **S0: Legal and terms** | Terms "Services" section, Service Provider Agreement, middleman disclaimer, cancellation policy, privacy policy updates, lawyer review |
+| **S1: Foundations** | Migration, categories (all), provider enrolment (opt-in and new signup), police clearance upload, admin verification queue, agreement acceptance |
 | **S2: Discovery** | Public `/services` search and profiles, only verified providers listed |
 | **S3: Guarded messaging** | Service threads, `contactGuard` with server-side enforcement, violation logging |
-| **S4: Agreement and payment** | Offers, booking lifecycle, payment gateway, webhook confirmation, contact unlock, receipts, refund policy live |
-| **S5: Reputation and safety** | Reviews, reports, disputes, auto-suspension, police clearance expiry reminders |
-| **S6 (later)** | Escrow payouts, background-check API, instant booking for fixed-price services, mobile app support |
+| **S4: Agreement and payment** | Gateway selection and integration, offers, R10 checkout, webhook confirmation, contact unlock, receipts, refunds and credits |
+| **S5: Company hiring** | `/company/services`, RBAC, multi-provider and recurring jobs, tax invoices |
+| **S6: Reputation and safety** | Reviews, reports, disputes, strikes, auto-pause, police clearance expiry reminders |
+| **S7 (later)** | Escrow payouts, background-check API, credit bundles, mobile app support |
 
-### 7.12 Open questions
+### 7.12 Decisions (20 Oct 2026) and remaining questions
 
-1. **Fee model:** flat, percentage or tiered? And at what amount?
-2. **Payment gateway:** which provider? Should it be the same choice as company subscriptions?
-3. **Police clearance:** do we require a SAPS certificate upload at launch, or pay for a third-party check, and who pays for it?
-4. **Categories at launch:** which ones? Do regulated trades (electrical, gas) launch now or later?
-5. **Can companies be requesters?** For example, an office cleaning job for a company account. Should company-to-provider jobs use the same flow?
-6. **After the unlock,** should the service price also be paid through Spanispace (escrow), or always directly between the parties?
-7. **Cancellation rules:** the time windows and the refund percentages.
-8. **Anonymous browsing:** should visitors without an account see full profiles, or only a summary?
+| Question | Decision |
+|----------|----------|
+| Fee model and amount | **Flat R10 per booking** for every category and price, charged to the requester. It's a starting figure and can be revisited |
+| Payment gateway | **None exists yet.** Choosing one is step S4.0, and it will also serve company subscriptions later (§7.7) |
+| Police clearance | **The provider uploads a SAPS Police Clearance Certificate**, which is cheaper than a background-check service. An admin reviews it. A background-check API stays a later option |
+| Categories at launch | **All categories.** Regulated trades (electrical, gas, compliance plumbing) still need their trade certificate before that category goes live on a provider's listing |
+| Can companies hire? | **Yes, through a separate company flow** (§7.13) |
+| Cancellation and refunds | Proposed policy in §7.7a. It needs a legal review before launch |
+| Liability | **A middleman disclaimer is required** (§7.14) |
+
+Still open:
+1. **After the unlock,** should the service price also be paid through Spanispace (escrow), or always directly between the parties? v1 is direct.
+2. **Anonymous browsing:** should visitors without an account see full profiles, or only a summary? The proposal is a summary, with full profiles for signed-in users.
+3. **Police clearance validity:** the proposal is 12 months from the issue date, then re-upload.
+4. **Is Spanispace VAT-registered?** This decides whether R10 is shown "incl. VAT" and whether tax invoices are issued to companies.
+
+### 7.13 Company hiring (separate from individual hiring)
+
+Companies can hire providers, for example office cleaning, painting a branch or a one-off maintenance job. The flow differs from individual hiring:
+
+| Aspect | Individual requester | Company requester |
+|--------|---------------------|-------------------|
+| Who can book | The account holder | Company members with role **Manager or above** (`company_members` RBAC). Members and Viewers can browse and shortlist only |
+| Eligibility | Any signed-in user | The company must be **vetted/verified** first (existing company vetting) |
+| Request form | Suburb, date, description | Adds the business name, site address, an on-site contact person, an optional purchase-order or reference number, and site access or safety requirements (induction, PPE, working hours) |
+| Multiple providers | One provider per booking | **One job can book several providers** (for example 3 cleaners). Each provider is a separate booking at R10, grouped under one `service_job` |
+| Recurring work | Book again manually | **Repeat booking** of the same provider on a schedule (weekly or monthly), with each occurrence a new R10 booking |
+| Payment | Card or instant EFT at checkout | Card or instant EFT at checkout in v1. Later, a monthly statement or invoice billed to the company account |
+| Invoice | Receipt | A **tax invoice** in the company's registered name and VAT number (if Spanispace is VAT-registered), downloadable from `/company/services` |
+| Visibility | The requester's own bookings | Every company member with Manager or above sees all of the company's service bookings. Viewers have read-only access |
+| Contact unlock | Requester ↔ provider | The provider sees the company's **designated site contact**, not every team member's details |
+| Reviews | From the individual | Posted as the company. Shown on the provider profile as "Reviewed by a verified business" |
+| Where it lives | `/services/bookings` | `/company/services` (a company-portal page, alongside jobs and candidates) |
+
+Data: `service_threads` and `service_bookings` get a nullable `company_id`. A booking with `company_id` set follows the company rules, and the RLS helper checks `company_members` role for access. A new `service_jobs` table groups multi-provider and recurring bookings.
+
+### 7.14 Middleman disclaimer
+
+Spanispace is a marketplace that connects requesters with independent providers. It is not the provider's employer and not a party to the service agreement between them. The disclaimer must appear:
+- in the **Terms of Service** (a new "Spanispace Services" section)
+- in the **Service Provider Agreement**
+- as a **tick box at checkout**, which must be ticked before payment
+- as a short line on every provider profile and booking receipt
+
+**Draft wording** (to be reviewed by a lawyer):
+
+> Spanispace is an online marketplace that connects people who need a service with independent service providers. Service providers are not employees, agents or contractors of Spanispace. Any agreement for a service, including its scope, price, quality, timing and payment, is made directly between you and the service provider. Spanispace is not a party to that agreement.
+>
+> We verify a provider's identity and check the police clearance certificate they submit at the time of enrolment. That verification is limited to the documents provided and does not guarantee a provider's conduct, skills, honesty or the quality of their work. To the fullest extent permitted by law, Spanispace is not liable for the quality, safety, legality or outcome of any service, for any loss, damage or injury arising from it, or for any criminal or unlawful act by a provider or requester.
+>
+> Please take sensible safety precautions. If a crime occurs, report it to the South African Police Service (SAPS) immediately, and then report it to us through the in-app report button so we can suspend the account and cooperate with the investigation.
+
+**Legal caveat:** under the CPA (s48–s51), a term that waives liability for Spanispace's **own** gross negligence, or that is unfair or unreasonable, is not enforceable. The disclaimer protects Spanispace for the providers' acts, but not for failing to do what it promises. Spanispace must therefore:
+- actually carry out the verification it advertises
+- act on reports quickly
+- keep records of each verification decision
+
+The badge must say exactly what was checked ("ID and police clearance checked on [date]"), not "safe" or "trusted". Have the final wording reviewed by a South African attorney before launch.
