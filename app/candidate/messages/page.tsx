@@ -40,9 +40,12 @@ export default async function CandidateMessages() {
 
   const lastMessageByThread: Record<string, { body: string; created_at: string }> = {};
   const unreadByThread: Record<string, number> = {};
+  // Candidates can't read company_profiles directly (RLS), so the join above
+  // comes back empty. This returns names only, for my own threads.
+  const companyNameByThread: Record<string, string> = {};
 
   if (threadIds.length > 0) {
-    const [messagesRes, unreadRes] = await Promise.all([
+    const [messagesRes, unreadRes, namesRes] = await Promise.all([
       supabase
         .from('messages')
         .select('thread_id, body, created_at')
@@ -54,7 +57,11 @@ export default async function CandidateMessages() {
         .in('thread_id', threadIds)
         .neq('sender_id', user.id)
         .is('read_at', null),
+      supabase.rpc('message_thread_names', { p_thread_ids: threadIds }),
     ]);
+    for (const row of (namesRes.data as { thread_id: string; company_name: string | null }[] | null) ?? []) {
+      if (row.company_name) companyNameByThread[row.thread_id] = row.company_name;
+    }
 
     for (const row of messagesRes.data ?? []) {
       if (!lastMessageByThread[row.thread_id]) {
@@ -71,7 +78,7 @@ export default async function CandidateMessages() {
     const job = Array.isArray(t.job) ? t.job[0] : t.job;
     return {
       id: t.id,
-      otherPartyName: company?.company_name ?? 'Company',
+      otherPartyName: companyNameByThread[t.id] ?? company?.company_name ?? 'Company',
       jobTitle: job?.title ?? null,
       lastMessageAt: t.last_message_at,
       lastMessageBody: lastMessageByThread[t.id]?.body ?? null,
@@ -86,7 +93,7 @@ export default async function CandidateMessages() {
         <p className="text-slate-500 text-sm">Conversations with companies</p>
       </div>
 
-      <MessagesInbox currentUserId={user.id} threads={threads} />
+      <MessagesInbox currentUserId={user.id} threads={threads} viewerSide="candidate" />
     </div>
   );
 }

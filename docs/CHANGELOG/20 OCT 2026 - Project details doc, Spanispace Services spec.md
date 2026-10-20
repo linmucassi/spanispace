@@ -336,6 +336,28 @@ The SQL matched on `public.users.email`, took the first row, and attached the th
   - a final check expects 0 and 0
 - PART 2 notes the Storage leftovers: 4 old avatars that are safe to delete, and the CV file, which must stay.
 
+## Messages: show the company name and which team member sent it
+
+Linda saw "Company" as the sender of Spanispace Curated's message. The cause: candidates have no RLS read on `company_profiles`, so the thread's company join was null and the page fell back to "Company". Companies had the same blind spot for candidate names, since they can only read applicants or opted-in profiles. Checking this also showed that **company team members had no access to their company's threads at all**: `is_thread_party()` only recognised the owner's login.
+
+**`supabase/add-message-sender-labels.sql`** (new, mirrored, **not run**):
+- `is_thread_party()` now includes `company_is_member()`, so the whole team can read.
+- Sending goes through a new `can_send_in_thread()`: the owner, the candidate, or a member with `company_can_operate()`. Viewers are read-only.
+- `message_thread_names(thread_ids)` returns the company name and candidate name for threads the caller is in.
+- `message_sender_labels(thread_id)` returns each sender's side and a label worded for the viewer:
+  - the owner login appears as the company name
+  - a team member appears as "Company · FirstName" to the candidate, and by full name to colleagues (falling back to their email's local part, then "Team member")
+  - the candidate appears by name
+  - someone who has left the team appears as the company name, or "Former team member" to colleagues
+
+  Both functions are `SECURITY DEFINER`, return names only, and are granted to authenticated users only.
+
+**UI:**
+- `MessagesInbox` takes a `viewerSide` prop. It loads the labels with the messages, shows a name above each run of messages from the same person, and keeps the viewer's whole side on the right, so colleagues' messages appear on the company side in a lighter bubble.
+- Both messages pages use `message_thread_names` for thread titles.
+
+`tsc` and ESLint are clean. **Untested in a browser:** it needs the migration and a signed-in user.
+
 ## Files changed
 
 - `docs/project-details.md` (new)
@@ -369,3 +391,4 @@ The SQL matched on `public.users.email`, took the first row, and attached the th
 - `app/candidate/services/hire/page.tsx`, `app/candidate/services/hire/[id]/page.tsx`, `app/candidate/services/hire/[id]/CancelRequestButton.tsx`, `app/candidate/services/chat/[threadId]/page.tsx` (moved from `app/(public)/services/requests/...`, which are now redirects)
 - `components/candidate/CandidateSidebar.tsx`, `components/services/RequestQuoteForm.tsx`, `app/candidate/services/inbox/page.tsx`
 - `supabase/fix-orphaned-users.sql` (new, not run)
+- `supabase/add-message-sender-labels.sql` (new, not run), `supabase/schema.sql`, `components/messaging/MessagesInbox.tsx`, `app/candidate/messages/page.tsx`, `app/company/messages/page.tsx`

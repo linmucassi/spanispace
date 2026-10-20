@@ -15,20 +15,28 @@ export type ThreadSummary = {
   unreadCount: number;
 };
 
+type SenderLabel = { side: 'candidate' | 'company'; label: string };
+
 export default function MessagesInbox({
   currentUserId,
   threads,
   initialSelectedThreadId,
+  viewerSide,
 }: {
   currentUserId: string;
   threads: ThreadSummary[];
   initialSelectedThreadId?: string | null;
+  /** Which side of the conversation the signed-in person is on. */
+  viewerSide: 'candidate' | 'company';
 }) {
   const router = useRouter();
   const [selectedId, setSelectedId] = useState<string | null>(
     initialSelectedThreadId ?? threads[0]?.id ?? null
   );
   const [messages, setMessages] = useState<DbMessage[]>([]);
+  // Who sent each message, worded for this viewer (supabase/add-message-sender-labels.sql):
+  // "Spanispace Curated · Sipho" for a candidate, the member's name for colleagues.
+  const [labels, setLabels] = useState<Record<string, SenderLabel>>({});
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
@@ -48,13 +56,21 @@ export default function MessagesInbox({
         return;
       }
 
-      const { data } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('thread_id', selectedId)
-        .order('created_at', { ascending: true });
+      const [{ data }, { data: labelRows }] = await Promise.all([
+        supabase
+          .from('messages')
+          .select('*')
+          .eq('thread_id', selectedId)
+          .order('created_at', { ascending: true }),
+        supabase.rpc('message_sender_labels', { p_thread_id: selectedId }),
+      ]);
 
       setMessages((data as DbMessage[]) ?? []);
+      const map: Record<string, SenderLabel> = {};
+      for (const row of (labelRows as { sender_id: string; side: SenderLabel['side']; label: string }[] | null) ?? []) {
+        map[row.sender_id] = { side: row.side, label: row.label };
+      }
+      setLabels(map);
       setLoadingMessages(false);
 
       // Mark the other party's messages as read
@@ -168,18 +184,28 @@ export default function MessagesInbox({
                   No messages yet. Say hello!
                 </p>
               ) : (
-                messages.map((msg) => {
+                messages.map((msg, index) => {
                   const isMine = msg.sender_id === currentUserId;
+                  const sender = labels[msg.sender_id];
+                  // My side of the conversation sits on the right, including
+                  // colleagues' messages when I'm on the company team.
+                  const onMySide = isMine || sender?.side === viewerSide;
+                  // Name once at the start of each run of messages from the same person.
+                  const showName = !isMine && messages[index - 1]?.sender_id !== msg.sender_id;
+                  const name = sender?.label ?? (viewerSide === 'candidate' ? selectedThread.otherPartyName : 'Unknown sender');
                   return (
                     <div
                       key={msg.id}
-                      className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}
+                      className={`flex flex-col ${onMySide ? 'items-end' : 'items-start'}`}
                     >
+                      {showName && <p className="text-xs font-semibold text-slate-500 mb-1 px-1">{name}</p>}
                       <div
                         className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap ${
                           isMine
                             ? 'bg-brand-600 text-white rounded-br-sm'
-                            : 'bg-slate-100 text-slate-900 rounded-bl-sm'
+                            : onMySide
+                              ? 'bg-brand-50 text-slate-900 rounded-br-sm'
+                              : 'bg-slate-100 text-slate-900 rounded-bl-sm'
                         }`}
                       >
                         {msg.body}
