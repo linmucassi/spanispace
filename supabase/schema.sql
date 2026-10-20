@@ -1863,6 +1863,27 @@ $$;
 REVOKE ALL ON FUNCTION public.service_thread_requester_name(UUID) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.service_thread_requester_name(UUID) TO authenticated;
 
+-- The requester's profile picture, for the provider's side of the chat
+-- (same rule as the name above: only for the other party in the thread).
+CREATE OR REPLACE FUNCTION public.service_thread_requester_avatar(p_thread_id UUID)
+RETURNS TEXT
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT CASE
+    WHEN NOT public.is_service_thread_party(p_thread_id) THEN NULL
+    ELSE (SELECT cp.avatar_url
+          FROM public.service_threads t
+          JOIN public.candidate_profiles cp ON cp.user_id = t.requester_user_id
+          WHERE t.id = p_thread_id)
+  END;
+$$;
+
+REVOKE ALL ON FUNCTION public.service_thread_requester_avatar(UUID) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.service_thread_requester_avatar(UUID) TO authenticated;
+
 -- =====================================================================================
 -- Company <-> candidate messaging: sender labels + team access.
 -- Mirrors supabase/add-message-sender-labels.sql byte-for-byte -- see that file's header.
@@ -1938,14 +1959,19 @@ CREATE POLICY "Participants send messages" ON messages FOR INSERT WITH CHECK (
 -- 2. Thread titles: company name for the candidate, candidate name for
 --    the company. Only rows for threads the caller is part of.
 -- ---------------------------------------------------------------------
+-- Return columns changed (pictures added, 20 Oct 2026), and CREATE OR
+-- REPLACE can't change them, so drop first. Nothing else depends on these.
+DROP FUNCTION IF EXISTS public.message_thread_names(UUID[]);
+DROP FUNCTION IF EXISTS public.message_sender_labels(UUID);
+
 CREATE OR REPLACE FUNCTION public.message_thread_names(p_thread_ids UUID[])
-RETURNS TABLE (thread_id UUID, company_name TEXT, candidate_name TEXT)
+RETURNS TABLE (thread_id UUID, company_name TEXT, company_logo_url TEXT, candidate_name TEXT, candidate_avatar_url TEXT)
 LANGUAGE sql
 SECURITY DEFINER
 STABLE
 SET search_path = public
 AS $$
-  SELECT mt.id, cp.company_name, cd.full_name
+  SELECT mt.id, cp.company_name, cp.logo_url, cd.full_name, cd.avatar_url
   FROM public.message_threads mt
   JOIN public.company_profiles cp ON cp.id = mt.company_id
   JOIN public.candidate_profiles cd ON cd.id = mt.candidate_id
@@ -1956,9 +1982,12 @@ $$;
 -- ---------------------------------------------------------------------
 -- 3. Per-sender labels for one thread, worded for whoever is asking.
 --    side = which side of the conversation the sender is on.
+--    avatar_url = the picture to show: the company logo whenever the
+--    candidate is looking at the company side, the person's own avatar
+--    otherwise.
 -- ---------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.message_sender_labels(p_thread_id UUID)
-RETURNS TABLE (sender_id UUID, side TEXT, label TEXT)
+RETURNS TABLE (sender_id UUID, side TEXT, label TEXT, avatar_url TEXT)
 LANGUAGE plpgsql
 SECURITY DEFINER
 STABLE
@@ -1970,14 +1999,16 @@ DECLARE
   v_owner_id UUID;
   v_candidate_user UUID;
   v_candidate_name TEXT;
+  v_candidate_avatar TEXT;
+  v_company_logo TEXT;
   v_viewer_is_candidate BOOLEAN;
 BEGIN
   IF NOT public.is_thread_participant(p_thread_id) THEN
     RETURN;
   END IF;
 
-  SELECT mt.company_id, cp.company_name, cp.user_id, cd.user_id, cd.full_name
-  INTO v_company_id, v_company_name, v_owner_id, v_candidate_user, v_candidate_name
+  SELECT mt.company_id, cp.company_name, cp.logo_url, cp.user_id, cd.user_id, cd.full_name, cd.avatar_url
+  INTO v_company_id, v_company_name, v_company_logo, v_owner_id, v_candidate_user, v_candidate_name, v_candidate_avatar
   FROM public.message_threads mt
   JOIN public.company_profiles cp ON cp.id = mt.company_id
   JOIN public.candidate_profiles cd ON cd.id = mt.candidate_id
@@ -2001,6 +2032,11 @@ BEGIN
       -- Someone who has since left the team.
       WHEN v_viewer_is_candidate THEN v_company_name
       ELSE 'Former team member'
+    END,
+    CASE
+      WHEN s.sender_id = v_candidate_user THEN v_candidate_avatar
+      WHEN s.sender_id = v_owner_id OR v_viewer_is_candidate THEN v_company_logo
+      ELSE mp.avatar_url
     END
   FROM (SELECT DISTINCT m.sender_id FROM public.messages m WHERE m.thread_id = p_thread_id) s
   LEFT JOIN public.company_members cm ON cm.company_id = v_company_id AND cm.user_id = s.sender_id

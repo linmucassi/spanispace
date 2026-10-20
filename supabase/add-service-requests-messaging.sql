@@ -188,3 +188,24 @@ $$;
 
 REVOKE ALL ON FUNCTION public.service_thread_requester_name(UUID) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.service_thread_requester_name(UUID) TO authenticated;
+
+-- The requester's profile picture, for the provider's side of the chat
+-- (same rule as the name above: only for the other party in the thread).
+CREATE OR REPLACE FUNCTION public.service_thread_requester_avatar(p_thread_id UUID)
+RETURNS TEXT
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT CASE
+    WHEN NOT public.is_service_thread_party(p_thread_id) THEN NULL
+    ELSE (SELECT cp.avatar_url
+          FROM public.service_threads t
+          JOIN public.candidate_profiles cp ON cp.user_id = t.requester_user_id
+          WHERE t.id = p_thread_id)
+  END;
+$$;
+
+REVOKE ALL ON FUNCTION public.service_thread_requester_avatar(UUID) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.service_thread_requester_avatar(UUID) TO authenticated;

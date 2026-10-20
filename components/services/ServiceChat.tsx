@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useConfirm } from '@/components/useConfirm';
 import { scanText, explainContactScan } from '@/lib/services/contactGuard';
 import { Loader2, Lock, Send } from 'lucide-react';
+import Avatar from '@/components/ui/Avatar';
 
 export type ChatMessage = {
   id: string;
@@ -30,6 +31,7 @@ export default function ServiceChat({
   currentUserId,
   role,
   otherName,
+  otherAvatar,
   initialMessages,
   initialStatus,
   contactUnlocked,
@@ -38,6 +40,7 @@ export default function ServiceChat({
   currentUserId: string;
   role: 'requester' | 'provider';
   otherName: string;
+  otherAvatar?: string | null;
   initialMessages: ChatMessage[];
   initialStatus: ThreadStatus;
   contactUnlocked: boolean;
@@ -141,7 +144,10 @@ export default function ServiceChat({
     <div className="flex flex-col rounded-2xl border border-ink-100 bg-white">
       {ConfirmDialog}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-ink-100 px-4 py-3">
-        <p className="font-semibold text-ink-900">{otherName}</p>
+        <span className="flex items-center gap-2.5 min-w-0">
+          <Avatar src={otherAvatar} name={otherName} size="md" />
+          <p className="font-semibold text-ink-900 truncate">{otherName}</p>
+        </span>
         {isOpen && (
           <div className="flex gap-3 text-xs font-medium">
             {role === 'provider' && status === 'open' && (

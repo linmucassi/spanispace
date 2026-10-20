@@ -1,6 +1,7 @@
 import { createServerSupabase } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import Avatar from '@/components/ui/Avatar';
 
 // The provider side of Spanispace Services conversations. Requests arrive
 // here, one row per conversation, newest activity first.
@@ -20,13 +21,16 @@ export default async function ProviderInboxPage() {
     .order('last_message_at', { ascending: false })
     .limit(50);
 
-  const names = await Promise.all(
+  const people = await Promise.all(
     (threads ?? []).map(async (t) => {
-      const { data } = await supabase.rpc('service_thread_requester_name', { p_thread_id: t.id });
-      return [t.id, typeof data === 'string' ? data : 'Customer'] as const;
+      const [{ data: name }, { data: avatar }] = await Promise.all([
+        supabase.rpc('service_thread_requester_name', { p_thread_id: t.id }),
+        supabase.rpc('service_thread_requester_avatar', { p_thread_id: t.id }),
+      ]);
+      return [t.id, { name: typeof name === 'string' ? name : 'Customer', avatar: typeof avatar === 'string' ? avatar : null }] as const;
     }),
   );
-  const nameByThread = new Map(names);
+  const personByThread = new Map(people);
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -48,7 +52,10 @@ export default async function ProviderInboxPage() {
               <li key={t.id}>
                 <Link href={`/candidate/services/chat/${t.id}`} className="block bg-white rounded-2xl border border-slate-200 p-4 hover:border-brand-500 transition-colors">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="font-semibold text-slate-900">{nameByThread.get(t.id)} · {category?.name}</p>
+                    <span className="flex items-center gap-2 min-w-0">
+                      <Avatar src={personByThread.get(t.id)?.avatar} name={personByThread.get(t.id)?.name ?? 'Customer'} size="sm" />
+                      <p className="font-semibold text-slate-900 truncate">{personByThread.get(t.id)?.name} · {category?.name}</p>
+                    </span>
                     <span className="flex items-center gap-2">
                       {unread && <span className="rounded-full bg-brand-600 px-2 py-0.5 text-xs font-bold text-white">New</span>}
                       <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-600 capitalize">{t.status}</span>

@@ -5,17 +5,25 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import type { DbMessage } from '@/types/database';
 import { Send } from 'lucide-react';
+import Avatar from '@/components/ui/Avatar';
+import ThreadJobContext from './ThreadJobContext';
 
 export type ThreadSummary = {
   id: string;
   otherPartyName: string;
+  /** Company logo (candidate view) or candidate avatar (company view). */
+  otherPartyAvatar?: string | null;
   jobTitle: string | null;
+  /** The job this conversation is about, and the two parties, for the pinned job card. */
+  jobId: string | null;
+  companyId: string;
+  candidateId: string;
   lastMessageAt: string;
   lastMessageBody: string | null;
   unreadCount: number;
 };
 
-type SenderLabel = { side: 'candidate' | 'company'; label: string };
+type SenderLabel = { side: 'candidate' | 'company'; label: string; avatar: string | null };
 
 export default function MessagesInbox({
   currentUserId,
@@ -67,8 +75,8 @@ export default function MessagesInbox({
 
       setMessages((data as DbMessage[]) ?? []);
       const map: Record<string, SenderLabel> = {};
-      for (const row of (labelRows as { sender_id: string; side: SenderLabel['side']; label: string }[] | null) ?? []) {
-        map[row.sender_id] = { side: row.side, label: row.label };
+      for (const row of (labelRows as { sender_id: string; side: SenderLabel['side']; label: string; avatar_url: string | null }[] | null) ?? []) {
+        map[row.sender_id] = { side: row.side, label: row.label, avatar: row.avatar_url };
       }
       setLabels(map);
       setLoadingMessages(false);
@@ -144,9 +152,12 @@ export default function MessagesInbox({
             }`}
           >
             <div className="flex items-center justify-between gap-2">
-              <p className="text-sm font-bold text-slate-900 truncate">
-                {thread.otherPartyName}
-              </p>
+              <span className="flex items-center gap-2 min-w-0">
+                <Avatar key={thread.otherPartyAvatar ?? thread.id} src={thread.otherPartyAvatar} name={thread.otherPartyName} size="sm" />
+                <p className="text-sm font-bold text-slate-900 truncate">
+                  {thread.otherPartyName}
+                </p>
+              </span>
               {thread.unreadCount > 0 && (
                 <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-brand-600 text-white text-[10px] font-bold">
                   {thread.unreadCount}
@@ -167,12 +178,21 @@ export default function MessagesInbox({
       <div className="flex-1 flex flex-col min-w-0">
         {selectedThread ? (
           <>
-            <div className="px-6 py-4 border-b border-slate-100">
-              <p className="font-bold text-slate-900">{selectedThread.otherPartyName}</p>
-              {selectedThread.jobTitle && (
-                <p className="text-xs text-slate-500">Re: {selectedThread.jobTitle}</p>
-              )}
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
+              <Avatar key={selectedThread.otherPartyAvatar ?? selectedThread.id} src={selectedThread.otherPartyAvatar} name={selectedThread.otherPartyName} size="md" />
+              <div className="min-w-0">
+                <p className="font-bold text-slate-900 truncate">{selectedThread.otherPartyName}</p>
+              </div>
             </div>
+
+            <ThreadJobContext
+              key={selectedThread.id}
+              threadId={selectedThread.id}
+              jobId={selectedThread.jobId}
+              companyId={selectedThread.companyId}
+              candidateId={selectedThread.candidateId}
+              viewerSide={viewerSide}
+            />
 
             <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
               {loadingMessages ? (

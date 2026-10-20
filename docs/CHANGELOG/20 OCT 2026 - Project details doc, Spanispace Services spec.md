@@ -358,6 +358,43 @@ Linda saw "Company" as the sender of Spanispace Curated's message. The cause: ca
 
 `tsc` and ESLint are clean. **Untested in a browser:** it needs the migration and a signed-in user.
 
+## Docs sync (end of day)
+
+The messaging row in ROADMAP **What's Built** now records the sender-label and team-access update and its pending migration. Memory gained a single list of the SQL files still waiting to run.
+
+## Profile pictures in both chats
+
+Linda asked for profile pictures in the chats.
+- **Who has a picture:**
+  - candidates have `candidate_profiles.avatar_url`, which covers service providers and any company team member who also has a candidate profile
+  - companies have `company_profiles.logo_url`
+  - admin accounts and team members without a candidate profile have none, so they get initials
+- New `components/ui/Avatar.tsx`: an image with an initials fallback on a missing image or `onError`.
+- **Company logos mostly won't display yet.** `logo_url` is a typed-in link to the company's own site, and the CSP `img-src` only allows Supabase Storage plus two hosts, so the browser blocks it and initials show instead. The proper fix is a logo upload to Storage, like candidate avatars, rather than widening the CSP.
+- **Company ↔ candidate inbox:** pictures in the thread list, the conversation header, and beside the sender's name at the start of each run.
+  - `message_thread_names` now returns `company_logo_url` / `candidate_avatar_url`.
+  - `message_sender_labels` returns `avatar_url`: the company logo whenever the candidate is looking at the company side, otherwise the person's own avatar.
+  - The return columns changed, so `add-message-sender-labels.sql` now starts with `DROP FUNCTION IF EXISTS` for both functions. It still hasn't been run, and is still safe to re-run.
+- **Services chat:**
+  - the other party's picture shows in the header and at the start of each run of their messages
+  - the provider inbox and the requester's compare-quotes list show pictures too
+  - provider pictures come from the `service_provider_cards` view
+  - requester pictures come from a new `service_thread_requester_avatar()` in `add-service-requests-messaging.sql` (not run), which returns them only to the other party in that conversation
+- `tsc`, ESLint and the build are clean. Not tested in a browser, because it needs the migrations and a signed-in user.
+
+## Messages: pinned job card; pictures only at the top
+
+- **Pictures:** per Linda, profile pictures show only at the top (conversation header and thread list). The per-message pictures were removed from both chats.
+- **The job at hand:** candidates are usually contacted about a job they applied to, or with an invite, so every company ↔ candidate conversation now has a job card pinned under the header (`components/messaging/ThreadJobContext.tsx`):
+  - **Main card:** the thread's `job_id` (title, location, type, and a Closed/Draft tag if it's no longer active) with this candidate's status: Applied / Application reviewed / Shortlisted / Not taken further / Hired, or Invited / Invite accepted / Invite declined.
+  - **Links:** candidates get "View job" (`/jobs/[id]`) and "My application"; companies get "Open job" (`/company/jobs/[id]/edit`) and "Applications".
+  - **Other jobs:** "N other jobs with this company / this candidate" expands to every other application or invite between the two, each with its status and a link.
+  - **No job linked:** the card falls back to the most recent application or invite, or says so.
+  - **Company team members** can change which job the conversation is about (a `Select` of their company's jobs, or "Make this the conversation's job" on a related one).
+  - **Opening from an application:** "Message" from an application now updates an existing thread's job to that application's job (it used to only set it on new threads).
+  - **No new migration.** It all loads through existing RLS, and candidates can still see jobs they applied to after they close (`has_applied_to_job`). A job the viewer can't read shows "This job is no longer listed".
+- `tsc`, ESLint and the build are clean. Not tested in a browser (it needs a signed-in session).
+
 ## Files changed
 
 - `docs/project-details.md` (new)
@@ -392,3 +429,5 @@ Linda saw "Company" as the sender of Spanispace Curated's message. The cause: ca
 - `components/candidate/CandidateSidebar.tsx`, `components/services/RequestQuoteForm.tsx`, `app/candidate/services/inbox/page.tsx`
 - `supabase/fix-orphaned-users.sql` (new, not run)
 - `supabase/add-message-sender-labels.sql` (new, not run), `supabase/schema.sql`, `components/messaging/MessagesInbox.tsx`, `app/candidate/messages/page.tsx`, `app/company/messages/page.tsx`
+- `components/ui/Avatar.tsx` (new), `components/messaging/MessagesInbox.tsx`, `components/services/ServiceChat.tsx`, `app/candidate/messages/page.tsx`, `app/company/messages/page.tsx`, `app/candidate/services/chat/[threadId]/page.tsx`, `app/candidate/services/inbox/page.tsx`, `app/candidate/services/hire/[id]/page.tsx`, `supabase/add-message-sender-labels.sql`, `supabase/add-service-requests-messaging.sql`, `supabase/schema.sql`
+- `components/messaging/ThreadJobContext.tsx` (new), `components/messaging/MessagesInbox.tsx`, `components/services/ServiceChat.tsx`, `app/candidate/messages/page.tsx`, `app/company/messages/page.tsx`

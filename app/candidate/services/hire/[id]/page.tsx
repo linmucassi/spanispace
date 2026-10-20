@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { createServerSupabase } from '@/lib/supabase/server';
+import Avatar from '@/components/ui/Avatar';
 import CancelRequestButton from './CancelRequestButton';
 
 export const metadata: Metadata = {
@@ -59,8 +60,8 @@ export default async function ServiceRequestPage({ params }: { params: Promise<{
   const threadIds = (threads ?? []).map((t) => t.id);
   const [{ data: cards }, { data: lastMessages }] = await Promise.all([
     providerIds.length
-      ? supabase.from('service_provider_cards').select('id, display_name, headline, from_price_cents').in('id', providerIds)
-      : Promise.resolve({ data: [] as { id: string; display_name: string; headline: string | null; from_price_cents: number | null }[] }),
+      ? supabase.from('service_provider_cards').select('id, display_name, headline, from_price_cents, avatar_url').in('id', providerIds)
+      : Promise.resolve({ data: [] as { id: string; display_name: string; headline: string | null; from_price_cents: number | null; avatar_url: string | null }[] }),
     threadIds.length
       ? supabase.from('service_messages').select('thread_id, body, kind, created_at').in('thread_id', threadIds).eq('kind', 'text').order('created_at', { ascending: false }).limit(200)
       : Promise.resolve({ data: [] as { thread_id: string; body: string; kind: string; created_at: string }[] }),
@@ -109,7 +110,10 @@ export default async function ServiceRequestPage({ params }: { params: Promise<{
                 <li key={t.id}>
                   <Link href={`/candidate/services/chat/${t.id}`} className="block bg-white rounded-2xl border border-slate-200 p-4 hover:border-brand-500 transition-colors">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="font-semibold text-ink-900">{card?.display_name ?? 'Provider'}</p>
+                      <span className="flex items-center gap-2 min-w-0">
+                        <Avatar src={card?.avatar_url} name={card?.display_name ?? 'Provider'} size="sm" />
+                        <p className="font-semibold text-ink-900 truncate">{card?.display_name ?? 'Provider'}</p>
+                      </span>
                       <span className="flex items-center gap-2">
                         {unread && <span className="h-2 w-2 rounded-full bg-brand-600" aria-label="New messages" />}
                         <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${status.tone}`}>{status.label}</span>

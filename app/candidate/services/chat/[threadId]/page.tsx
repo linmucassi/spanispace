@@ -46,12 +46,18 @@ export default async function ServiceChatPage({ params }: { params: Promise<{ th
   const category = Array.isArray(request.category) ? request.category[0] : request.category;
 
   let otherName = role === 'requester' ? 'Provider' : 'Customer';
+  let otherAvatar: string | null = null;
   if (role === 'requester') {
-    const { data: card } = await supabase.from('service_provider_cards').select('display_name').eq('id', thread.provider_id).maybeSingle();
+    const { data: card } = await supabase.from('service_provider_cards').select('display_name, avatar_url').eq('id', thread.provider_id).maybeSingle();
     if (card?.display_name) otherName = card.display_name;
+    otherAvatar = card?.avatar_url ?? null;
   } else {
-    const { data: name } = await supabase.rpc('service_thread_requester_name', { p_thread_id: thread.id });
+    const [{ data: name }, { data: avatar }] = await Promise.all([
+      supabase.rpc('service_thread_requester_name', { p_thread_id: thread.id }),
+      supabase.rpc('service_thread_requester_avatar', { p_thread_id: thread.id }),
+    ]);
     if (typeof name === 'string' && name) otherName = name;
+    if (typeof avatar === 'string' && avatar) otherAvatar = avatar;
   }
 
   const when = [fmtDate(request.preferred_start), fmtDate(request.preferred_end)].filter(Boolean).join(' to ');
@@ -69,6 +75,7 @@ export default async function ServiceChatPage({ params }: { params: Promise<{ th
               currentUserId={user.id}
               role={role}
               otherName={otherName}
+              otherAvatar={otherAvatar}
               initialMessages={(messages ?? []) as ChatMessage[]}
               initialStatus={thread.status}
               contactUnlocked={thread.contact_unlocked}
