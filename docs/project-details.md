@@ -16,11 +16,11 @@ The platform currently has three portals:
 
 | Portal | Who | What they do |
 |--------|-----|--------------|
-| **Candidate** | Job seekers, learners, students, informal and piece-job workers | Build a profile (education, work history including informal work, documents, skills), apply for jobs and learnerships, get matched through auto-apply, take SpaniSpace Academy courses, get document-verified, message companies, manage interviews on a calendar |
+| **Candidate** | Job seekers, learners, students, informal and piece-job workers | Build a profile (education, work history including informal work, documents, skills), apply for jobs and learnerships, get matched through auto-apply, take SpaniSpace Academy courses, get document-verified, message companies, manage interviews on a calendar. Can also **offer services** (Spanispace Services, §7): enrol, get verified and list a rate card at `/candidate/services` |
 | **Company** | Employers, multi-user organisations | Post and manage jobs, see view/drop-off analytics, search the talent pool, invite candidates, run events and training, message candidates, schedule interviews, manage a team with roles (Owner/Admin/Manager/Member/Viewer) |
-| **Admin** | Spanispace staff (Super Admin / Platform Admin) | Vet jobs, events, trainings and companies, verify candidate documents, manage users and invites, review scraped and curated listings |
+| **Admin** | Spanispace staff (Super Admin / Platform Admin) | Vet jobs, events, trainings and companies, verify candidate documents, verify service providers (`/admin/service-providers`), manage users and invites, review scraped and curated listings |
 
-The public site is open to everyone and offers a jobs board (company-posted, admin-curated and scraped listings), learnerships, events, a training catalogue, and late university/college applications. It is available in English and isiZulu (isiZulu is in beta).
+The public site is open to everyone and offers a jobs board (company-posted, admin-curated and scraped listings), learnerships, events, a training catalogue, late university/college applications, and **Spanispace Services** (`/services`), where you can browse verified providers for short jobs. Bookings for Services aren't open yet. It is available in English and isiZulu (isiZulu is in beta).
 
 ## 2. The problem
 
@@ -53,7 +53,7 @@ See the [Milestone Summary in ROADMAP.md](ROADMAP.md#milestone-summary). Headlin
 | Featured job listings | Designed, not built (Phase 2.3) |
 | Enterprise success fee (10–15% of first-year salary) | Designed, not built (Phase 2.4) |
 | Paid training levels (Advanced courses) | Catalogue built, payments not built |
-| **Service booking fee (Spanispace Services)** | **New, specified below** |
+| **Service booking fee (Spanispace Services)** | **R10 flat per booking, always paid online.** Specified in §7. Provider enrolment and public browsing are built (S1, S2, 20 Oct 2026); charging the fee comes in S4 |
 
 Job seekers never pay to apply for jobs.
 
@@ -106,7 +106,8 @@ Candidate opt-in┘   (profile)     (admin review)   (provider agreement)
 2. **Enrolment (service profile)**
    - Service categories (from a fixed list, several allowed), with a short description and years of experience for each
    - Service area: province, city or suburb, and travel radius
-   - Rates: how they charge (per hour, per day, per job or quote-based) and an indicative price range in ZAR. This is for display only, and the final price is agreed in the chat
+   - **Rate card:** priced items in the units the category allows (painting per m², per room or per day; cleaning per hour or per room; laundry per load or per kg; and so on), with an optional minimum charge. Rates are indicative, and the final price is agreed in the chat offer
+- **How the provider gets paid for the service:** cash only, online only, or cash or online. **Cash** means physical money handed over on the day. **Online** means paid through Spanispace (card, instant EFT and the other gateway methods). Online needs a payout bank account, verified through the gateway (account holder name matched to the ID). This choice covers the service price only. The R10 Spanispace fee is always paid online
    - Availability: days and times
    - Portfolio photos of past work (optional)
    - Tools or equipment they bring (optional)
@@ -119,7 +120,7 @@ Candidate opt-in┘   (profile)     (admin review)   (provider agreement)
    - Trade qualifications where the category needs them. Electrical work needs a wireman's licence or Certificate of Compliance ability, and gas needs SAQCC registration. Plumbing should be PIRB-registered for compliance work
    - Optional references from past clients
    - Reviewed by an admin at a new `/admin/service-providers` queue. Requesters never see the raw documents, only a "Verified" or "Police-cleared" badge, which is the same rule as candidate verification today
-   - Re-verification: police clearance expires after a set period (proposed 12 months), and the badge drops off when it does
+   - Re-verification: **police clearance is valid for 12 months from its issue date** (confirmed 20 Oct 2026). After that the badge drops off and the listing pauses until a new certificate is uploaded and approved
 4. **Terms acceptance.** Before going live the provider must accept a **Service Provider Agreement**, which covers:
    - The platform fee model, and that it is charged to the requester
    - **No off-platform contact or payment circumvention.** No sharing of contact details before an agreement, and no asking clients to "book direct" to avoid the fee. Breaches lead to a warning, then suspension, then removal
@@ -129,27 +130,65 @@ Candidate opt-in┘   (profile)     (admin review)   (provider agreement)
    - The agreement version and timestamp are stored per provider, and they must re-accept when the terms change
 5. **Live.** The listing appears in search, and the provider receives requests in their inbox.
 
-### 7.4 Requester journey
+### 7.4 Requester journey: finding, agreeing, paying (defined 20 Oct 2026)
 
-1. **Search and browse.** This is public, so visitors without an account can browse. Filters: category, location or distance, availability date, price range, rating, verified only. Search results show the provider's first name and last initial, photo, categories, area, rate range, rating, badges and completed-job count.
-2. **Request.** A signed-in requester opens a chat from the provider's profile, with the job details prefilled: category, address area (suburb only at this stage), date(s) and a description.
-3. **Negotiate in chat.** The two discuss scope and price. Contact details are blocked (§7.6).
-4. **Agreement.** The provider sends a structured **Offer** in the chat (scope, date(s), service price, what's included). The requester sees the service price and the **Spanispace booking fee as separate lines** and accepts. Either side can send a revised offer, and only the latest offer is acceptable.
-5. **Pay the booking fee.** The requester pays only the Spanispace fee through the payment provider. The booking becomes `confirmed` only after the payment webhook succeeds.
-6. **Unlock.** Once confirmed, the chat unlocks. Both parties can share phone numbers, and the platform shows both parties' verified phone numbers and the full job address.
-7. **Do the job, then pay the provider.** The service charge goes directly to the provider, in cash or EFT, in v1 (see §7.7 for a future escrow option).
-8. **Complete and review.** Either party marks the job complete, and both leave a rating and review. Reviews are only allowed on confirmed bookings, which prevents fake reviews (CPA, and checklist item 11).
+**Worked example:** Thandi needs her lounge and two bedrooms painted.
+
+1. **Find the service.** Thandi opens `/services` and picks **Painting**. Browsing is public, but messaging needs an account.
+2. **Compare providers and rates.** She sees a list of verified painters in her area. Each card shows the painter's **rate card**: prices in the units that make sense for the category, such as R45/m² for walls, R1,200 per room or R600 per day. Each card also shows rating, badges, completed jobs, and **which payment methods the painter accepts** (Cash · Online · Cash or Online). Filters: area, date, price, rating, payment method. A quick estimator lets her enter "35 m²" and see each painter's estimated price. This is only an indication, and the real price is agreed in the chat.
+3. **Open a request.** Thandi taps "Message" on a painter. The first time, this creates a **service request**: her need, with the category, a description ("lounge + 2 bedrooms, walls only, paint supplied"), her suburb, preferred dates and optional photos. **The chat belongs to this request.** It's a page for this one need, not a general inbox thread.
+4. **Talk to several providers.** She can message other painters **under the same request**. The request page shows all her conversations side by side, so she can compare quotes. Contact details stay blocked in every chat (§7.6).
+5. **Agree an offer.** Inside one chat, either party can open the **Offer panel**, which shows:
+   - the scope, the start date and number of days, and the service price
+   - the payment method, limited to what the provider accepts. If the provider accepts both, Thandi picks
+   - the Spanispace booking fee of R10, as a separate line
+   - the terms and disclaimer
+
+   Each side has its own **"I accept the terms and agree to this offer"** button. **The booking only forms when both have accepted the same version.** If either side edits anything, both acceptances reset.
+6. **Payment at agreement.** As soon as both have accepted:
+   - **Cash job:** Thandi pays the **R10 online**. She pays the painter in physical cash when the job is done.
+   - **Online job:** Thandi pays **the service price + R10** online, in one payment. **The booking isn't confirmed and the painter isn't released (dispatched) until the debit succeeds.** Spanispace holds the service money until the job is completed and both parties have confirmed (§7.15).
+   - Either way, the booking becomes `confirmed` only when the payment webhook succeeds.
+7. **Unlock.** Once confirmed, the chat unlocks. Each party sees the other's verified phone number, and the painter sees the full address. Thandi's **other conversations under this request** get a system message ("The requester has booked another provider") and close. She can reopen the request if this booking falls through.
+8. **Job in progress.** Tracked step by step (§7.15): scheduled → on the way → started (start code) → in progress → marked complete by the provider → confirmed by the requester.
+9. **Pay the provider:**
+   - **Online job:** once both parties confirm completion (or the confirmation window passes with no dispute), Spanispace releases the payout to the painter's verified bank account.
+   - **Cash job:** the painter taps "Cash received" and Thandi confirms.
+10. **Review.** Each side leaves a rating and review. Reviews are only allowed on completed bookings (CPA, and checklist item 11).
+
+**Provider payment preference for the service price** (set at enrolment, and changeable later):
+- **Cash only:** physical money, paid to the provider on the day
+- **Online only:** paid through Spanispace, held, then paid out after completion
+- **Cash or online:** the requester picks in the offer
+
+The preference shows on the listing, and the Offer panel only offers the methods the provider allows. To accept online payments, a provider must add a bank account that passes verification (§7.3).
+
+**The R10 Spanispace fee is always paid online, for every job.** Cash is never accepted for it, and providers never collect it.
 
 ### 7.5 Booking lifecycle
 
 ```
-enquiry ─► offer_sent ─► offer_accepted ─► fee_pending ─► confirmed ─► in_progress ─► completed
-                │               │                │             │
-                ▼               ▼                ▼             ▼
-            declined        expired*        payment_failed  cancelled / disputed
+                   (per conversation)                               (once both accept)
+request ─► chatting ─► offer_proposed ─► offer_agreed ─► payment_pending ─► confirmed ─► scheduled
+                            │  ▲ edit resets both           │                              │
+                            ▼  │                            ▼                              ▼
+                         declined                  payment_failed / expired*        provider_en_route
+                                                                                           │
+                                                   start code entered ──────────────► in_progress
+                                                                                           │
+                                                                                provider_marked_complete
+                                                                                           │
+                                                  requester confirms (or 72h silence) ─────┤
+                                                                                           ▼
+                                                                  completed ─► (online) payout_released ─► closed
+                                                                       ▲
+                       disputed ──► admin decision (release / partial / refund) ──┘
+               cancelled (from any state before in_progress, per §7.7a)
 ```
 
-`*` An accepted offer that isn't paid within a set window (proposed 48 hours) expires, and the provider is free to take other work.
+`*` If both parties agree but the payment isn't completed within 48 hours, the agreement expires and the provider is free again.
+
+The **request** has its own status: `open` (chatting with one or more providers) → `booked` (one booking confirmed; other conversations closed) → `completed` / `cancelled`. If the booking is cancelled, the request goes back to `open`.
 
 ### 7.6 Contact-detail blocking
 
@@ -174,10 +213,15 @@ This is the core technical requirement. Until a booking is `confirmed` (fee paid
 
 ### 7.7 Fees and payments
 
-- **The Spanispace booking fee is a flat R10 per booking** (decided 20 Oct 2026). It is the same for every category and every service price, and it is charged to the requester. It is separate from the provider's service price, which Spanispace never touches in v1.
+- **The Spanispace booking fee is a flat R10 per booking** (decided 20 Oct 2026). It is the same for every category and every service price, and it is charged to the requester. It is always separate from the provider's service price, and **it is always paid online, never in cash**. On a cash job it is the only online charge. On an online job it is collected in the same payment as the service price, but recorded separately.
+- **Online jobs: Spanispace holds the money** (decided 20 Oct 2026). The service price is debited at agreement and held until completion is confirmed, then paid out to the provider. This is effectively **escrow in v1**, and it has consequences:
+  - **The gateway must support holding funds and paying out later to third parties.** Look for marketplace or split payments, sub-accounts, or a transfers/payouts API with bank-account verification. This becomes a hard requirement in S4.0.
+  - **Regulation:** collecting money on behalf of providers and paying it out later may make Spanispace a third-party payment collector under the National Payment System Act. The usual route is to operate inside a registered gateway's marketplace product instead of holding funds in Spanispace's own bank account. **Confirm with the gateway and the attorney before building S4.**
+  - **The provider pays the gateway's processing fee on the service price** (confirmed by Linda, 20 Oct 2026). It's deducted from the payout and shown upfront in the Offer panel ("Offer R1,500 → you receive R1,4xx"). Spanispace absorbs the processing fee on the R10.
+  - **Payout timing:** Spanispace starts the payout when the job reaches `completed`, and the gateway settles it on its own schedule (often 1–3 business days). That timing should be shown to providers.
   - Store the fee in one config value (`SERVICE_BOOKING_FEE_CENTS = 1000`), and copy it onto each booking as `platform_fee` when the offer is accepted. Changing the fee later then never rewrites past bookings.
   - **Company bookings** pay R10 per provider booked (see §7.13).
-- Fees are shown in ZAR, VAT-inclusive if Spanispace is VAT-registered, **before** the requester accepts the offer (CPA, and checklist item 10).
+- Fees are shown in ZAR **before** the requester accepts the offer (CPA, and checklist item 10). Spanispace is **not VAT-registered yet**, so the fee is shown as a plain "R10" with no VAT (see §8.1).
 - Charged only after both parties have agreed, on offer acceptance. There is no charge for enquiries or browsing.
 - **Payment gateway: none exists yet** (decided 20 Oct 2026). Choosing and integrating one is step S4.0 of the plan, and the same gateway will later serve company subscriptions (Phase 2.1). Requirements:
   - card and instant EFT
@@ -188,7 +232,7 @@ This is the core technical requirement. Until a booking is `confirmed` (fee paid
   - **low fixed per-transaction fees.** With a R10 fee, a fixed charge of R1–R2 plus a percentage takes a large share of every booking. Compare the gateways on the real cost of a R10 charge before choosing.
 
   Candidates are Paystack, PayFast, Peach Payments and Yoco. Recommendation: **Paystack**, for its API, webhooks and documentation quality, unless the cost comparison on a R10 charge clearly favours another. A later option is prepaid credit bundles (for example R50 for 5 bookings), which cut the per-transaction overhead.
-- **v2 option, escrow:** the requester pays service price plus fee into the platform. Spanispace releases the payout to the provider on completion, minus the fee. This protects both sides better, but makes Spanispace a payment intermediary, so it needs a gateway with split or marketplace payouts and more compliance work. Out of scope for v1.
+- **Cash jobs:** Spanispace never touches the service price. The provider records "Cash received" and the requester confirms it, so there is an audit trail for disputes.
 
 ### 7.7a Cancellation and refund policy (v1)
 
@@ -207,6 +251,38 @@ The R10 fee pays for a **confirmed, contact-unlocked booking**, and that is deli
 | 9 | **Dispute over quality or the service price** (job done badly, a price disagreement) | Spanispace is not a party to the service contract (§7.14). Refunding the R10 fee is at admin discretion, and the service price is between the two parties. Spanispace may warn or suspend the provider |
 | 10 | Provider **strikes**: 3 strikes in 90 days | Listing paused automatically, pending admin review |
 
+**Online jobs: the held service price.** The rules above cover the R10. The held service price follows these:
+
+| Situation | Service price |
+|-----------|---------------|
+| Requester cancels **more than 24 hours** before the start | Refunded in full |
+| Requester cancels **within 24 hours** of the start, or the provider arrives and the requester is absent or refuses access | Refunded **minus a late-cancellation fee paid to the provider: 10% of the service price, minimum R50, maximum R200** (confirmed by Linda, 20 Oct 2026). Cash jobs follow the escalation in the next table |
+| Provider cancels, doesn't show up, or is suspended | Refunded in full (and the R10 too, per rule 3) |
+| The job started, then stopped by agreement (multi-day job cut short) | Both parties agree a partial amount in the chat. The agreed part is paid out and the rest refunded. If they can't agree, it becomes a dispute |
+| **Dispute** raised before completion is confirmed | **Funds are frozen.** An admin reviews the chat, the job timeline and photos, then releases in full, releases part and refunds the rest, or refunds in full. Spanispace decides only how the held money is paid out, and gives no judgement on workmanship beyond that (§7.14) |
+| The requester doesn't respond within **72 hours** after the provider marks the job complete | **Treated as confirmed** and paid out, so a requester can't hold the money back by staying silent. The requester gets reminders at 24 and 48 hours |
+
+**Cash jobs: late cancellation (proposed 20 Oct 2026, awaiting Linda's approval).** On a cash job nothing is held, so there's nothing to take a fee from on the spot. Instead, the requester's reliability gets tracked, and requesters who repeatedly cancel late have to put money down:
+
+| Requester's record (rolling 90 days) | What applies to their next **cash** bookings |
+|--------------------------------------|---------------------------------------------|
+| No late cancellations | Normal: only the R10 online |
+| **1 late cancellation** (within 24 hours of the start, or absent or refusing access) | A warning, and the event is recorded. Providers see the requester's **reliability** on the request ("Completed 4 of 5 bookings") |
+| **2 late cancellations** | A **commitment deposit** is paid online with the R10. It equals the late-cancellation fee (10% of the agreed price, minimum R50, maximum R200). If the job goes ahead, the deposit counts toward the price and the requester pays the rest in cash, with the deposit paid out to the provider. If they cancel late again, the deposit goes to the provider as their late-cancellation fee |
+| **3 or more late cancellations** | **Cash bookings blocked for 90 days.** The requester can still book providers who accept online payment, where the normal held-money rules apply |
+
+Why this approach:
+- it compensates the provider in the cases that matter (repeat offenders), without adding friction for the first-time requester
+- it uses money that's already held online, so a provider never has to chase cash
+- the escalation is fair, transparent and stated upfront, which matters because CPA s17 lets a supplier charge a reasonable cancellation penalty on advance bookings
+
+Effects on the build:
+- A cash-only provider needs a payout account to receive a deposit. If a deposit applies and the provider has none, the deposit is held until they add one, with reminders, and refunded to the requester after 30 days if no account is added.
+- Late cancellations are stored as `requester_strikes`, the mirror of `provider_strikes`.
+- An admin can remove a strike on appeal, for example after a family emergency.
+
+The gateway's processing fee on a refunded charge usually isn't returned to the merchant, so Spanispace absorbs it, except when the refund is caused by the provider. Whether to pass that cost on to providers is awaiting Linda's decision (§7.12).
+
 - **Timelines:** cash refunds are issued within 7 business days, through the gateway's refund API. Credits are applied automatically at the next checkout.
 - **Company bookings:** the same rules, but a refund is issued as a credit note against the company's invoice (§7.13).
 - **Cooling-off (ECT Act s44):** the unlock is delivered immediately, with the requester's consent. The checkout must therefore carry an explicit tick box: "I understand my contact details unlock immediately and the booking fee is non-refundable except as set out in the cancellation policy". **Have a lawyer confirm** that the ECT s42 exclusion for services started with consent covers this before launch.
@@ -220,7 +296,14 @@ New migration: `supabase/add-service-marketplace.sql`.
 |-------|-----------------------|
 | `service_categories` | `id`, `slug`, `name`, `requires_qualification` (bool), `active` |
 | `service_providers` | `id`, `user_id` (unique, references `users`), `candidate_profile_id`, `headline`, `bio`, `service_area` (province/city/suburb), `travel_radius_km`, `availability` (jsonb), `verification_status` (`pending`/`verified`/`rejected`/`suspended`), `police_clearance_expires_at`, `terms_version`, `terms_accepted_at`, `listing_active`, `rating_avg`, `jobs_completed` |
-| `provider_services` | `provider_id`, `category_id`, `pricing_unit` (`hour`/`day`/`job`/`quote`), `price_min`, `price_max`, `years_experience`, `description` |
+| `provider_services` | `provider_id`, `category_id`, `years_experience`, `description` |
+| `provider_rates` | **The rate card.** One row per priced item: `provider_service_id`, `label` (for example "Interior walls" or "Full room"), `unit` from the category's allowed units, `price_cents`, `minimum_charge_cents`, `notes` ("paint not included") |
+| `service_category_units` | The units that make sense for each category, which drive the rate card and the estimator. Painting: m², room, day. Cleaning: hour, room, once-off by house size. Laundry: load, kg, item. Plumbing: call-out, hour, job. Gardening: hour, m², visit |
+| `provider_payout_accounts` | Only for providers who accept online payment: bank and account reference **held by the gateway** (a sub-account or recipient code, never raw card or bank details stored by us), `verified_at` |
+| `service_requests` | The requester's need: `id`, `requester_user_id`, `company_id` (nullable), `category_id`, `description`, `suburb`, `preferred_dates`, `photos`, `status` (`open`/`booked`/`completed`/`cancelled`) |
+| `service_offers` | Versioned offers in a thread: `thread_id`, `version`, `scope`, `start_date`, `days`, `service_price_cents`, `payment_method` (`cash`/`online`, for the service price only; the R10 is always online), `requester_accepted_at`, `provider_accepted_at`. Any edit creates a new version with both acceptances empty |
+| `job_events` | **The job timeline**, append-only: `booking_id`, `event` (§7.15), `actor_id`, `note`, `photo_urls`, `created_at` |
+| `service_payouts` | Online jobs, plus cash-job commitment deposits: `booking_id`, `amount_cents`, `gateway_fee_cents`, `status` (`held`/`frozen`/`released`/`paid`/`refunded`/`partial`), `released_at`, `gateway_transfer_reference` |
 | `provider_documents` | Or extend `candidate_documents.document_type` with `police_clearance`, `proof_of_address`, `trade_certificate`, `selfie` |
 | `service_threads` | `id`, `provider_id`, `requester_user_id`, `category_id`, `status`, `contact_unlocked` (bool, set only by the payment webhook), `created_at`. Kept separate from `message_threads`, which is fixed to company↔candidate pairs, so the existing RLS stays untouched |
 | `service_messages` | `id`, `thread_id`, `sender_id`, `body`, `kind` (`text`/`offer`/`system`), `blocked` (bool), `created_at` |
@@ -232,8 +315,9 @@ New migration: `supabase/add-service-marketplace.sql`.
 | `service_payments` | One row per gateway charge or refund: `booking_id`, `gateway`, `gateway_reference`, `amount_cents`, `kind` (`charge`/`refund`), `status`, raw webhook payload. Also an idempotency key, so a webhook replay never double-confirms |
 | `service_credits` | R10 rebooking credits (§7.7a rule 6): `user_id`, `amount_cents`, `source_booking_id`, `expires_at`, `used_on_booking_id` |
 | `provider_strikes` | `provider_id`, `booking_id`, `reason` (`provider_cancel`/`no_show`/`conduct`), `created_at`. 3 strikes in 90 days pauses the listing |
+| `requester_strikes` | `user_id`, `booking_id`, `reason` (`late_cancel`/`absent`/`refused_access`), `removed_by_admin`, `created_at`. Drives the reliability score and the cash-job escalation (§7.7a) |
 
-`service_threads` and `service_bookings` also carry a nullable `company_id` and `service_job_id` for company hiring (§7.13). `service_bookings` stores `terms_accepted_at` and `disclaimer_accepted_at`, the checkout tick boxes.
+`service_threads` gets a `request_id`, and the pair (`request_id`, `provider_id`) is unique: one conversation per provider per need. `service_bookings` gets `payment_method`, `start_code_hash`, `marked_complete_at`, `confirmed_complete_at` and `auto_confirm_at`. `service_threads` and `service_bookings` also carry a nullable `company_id` and `service_job_id` for company hiring (§7.13). `service_bookings` stores `terms_accepted_at` and `disclaimer_accepted_at`, the checkout tick boxes.
 
 RLS rules to apply:
 - Only verified, active providers appear in public search.
@@ -259,31 +343,37 @@ RLS rules to apply:
 |-------|---------|
 | `/services` | Public browse and search |
 | `/services/[category]` | Category landing page (good for SEO) |
-| `/services/provider/[id]` | Public provider profile, with no contact details |
+| `/services/provider/[id]` | Provider profile, with no contact details. **Signed-out visitors see a summary only** (first name, photo, categories, area, rate range, rating, badges); signing in shows the full rate card, portfolio and reviews, and lets them message |
 | `/candidate/services/enrol` | Provider enrolment wizard (opt-in or new signup) |
 | `/candidate/services` | Provider dashboard: listing, verification status, bookings, earnings history |
-| `/services/messages` | Service inbox for both providers and requesters |
+| `/services/requests/[id]` | A requester's need, with all its conversations side by side |
+| `/services/requests/[id]/chat/[threadId]` | The chat page for this need with one provider, including the Offer panel and both accept buttons |
+| `/services/jobs/[bookingId]` | Job tracking page (timeline, start code, mark complete, confirm, dispute), for both parties |
+| `/services/messages` | Service inbox for both providers and requesters (lists requests and threads) |
 | `/services/bookings` | A requester's bookings and receipts |
 | `/admin/service-providers` | Verification queue |
 | `/admin/service-reports` | Disputes, reports and contact-violation review |
 | `POST /api/services/messages` | Guarded message send |
 | `POST /api/services/bookings/[id]/pay` | Start the fee payment |
 | `POST /api/services/webhook` | Payment provider webhook, the only thing that confirms a booking and unlocks contact |
+| `POST /api/services/offers/[id]/accept` | Accept the current offer version. When both sides have accepted, it creates the booking and starts payment |
+| `POST /api/services/jobs/[id]/event` | Job timeline actions (on the way, start with code, mark complete, confirm, dispute, cash received) |
 
 ### 7.11 Delivery phases
 
-The full step-by-step implementation plan, with tasks, files and done criteria, is in [ROADMAP.md Phase 2b](ROADMAP.md#phase-2b--spanispace-services-marketplace-planned-20-oct-2026-not-started). Summary:
+The full step-by-step implementation plan, with tasks, files and done criteria, is in [ROADMAP.md Phase 2b](ROADMAP.md#phase-2b--spanispace-services-marketplace-planned-20-oct-2026-s1--s2-code-done). Summary:
 
-| Phase | Scope |
-|-------|-------|
-| **S0: Legal and terms** | Terms "Services" section, Service Provider Agreement, middleman disclaimer, cancellation policy, privacy policy updates, lawyer review |
-| **S1: Foundations** | Migration, categories (all), provider enrolment (opt-in and new signup), police clearance upload, admin verification queue, agreement acceptance |
-| **S2: Discovery** | Public `/services` search and profiles, only verified providers listed |
-| **S3: Guarded messaging** | Service threads, `contactGuard` with server-side enforcement, violation logging |
-| **S4: Agreement and payment** | Gateway selection and integration, offers, R10 checkout, webhook confirmation, contact unlock, receipts, refunds and credits |
-| **S5: Company hiring** | `/company/services`, RBAC, multi-provider and recurring jobs, tax invoices |
-| **S6: Reputation and safety** | Reviews, reports, disputes, strikes, auto-pause, police clearance expiry reminders |
-| **S7 (later)** | Escrow payouts, background-check API, credit bundles, mobile app support |
+| Phase | Status (20 Oct 2026) | Scope |
+|-------|--------|-------|
+| **S0: Legal and terms** | Provider agreement drafted, the rest open | Terms "Services" section, Service Provider Agreement, middleman disclaimer, cancellation policy, privacy policy updates, lawyer review |
+| **S1: Foundations** | ✅ Code done, migration not run | Migration, categories (all), provider enrolment (opt-in and new signup), police clearance upload, admin verification queue, agreement acceptance |
+| **S2: Discovery** | ✅ Mostly done (no estimator or portfolio yet), same migration | Public `/services` search, profiles with rate cards and the estimator, payment-method filter, only verified providers listed |
+| **S3: Requests and guarded messaging** | Not started | Service requests with several conversations per need, per-request chat page, `contactGuard` with server-side enforcement, violation logging |
+| **S4: Agreement and payment** | Not started (no gateway yet) | Gateway selection (must support held funds and payouts), versioned offers with acceptance from both sides, R10 online for cash jobs, or service price + R10 online for online jobs, webhook confirmation, contact unlock, receipts, refunds and credits |
+| **S4b: Job tracking and payouts** | Not started | Job timeline and start code, provider marks complete, requester confirms or the 72h auto-confirm, online payouts, cash-received confirmation, dispute freeze |
+| **S5: Company hiring** | Not started | `/company/services`, RBAC, multi-provider and recurring jobs, invoices (tax invoices once VAT-registered) |
+| **S6: Reputation and safety** | Not started | Reviews, reports, disputes, strikes, auto-pause, police clearance expiry reminders |
+| **S7 (later)** | Not started | Milestone payments for long jobs, background-check API, credit bundles, mobile app with live location for "on the way" |
 
 ### 7.12 Decisions (20 Oct 2026) and remaining questions
 
@@ -296,12 +386,21 @@ The full step-by-step implementation plan, with tasks, files and done criteria, 
 | Can companies hire? | **Yes, through a separate company flow** (§7.13) |
 | Cancellation and refunds | Proposed policy in §7.7a. It needs a legal review before launch |
 | Liability | **A middleman disclaimer is required** (§7.14) |
+| Gateway fee on online service payments | **The provider pays it**, deducted from the payout and shown upfront (confirmed 20 Oct 2026) |
+| Late-cancellation fee | **10% of the service price, minimum R50, maximum R200**, paid to the provider when the requester cancels within 24 hours on an online job (confirmed 20 Oct 2026) |
 
-Still open:
-1. **After the unlock,** should the service price also be paid through Spanispace (escrow), or always directly between the parties? v1 is direct.
-2. **Anonymous browsing:** should visitors without an account see full profiles, or only a summary? The proposal is a summary, with full profiles for signed-in users.
-3. **Police clearance validity:** the proposal is 12 months from the issue date, then re-upload.
-4. **Is Spanispace VAT-registered?** This decides whether R10 is shown "incl. VAT" and whether tax invoices are issued to companies.
+| Payment journey | **Defined (20 Oct 2026, §7.4).** One request can have several conversations. Both parties accept the terms and the offer. R10 is charged on agreement. Providers choose how the service is paid: cash only (physical money), online only, or cash or online. **The R10 is always online.** Online jobs are debited at agreement and the provider is only released after the debit succeeds. The money is held and paid out only when the job is completed and both confirm |
+
+| Anonymous browsing | **Summary only** for signed-out visitors. Full profiles and messaging need an account (confirmed 20 Oct 2026) |
+| Police clearance validity | **12 months from the issue date**, then re-upload (confirmed 20 Oct 2026) |
+| VAT | **Not registered yet.** No VAT is charged or shown, and companies get ordinary invoices (§8.1) |
+| Holding online-job money | **Recorded for legal review** (§8, R1) |
+
+Awaiting Linda's approval:
+1. **Cash-job late cancellation:** the reliability and commitment-deposit escalation proposed in §7.7a.
+2. **Gateway fee lost on refunds:** when a refund is caused by the provider (cancellation, no-show, suspension), should the lost processing fee be recovered from the provider's next payout? The proposal is yes for online-payment providers. Otherwise Spanispace absorbs it.
+
+Everything else that needs outside advice is in the **[Legal and tax review register](#8-legal-and-tax-review-register)** (§8).
 
 ### 7.13 Company hiring (separate from individual hiring)
 
@@ -314,8 +413,8 @@ Companies can hire providers, for example office cleaning, painting a branch or 
 | Request form | Suburb, date, description | Adds the business name, site address, an on-site contact person, an optional purchase-order or reference number, and site access or safety requirements (induction, PPE, working hours) |
 | Multiple providers | One provider per booking | **One job can book several providers** (for example 3 cleaners). Each provider is a separate booking at R10, grouped under one `service_job` |
 | Recurring work | Book again manually | **Repeat booking** of the same provider on a schedule (weekly or monthly), with each occurrence a new R10 booking |
-| Payment | Card or instant EFT at checkout | Card or instant EFT at checkout in v1. Later, a monthly statement or invoice billed to the company account |
-| Invoice | Receipt | A **tax invoice** in the company's registered name and VAT number (if Spanispace is VAT-registered), downloadable from `/company/services` |
+| Payment | R10 online, with the service paid in cash or online | The same in v1 (R10 online, with the service paid in cash or online per the provider's choice). Later, a monthly statement or invoice billed to the company account |
+| Invoice | Receipt | An **invoice** in the company's registered name, downloadable from `/company/services`. It becomes a **tax invoice** once Spanispace is VAT-registered (§8.1) |
 | Visibility | The requester's own bookings | Every company member with Manager or above sees all of the company's service bookings. Viewers have read-only access |
 | Contact unlock | Requester ↔ provider | The provider sees the company's **designated site contact**, not every team member's details |
 | Reviews | From the individual | Posted as the company. Shown on the provider profile as "Reviewed by a verified business" |
@@ -345,3 +444,78 @@ Spanispace is a marketplace that connects requesters with independent providers.
 - keep records of each verification decision
 
 The badge must say exactly what was checked ("ID and police clearance checked on [date]"), not "safe" or "trusted". Have the final wording reviewed by a South African attorney before launch.
+
+### 7.15 Job tracking (a job in progress)
+
+Every confirmed booking gets a job page at `/services/jobs/[bookingId]`. Both parties see the same timeline. Each step is a row in `job_events`, an append-only log with who did it, when, and any note or photo. The log is the evidence base for disputes, no-show refunds and payouts.
+
+| Step | Who triggers it | What happens |
+|------|-----------------|--------------|
+| **Scheduled** | System, on payment success | Job date and time, address and both phone numbers shown. Reminders sent the day before |
+| **On the way** | Provider taps "On my way" | The requester is notified. An optional ETA is shown, and live location is later work (S7) |
+| **Started** | Provider enters the requester's **4-digit start code** | The code is shown only in the requester's app and stored hashed. Entering it proves the provider arrived and the requester was there. The requester can also tap "Provider has arrived" if the provider's phone is a problem |
+| **In progress** | Automatic after the start | Multi-day jobs get a **daily check-in** (the provider taps "Day 2 started" or "Day 2 done"). Either side can post progress notes and photos |
+| **Issue raised** (optional) | Either party | Flags a problem without stopping the job (for example "extra wall found, needs a new price"). A price change goes through a **new offer version**, accepted by both. For online jobs, the difference is charged or refunded online. For cash jobs, the new price is just what's paid on the day |
+| **Marked complete** | Provider | Requires at least one "after" photo for categories where it makes sense (painting, cleaning, gardening, and so on). Starts the **72-hour confirmation window** |
+| **Confirmed complete** | Requester taps "Confirm job done", or 72 hours pass with no response | **Online:** the payout is released. **Cash:** the provider taps "Cash received" and the requester confirms. A mismatch gets flagged to an admin |
+| **Disputed** | Requester (before confirming) or provider (after a refusal) | **Online:** the held money is frozen. An admin reviews the timeline, chat and photos, and decides (§7.7a). **Cash:** an admin can mediate, refund the R10 or apply strikes, but there's no money to move |
+| **Closed** | System | The review prompt goes to both parties, and the request moves to `completed` |
+
+**Safety in the job page:**
+- An **emergency / report** button on the job page, which links to SAPS 10111 and the in-app report (§7.14).
+- Address and phone numbers are visible only from `scheduled` until 7 days after `closed`, then hidden again.
+
+**Timers (scheduled job, `pg_cron` or GitHub Actions):**
+- Unpaid agreements expire after 48 hours.
+- A no-show is flagged if the job is not `started` within 2 hours of the start time. The requester can then report a no-show, which leads to a full refund and a strike (§7.7a).
+- The 72-hour auto-confirm after the provider marks the job complete.
+- Clearance expiry reminders.
+
+
+---
+
+## 8. Legal and tax review register
+
+These are questions Spanispace can't settle on its own. Each needs a South African attorney (or, for tax, an accountant or tax practitioner) before the related feature goes live. When an item is resolved, update its status, record the advice and the date, and link the source.
+
+| # | Topic | The question | Why it matters | Blocks | Reviewer | Status |
+|---|-------|--------------|----------------|--------|----------|--------|
+| R1 | **Holding online-job money** (National Payment System Act, SARB directives on payments to third persons) | Can Spanispace collect a requester's service payment, hold it until completion, and pay it out to the provider? Is operating inside a registered gateway's marketplace or sub-account product enough, or does Spanispace need its own registration (for example as a third-party payment provider through a sponsoring bank)? | Collecting money on behalf of others is regulated, and getting it wrong could mean having to stop online service payments | S4 online jobs (fallback: collect only the R10 online) | Attorney + the chosen gateway's compliance team | **Open** |
+| R2 | **Middleman disclaimer** (CPA s48–s51) | Is the §7.14 wording enforceable? What is the most Spanispace can disclaim for service quality and for crimes by providers or requesters? | The CPA voids terms that are unfair, or that waive liability for the supplier's own gross negligence | S0, S4 go-live | Attorney | **Open** |
+| R3 | **Cancellation and refunds** (CPA s17, ECT Act s42/s44) | Is the §7.7a policy lawful? That covers: no refund of the R10 after the unlock, the 10% (R50–R200) late-cancellation fee, the cash-job commitment deposit, and the 72-hour auto-confirm | CPA s17 allows only a *reasonable* cancellation penalty. The ECT 7-day cooling-off is excluded only for services that started with consent | S4 go-live | Attorney | **Open** |
+| R4 | **Criminal record data** (POPIA s26–s27, s33) | Is the consent wording enough to collect police clearance certificates? What is the retention period? Can the file be deleted after review, keeping only the outcome? | Criminal behaviour is special personal information, and processing it is prohibited without a lawful basis | S1 | Attorney / Information Officer | **Open** |
+| R5 | **Independent contractor status** (Labour Relations Act s200A, BCEA) | Could providers be deemed Spanispace employees, given that Spanispace sets the fee, holds payment and applies strikes? | A deemed employment relationship would bring labour-law duties | S1 Service Provider Agreement | Attorney | **Open** |
+| R6 | **VAT and turnover** (VAT Act) | Spanispace is **not VAT-registered yet**. When must it register, and does held service money count as Spanispace's turnover? See §8.1 | This decides when VAT applies to the R10, and whether the service price counts toward the threshold | Ongoing, S5 invoices | Accountant / tax practitioner | **Open, monitor** |
+| R7 | **Message scanning and admin access** (POPIA s18 notification, s11 lawful basis) | Is scanning service chats for contact details, and letting admins read threads during disputes, adequately disclosed and justified? | It is processing of private communications | S3 | Attorney / Information Officer | **Open** |
+| R8 | **Age** (POPIA s34–s35) | Is checking 18+ from the SA ID number enough for providers, and what applies to requesters? | Children's data needs a competent person's consent | S1 | Attorney | **Open** (links to compliance item 17) |
+
+### 8.1 VAT: what "not registered yet" means
+
+**Current position (20 Oct 2026):** Spanispace is not VAT-registered.
+
+**What that means now:**
+- Spanispace **must not charge or show VAT** on anything. The R10 is just **"R10"**, with no "incl. VAT" and no VAT line. Charging VAT while unregistered is not allowed.
+- Spanispace **can't issue tax invoices**. Companies get an ordinary **invoice or receipt** showing Spanispace's name, the date, a description and the amount. A company can't claim input VAT on it. That cost is small at R10 per booking, but worth saying in the company terms.
+- Spanispace also can't claim VAT back on its own costs, such as gateway fees or hosting.
+
+**When registration becomes necessary:**
+- **Compulsory** once taxable supplies exceed **R1 million in any 12 consecutive months**, or are expected to. This threshold has been R1 million for years. National Treasury has proposed raising it, so **check the current figure with the accountant**.
+- **Voluntary** registration is possible once taxable supplies pass **R50,000 in 12 months**. Being able to issue tax invoices can help with company clients.
+- The standard rate is **15%**.
+
+**The open question (R6): what counts as Spanispace's turnover.**
+- **Cash jobs:** only the R10 fees are Spanispace's supplies.
+- **Online jobs:**
+  - If Spanispace collects the service price **as the provider's agent** (the provider supplies the service, and Spanispace only facilitates and passes the money on), then only the **R10 counts**. On that basis, about 100,000 bookings a year (R1m ÷ R10) would be needed to reach the threshold.
+  - If Spanispace is treated as the **principal**, selling the service itself, then **the whole service price counts**. The threshold could then be reached quickly, and VAT would apply to the full amount.
+  - The terms, the Service Provider Agreement and the money flow must be written to support the **agent** position, and the accountant should confirm it.
+
+**When Spanispace does register:**
+- Decide whether **R10 stays the price including VAT** (Spanispace keeps about R8.70) or **becomes R11.50** (R10 + 15%). The CPA requires the price shown to include VAT.
+- Start issuing **tax invoices** to companies, with Spanispace's VAT number.
+- Update the price display, the receipts and §7.13.
+
+**What to build now so registration is easy later:**
+- Store `vat_cents` (0 for now) and `vat_rate` on every fee charge.
+- Keep a `SPANISPACE_VAT_REGISTERED=false` setting that drives the receipt and invoice templates.
+- Track rolling 12-month fee turnover in the admin dashboard, with an alert at R800,000.

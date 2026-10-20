@@ -38,7 +38,7 @@ The platform is live on Netlify with a full Next.js 16 + React 19 + Supabase sta
 | Training catalogue: paid levels + Terminal School courses | ✅ Live — all migrations confirmed run 15 Oct 2026 | PR #7 (7 Aug 2026, closes issue #6): `trainings.level` (Beginner/Advanced) with `is_free` derived by trigger, not a free-standing checkbox; 8 Terminal School tracks (external links) plus the SpaniSpace Academy AI/Tech Careers Bootcamp and AI Foundations course, hosted in-platform at `/training/ai-careers-bootcamp` and `/training/ai-foundations` (the PR description says `/academy` — that route doesn't exist, content actually lives under `/training`). Needs `supabase/add-training-levels.sql`. Not previously documented. |
 | Candidate documents table + storage bucket | ✅ Live — all migrations confirmed run 15 Oct 2026 | Backs the multi-document library row above. Needs `supabase/add-documents-table.sql` and `supabase/create-documents-bucket.sql`. Not previously documented as separate migrations. |
 | Candidate auto-apply queue | ✅ Live — all migrations confirmed run 15 Oct 2026 | `/candidate/auto-apply`: candidates set preferences (fields, excluded companies, work type, location); a daily service-role matcher stages qualifying jobs in `application_matches` for the candidate to review and click-apply — not a silent auto-submit. Needs `supabase/add-auto-apply.sql`. Not previously documented. |
-| `candidate_profiles` RLS infinite recursion | ✅ Fixed — migration run (confirmed 15 Oct 2026) | Candidate onboarding save ("Just one more step") failed with `infinite recursion detected in policy for relation "candidate_profiles"`. Caused by `fix-security-hardening.sql`'s "Companies read applicant profiles" policy and the `applications` table's own SELECT policy querying each other. Fixed via a new `SECURITY DEFINER` helper `public.company_has_applicant()`, same pattern as `is_admin()`/`has_applied_to_job()`. **Run `supabase/fix-candidate-profile-visibility-recursion.sql` in the Supabase SQL Editor to actually resolve the live error** — see 13 Aug 2026 changelog. |
+| `candidate_profiles` RLS infinite recursion | 🔴 **Regressed 20 Oct 2026, fix pending in production.** Re-running every migration on 15 Oct ran `fix-security-hardening.sql` after the fix, which put the recursive policy back. Live reads of `candidate_profiles` and `applications` fail with 42P17, so candidates who have a phone get sent to onboarding and the save fails. **Run `supabase/fix-candidate-profile-visibility-recursion.sql` again.** `fix-security-hardening.sql` now uses the safe helper, so this can't happen again. Original 13 Aug write-up below. | Candidate onboarding save ("Just one more step") failed with `infinite recursion detected in policy for relation "candidate_profiles"`. Caused by `fix-security-hardening.sql`'s "Companies read applicant profiles" policy and the `applications` table's own SELECT policy querying each other. Fixed via a new `SECURITY DEFINER` helper `public.company_has_applicant()`, same pattern as `is_admin()`/`has_applied_to_job()`. **Run `supabase/fix-candidate-profile-visibility-recursion.sql` in the Supabase SQL Editor to actually resolve the live error** — see 13 Aug 2026 changelog. |
 | URL-field validation bug | ✅ Fixed 10 Jul 2026 | Company profile Website/Logo URL and admin Learnerships/Late-Uni-Apps "Apply Link" fields used `type="url"`, so a scheme-less value (`linkedin.com/x` instead of `https://linkedin.com/x`) triggered native browser validation and silently blocked the whole form's submit — presented as "details wouldn't save" / "keeps saying enter url and doesn't continue". Fixed by switching all four fields to `type="text"` + `lib/normalizeUrl.ts`, which auto-prepends `https://` on save instead of blocking. Sourced from `docs/BETA_LAUNCH_OPS_CHECKLIST.md`, not previously in this table. |
 | isiZulu translations | ✅ Live, labelled beta | Not an automated checker — `docs/ISIZULU-REVIEW.md` is a hand-review sheet. Of the 52 isiZulu strings added 8 Aug 2026, every one was checked against dictionaries and a noun-class concord table (catching 4 wrong number forms), and the process separately caught a half-English string (`course.read` rendered "49 min yokufunda") that shipped code never surfaced. None of it has been read by a first-language speaker yet — that's the actual outstanding step, not further automated checking. **Next action:** hand `docs/ISIZULU-REVIEW.md` to a first-language isiZulu speaker (Percy?), get corrections written into its last column, apply them to `lib/i18n/zu.ts`, remove the BETA marker in `components/LanguageToggle.tsx`. Course lesson content itself (`data/academy.ts`, ~18,000 words) is deliberately English-only — translating it is a separate, much larger, not-yet-decided piece of work. |
 | Landing page redesign | ✅ Live | Moved off a generic template look toward a job-board layout; several iterations on the hero (space/galaxy theme, headline stats, institution logos) through 8–9 Aug 2026. Not previously documented. |
@@ -60,6 +60,7 @@ The platform is live on Netlify with a full Next.js 16 + React 19 + Supabase sta
 | Google OAuth | ✅ Signup fix run 15 Oct 2026 (was broken 22 Aug) | See [1.3](#13-social-authentication--shipped-for-candidates-companies-still-emailpassword). Companies still email/password by design. **14 Aug 2026: switched off Supabase's hosted redirect flow** — Google's consent screen was showing the raw `rssuacaedvihhpcakuvm.supabase.co` project domain instead of spanispace.com, which read as a phishing attempt. Now uses Google Identity Services + `signInWithIdToken`, entirely client-side on spanispace.com. **22 Aug 2026: every candidate signup (Google or email/password) currently fails** with "Database error saving new user" — `handle_new_user()` lost its `SET search_path = public` clause on 13 Aug, needs `supabase/fix-candidate-signup-search-path.sql` run in production. |
 | 404 page | ✅ Live, 14 Aug 2026 | `app/not-found.tsx` (Next's catch-all for every unmatched route, no wiring needed beyond the file existing) is a full Three.js scene, not a flat page: an astronaut sitting on a bench under a signpost reading "404" instead of a bus route, lit by a flickering lamp, with a starfield, nebula wash, and a planet, matching the space theme already established by `HeroCanvas.tsx` on the homepage. New `components/NotFoundScene.tsx`. First pass was a static SVG illustration; user asked for Three.js instead since it looked flat, and the first 3D pass was underlit (astronaut read as a black silhouette — `MeshStandardMaterial` has no light of its own, and the point lights weren't reaching it) and had the sign cropped on narrow phones (fixed aspect-dependent camera pullback). Verified with real screenshots (`npx playwright screenshot`) at both desktop and mobile widths before calling it done, not just by reading the code. |
 | Payments (Stripe) | ❌ Not built | `subscription_tier`/`subscription_status` columns exist but are unused/manual |
+| Spanispace Services marketplace | 🟡 S1 + S2 code done 20 Oct 2026, **migration not run** | Service providers for short jobs (cleaning, laundry, painting, plumbing, 29 categories in total). **S1:** "I offer services" signup or candidate opt-in, a 5-step enrolment wizard (rate card, area, identity, documents, agreement), SAPS police clearance and ID verification in a private bucket, the admin queue at `/admin/service-providers`, a listing switch, and server-side contact-detail blocking. **S2:** home page section, navbar link, `/services`, `/services/[category]`, `/services/provider/[id]` (summary signed-out, full rate card signed-in), backed by safe `security_barrier` views. Needs `supabase/add-service-marketplace.sql`. Messaging, the R10 fee and payments (S3–S4b) are not built. See [Phase 2b](#phase-2b--spanispace-services-marketplace-planned-20-oct-2026-s1--s2-code-done). |
 | Engineering Mentorship Program course | ✅ Live | New SpaniSpace Academy course at `/training/engineering-mentorship`, 6 lessons transcribed from a supplied 12-week DevSecOps-first mentoring curriculum (standards, 4 phases, 4 project portfolios, career-prep phase). Added `academy.mentorship` to `data/academy.ts`, registered in `data/courses.ts` and `data/constants.ts`. Three same-day follow-ups: (1) each project lesson (3, 4, 5) now closes with a "before you call this done" requirement to push a public GitHub repo, write a LinkedIn post, and share on one other platform, codified as a named standard and outcome in lesson 1 too; (2) lesson titles no longer run the timeline and heading into one sentence ("Weeks 4 to 6, Project 1, the personalization and events engine") — a new optional `eyebrow` field on `AcademyModule` carries the week range separately, shown as a small label above the title on the course page and inline with the lesson number on the lesson page, optional so the two pre-existing courses are unaffected; (3) all 23 lessons across all three courses (12 bootcamp, 5 shortcourse, 6 mentorship) were condensed, roughly a third shorter per lesson, cutting redundant framing while keeping every named fact, number, source and link intact — `line-clamp-2` added to card teaser text on the course page and catalogue cards (`components/TrainingSection.tsx`) as a permanent safeguard against uneven card heights, same design system throughout, no layout changes. 11 Aug 2026. |
 | Training content gated behind login + lesson progress | ✅ Live — all migrations confirmed run 15 Oct 2026 | Lesson pages (`/training/[course]/[lesson]`) previously rendered full `bodyHtml`/`keyTerms`/`activityHtml` to anyone, logged in or not — no auth check existed anywhere on that route. Now: signed-out readers see only the existing teaser (title, hook, outcomes) plus a locked panel with sign-in/register links; full content and a "mark complete" toggle require a session. Completion persists per-user in the new `academy_lesson_progress` table (keyed on `auth.uid()`, not `candidate_profiles.id`, so it works for any role), surfaced as a per-course completed-count on the course page and a "Training Progress" card on `/candidate/dashboard`. Forces `/training/[course]` and `/training/[course]/[lesson]` to render dynamically instead of statically (confirmed in the build output — both flipped from `○` to `ƒ`), which is required for the per-request auth check to actually run. Needs `supabase/add-academy-progress.sql`. 11 Aug 2026. |
 | Compulsory phone/name on signup, forced profile completion after Google | ✅ Live | Register form's candidate phone field had no `required` attribute (full name did) — some candidates ended up with no phone on file, and Google sign-ins (which never supply a phone, and can fall back to an email-prefix "name" if Google's own name is missing) had no way to be asked for one at all. Phone is now `required` in `app/(auth)/register/page.tsx`'s candidate tab. New `app/candidate/onboarding/page.tsx` (mirrors `app/candidate/profile/page.tsx`'s load/save pattern) collects a confirmed/edited display name and a phone number. `lib/supabase/middleware.ts` now queries `candidate_profiles.phone` for every authenticated `/candidate/*` request and redirects to `/candidate/onboarding?next=<path>` whenever it's missing — applies to every candidate account, old or new, not just fresh signups (explicit product decision, see this session's transcript), since `candidate_profiles.phone` deliberately stays nullable at the DB level (a `NOT NULL` constraint would break the `handle_new_user` trigger's Google sign-up path). No migration needed — reuses the existing `"Candidates update own profile"` RLS policy. 11 Aug 2026. |
@@ -81,6 +82,9 @@ The pre-registration "join the waitlist" flow no longer makes sense now that rea
 ### Outstanding: Production Migrations
 
 > **✅ Cleared 15 Oct 2026:** Linda confirmed that every SQL file below has been run against production, including the 🔴 signup fix (0), 0b–0d, `fix-security-hardening.sql` (1), `fix-cv-completeness.sql` and the rest of 2–19. Nothing in this section is outstanding. Two follow-ups remain unconfirmed: the issue #8 admin-audit query and demotion step, and the super_admin bootstrap `UPDATE` for 0d. The post-migration smoke test at the end of this section also hasn't been run. Everything below is kept as history.
+
+> **🟡 New since that clear-out, not yet run:**
+> - `supabase/add-service-marketplace.sql` (20 Oct 2026): Spanispace Services S1 + S2 (service providers, enrolment, verification, the private `provider-documents` bucket, and the public safe-columns views). Nothing existing depends on it, but `/candidate/services`, the enrolment wizard and `/admin/service-providers` won't work until it's run, and `/services` won't list any providers. It has not been run against any database yet, so try it on a staging or branch project first if you can. Safe to re-run. See [Phase 2b S1](#phase-2b--spanispace-services-marketplace-planned-20-oct-2026-s1--s2-code-done).
 
 `supabase/` now has 21+ files and this roadmap could no longer tell you from the repo alone which have actually been run against the live project (`rssuacaedvihhpcakuvm`) — that state lives only in Supabase, not in git. Treat every migration below as **unverified** until someone runs the audit query from issue #8 (see [PR #10: Pre-Launch Audit](#pr-10-pre-launch-audit-open-unmerged)) and confirms against the dashboard.
 
@@ -195,7 +199,7 @@ Full pre-launch audit of the live site, 9 Aug 2026. Branch `fix/ship-check-launc
 | 4 | Cookie policy | 🟡 | Privacy §8 states essential cookies only, no analytics/advertising cookies. Fine as a section; no separate page needed while that's true. |
 | 5 | Cookie consent banner | 🟡 | Not built. With essential-only cookies a full consent banner isn't strictly required, but a one-line notice is good practice. **Becomes mandatory the moment any analytics/marketing script is added.** |
 | 6 | Form consents | ❌ | `app/(auth)/register/page.tsx` has no "I agree to the Terms and Privacy Policy" checkbox/notice. The footer newsletter signup (`components/Footer.tsx`) collects emails with no consent wording — POPIA s69 direct-marketing needs opt-in. Applications/redirect capture forms also need a "your details will be shared with {employer}" line. |
-| 7 | No unnecessary data (minimisation) | 🔍 | Review every field on candidate onboarding/profile and the redirect-capture form; ID documents (talent verification) are the highest-risk data — confirm retention and admin-only access. |
+| 7 | No unnecessary data (minimisation) | 🔍 | Review every field on candidate onboarding/profile and the redirect-capture form; ID documents (talent verification) are the highest-risk data — confirm retention and admin-only access. **Found 20 Oct 2026:** candidate `id_document`/`qualification`/`transcript` files are stored in the **public** `documents` bucket (`getPublicUrl` in `components/candidate/DocumentLibrary.tsx`), so anyone with a file's URL can open it. Move them to a private bucket with signed URLs, the way Spanispace Services' `provider-documents` works. |
 | 8 | Audit third-party SDKs | 🟡 | Client-side third parties found: Google Identity Services (`accounts.google.com/gsi/client`) and Google Fonts via `next/font` (self-hosted at build, no runtime call). Server-side processors: Supabase, Resend, Gemini (CV text), Netlify, Zoho. All need listing in privacy §4 by name, and Gemini's cross-border transfer (POPIA s72) called out. |
 | 9 | Remove dark patterns | 🔍 | No audit yet. Check: auto-apply defaults, pre-ticked toggles (`open_to_offers`), how hard account closure is, confirm-shaming copy. |
 | 10 | Remove hidden fees | 🔍 | Paid training levels exist — check prices are shown in ZAR, VAT-inclusive, before the user commits. Company Pro/Enterprise tiers are referenced in `llms.txt` but not priced anywhere. |
@@ -335,7 +339,7 @@ Full pre-launch audit of the live site, 9 Aug 2026. Branch `fix/ship-check-launc
 
 ---
 
-### Phase 2b — Spanispace Services marketplace (planned 20 Oct 2026, not started)
+### Phase 2b — Spanispace Services marketplace (planned 20 Oct 2026, S1 + S2 code done)
 > Goal: let verified individuals offer short-term everyday services (cleaning, laundry, painting, plumbing and more) that any user, including companies, can hire. Spanispace earns a flat booking fee from the requester.
 
 Full spec: [project-details.md §7](project-details.md#7-new-feature-spanispace-services).
@@ -349,60 +353,109 @@ Full spec: [project-details.md §7](project-details.md#7-new-feature-spanispace-
 | Criminal check | The **provider uploads a SAPS Police Clearance Certificate**, reviewed by an admin (cheaper than a check service) |
 | Middleman disclaimer | **Required.** Spanispace is not responsible for service quality, or for crimes committed by providers or requesters (draft in spec §7.14, needs a lawyer) |
 | Categories | **All at launch.** Regulated trades still need a trade certificate per category |
-| Company hiring | **Yes, as a separate flow:** Manager+ RBAC, multi-provider and recurring jobs, tax invoices, site contact (spec §7.13) |
+| Company hiring | **Yes, as a separate flow:** Manager+ RBAC, multi-provider and recurring jobs, invoices (tax invoices once VAT-registered), site contact (spec §7.13) |
+| Payment journey | **Defined (spec §7.4):**
+- one request can have several provider conversations
+- each request gets its own chat page, where **both parties accept the terms and the offer**
+- R10 is charged on agreement
+- providers choose how the **service** is paid: **cash only** (physical money), **online only**, or **cash or online**
+- **the R10 is always online, never cash**
+- **online:** the service price + R10 is debited at agreement, the provider is not released until the debit succeeds, and the money is held until the job is completed and both confirm, then paid out |
+| Gateway fee on online service payments | **The provider pays it**, deducted from the payout and shown upfront (confirmed 20 Oct 2026) |
+| Late-cancellation fee | **10% of the service price, minimum R50, maximum R200**, paid to the provider when the requester cancels within 24 hours on an online job (confirmed 20 Oct 2026) |
+| Anonymous browsing | **Summary only**. Full profile and messaging need sign-in (confirmed 20 Oct 2026) |
+| Police clearance validity | **12 months from the issue date** (confirmed 20 Oct 2026) |
+| VAT | **Not registered yet.** No VAT charged or shown. Store `vat_cents = 0` and track 12-month fee turnover (spec §8.1) |
+| Legal/tax questions | Tracked in the review register, spec §8 (R1–R8). R1 (holding online money under the NPS Act) blocks S4 online jobs |
+| Cash-job late cancellation | **Proposed, awaiting approval:** reliability score, then a commitment deposit after 2 late cancellations in 90 days, then cash bookings blocked for 90 days after 3 (spec §7.7a) |
 | Cancellation/refunds | Policy drafted in spec §7.7a. Provider fault means a full refund. A requester cancelling more than 24 hours ahead gets a R10 credit. A requester cancelling within 24 hours gets nothing |
 
 **Ground rules for every step:**
 - Contact blocking is enforced on the server, never only in the client.
 - Only the payment webhook can confirm a booking or unlock contact.
 - Keep company↔candidate `message_threads` untouched. Service chats get their own tables.
+- Held online-payment money moves only through these routes: payout on `completed`, refund on cancellation, or an admin's dispute decision. Every move is logged in `job_events` and `service_payouts`.
 
 #### S0 — Legal and terms (do first; blocks S4 go-live, not S1 build)
 - [ ] Add a "Spanispace Services" section to `app/(public)/terms`: marketplace role, independent contractors, the R10 fee, the no-circumvention rule, the middleman disclaimer
-- [ ] Add the Service Provider Agreement page at `/services/provider-agreement`, versioned (`SERVICE_TERMS_VERSION` constant)
+- [x] Add the Service Provider Agreement page at `/services/provider-agreement`, versioned (`SERVICE_TERMS_VERSION` constant). **Drafted 20 Oct 2026**, marked as a draft on the page, and still needs the attorney review (R2–R5)
 - [ ] Add the cancellation policy page at `/services/cancellation-policy` (the spec §7.7a table)
 - [ ] Update `app/(public)/privacy`:
   - police clearance as POPIA §26 special personal information, with explicit consent and a retention period
   - service message scanning, and admin access to service threads during disputes
   - the payment gateway as a processor
 - [ ] Add a safety guide page for requesters and providers
-- [ ] Get an SA attorney to review the disclaimer (CPA s48–51 limits), the cancellation policy (ECT s42/s44 cooling-off), and whether VAT applies to the R10
-- **Done when:** all four pages are live and the attorney's sign-off is noted here
+- [ ] Work through the **Legal and tax review register** (spec §8, items R1–R8) with an SA attorney and an accountant. Record the outcome of each item in the register. Key items:
+  - the disclaimer (CPA s48–51 limits)
+  - the cancellation policy (ECT s42/s44 cooling-off)
+  - VAT: when registration becomes compulsory, and confirming that held service money is collected **as agent**, so it isn't Spanispace's turnover (R6)
+  - **whether holding online-job money through a gateway marketplace product is enough under the National Payment System Act** (third-party payment collection)
+- [ ] Add the held-funds rules to the Terms: when the money is debited, the 72-hour auto-confirm, the late-cancellation fee (10%, minimum R50, maximum R200), and how disputes are decided
+- **Done when:** all four pages are live, and R1–R5 and R7 in the review register are resolved or have an accepted fallback
 
-#### S1 — Foundations: providers, enrolment, verification
-- [ ] Write the migration `supabase/add-service-marketplace.sql` (also mirror it into `schema.sql`):
-  - tables `service_categories` (seeded with all categories, with a `requires_qualification` flag), `service_providers`, `provider_services`, `provider_strikes`
-  - new `candidate_documents` types `police_clearance`, `proof_of_address`, `trade_certificate`, `selfie`
-  - a `SECURITY DEFINER` helper `is_service_provider()`
-  - RLS so only verified, active providers are publicly readable, with documents admin-only
-- [ ] Add an "Offer services" tab to `app/(auth)/register/page.tsx`. It creates a candidate account plus a `service_providers` row. **Do not touch `handle_new_user()`**: create the provider row in an explicit API call after signup, the same lesson as the invites work in Aug 2026
-- [ ] Add an "Offer my services" opt-in entry from `/candidate/dashboard` and `/candidate/profile`
-- [ ] Build the enrolment wizard at `/candidate/services/enrol`, with these steps:
-  1. categories and rates
-  2. service area and travel radius
-  3. availability
-  4. portfolio photos
-  5. document uploads (ID, selfie, police clearance, proof of address, trade certificates for regulated categories)
-  6. agreement and consent tick boxes, storing `terms_version` and `terms_accepted_at`
-- [ ] Enforce 18+ at enrolment, derived from the SA ID number or checked by an admin
-- [ ] Build the admin verification queue at `/admin/service-providers`:
-  - view the documents
-  - approve or reject with a note
-  - set `police_clearance_expires_at` (issue date + 12 months)
-  - approve or reject each regulated category separately
-- [ ] Build the provider dashboard at `/candidate/services`: status, listing on/off, edit profile
-- [ ] Add `lib/services/contactGuard.ts` (needed here already) and run it over every provider profile field on save
-- **Done when:** a candidate can enrol, an admin can verify them, and a verified provider can switch their listing on. Unverified providers appear nowhere publicly
+#### S1 — Foundations: providers, enrolment, verification — code done 20 Oct 2026, migration pending
+> **To go live:** run `supabase/add-service-marketplace.sql` in the Supabase SQL Editor. It is safe to re-run. Until then, `/candidate/services` and the wizard error because the tables don't exist. It has **not been run against any database yet**, so test it on a branch or staging project first if possible.
 
-#### S2 — Discovery
-- [ ] Build `/services` (search with filters for category, province/city, availability, price, rating, verified only) and `/services/[category]` landing pages
-- [ ] Build the public provider profile at `/services/provider/[id]`: first name and last initial, photo, categories, area, rates, badges ("ID and police clearance checked on [date]"), reviews. **No contact details.** The disclaimer line appears at the bottom
-- [ ] Anonymous visitors see a summary only, and must sign in to see the full profile and message
-- [ ] Add the new pages to the navbar, `sitemap.ts` and `llms.txt`, and add the English and isiZulu strings
-- **Done when:** a signed-out visitor can find a verified provider by category and area, and nothing on the page exposes a phone number, email or link
+- [x] Migration `supabase/add-service-marketplace.sql`, mirrored into `schema.sql`:
+  - **29 categories** seeded (all of them, per Linda), with allowed pricing units per category. 6 regulated categories need a certificate: plumbing, electrical, gas, solar, pest control, security
+  - tables `service_providers`, `provider_services`, `provider_rates`, `provider_documents`, `provider_strikes`
+  - **Changed from the plan:** verification documents use their own `provider_documents` table and a **private** `provider-documents` bucket, not new `candidate_documents` types. The existing `documents` bucket is public (`getPublicUrl`), and police clearance is POPIA §26 data. Admins open files through 2-minute signed URLs
+  - **Changed from the plan:** there is **no public read policy yet.** A provider row holds the date of birth and review notes, and RLS can't hide columns. S2 adds a safe-columns view instead
+  - guard triggers so providers can't set their own verification outcome, police clearance dates, ratings or qualification approvals. "Verified" requires an in-date clearance (enforced for admins too), and a listing can only be on while verified
+  - the SA ID number is **never stored**. The server derives the date of birth (Luhn-checked) and discards the number
+- [x] "I offer services" tab on `app/(auth)/register/page.tsx` (also `/register?as=services`). It creates a normal candidate account and goes to the wizard. `handle_new_user()` is untouched; the provider row is created by `POST /api/services/provider`. Email-confirmation signups get a "Finish setting up your services" banner on `/candidate/dashboard` (driven by the `signup_intent` metadata)
+- [x] Opt-in for existing candidates: a "My Services" sidebar link leads to an intro page with a "Start enrolment" button. *(A card on `/candidate/profile` is not added yet.)*
+- [x] Enrolment wizard `/candidate/services/enrol`, in 5 steps:
+  1. services and rate card
+  2. profile, area, travel radius, availability and payment preference
+  3. identity (SA ID, or passport + date of birth)
+  4. documents (ID or passport + work permit, selfie, police clearance, proof of address, and a trade certificate for each regulated category)
+  5. agreement + POPIA consent, then submit
 
-#### S3 — Guarded messaging
-- [ ] Migration: add `service_threads` (with nullable `company_id` and `service_job_id`), `service_messages` (`kind` text/offer/system, `blocked`) and `contact_violations`, plus an `is_service_thread_party()` helper. **No client INSERT policy on `service_messages`**
+  Locked while under review, and identity is locked once verified. A live contact-detail warning shows while typing. **Portfolio photos moved to S2**, since they need a public, moderated bucket
+- [x] 18+ enforced in the API (from the ID or the date of birth) and again by the database trigger on submit
+- [x] Admin queue `/admin/service-providers` (sidebar: Service Providers):
+  - filters: needs review, verified, changes requested, suspended
+  - shows verified providers who uploaded new documents
+  - view, approve or reject each document, with a note
+  - record the police clearance issue date (expiry = issue + 12 months)
+  - approve or reject each regulated category
+  - verify, request changes, suspend, lift a suspension
+- [x] Provider page `/candidate/services`: status, admin note, clearance expiry, listing on/off switch, rate card, document statuses, strike count
+- [x] `lib/services/contactGuard.ts` runs server-side on every profile, service and rate field. `scripts/test-contact-guard.ts` has 77 checks (51 must-block, 22 must-allow, 4 SA ID), all passing. Run it with `npx tsx scripts/test-contact-guard.ts`
+- [x] Draft Service Provider Agreement at `/services/provider-agreement` (S0 item), marked as a draft pending legal review
+- [ ] **Run the migration**, then test end to end: enrol → upload → admin verify → listing on
+- [ ] Clearance expiry doesn't switch `listing_active` off by itself (the trigger only runs on writes). The S2 public view must filter on `police_clearance_expires_at`, and S6 adds the expiry cron
+- **Done when:** a candidate can enrol, an admin can verify them, and a verified provider can switch their listing on. Unverified providers appear nowhere publicly. *(Code done; waiting on the migration and an end-to-end test.)*
+
+#### S2 — Discovery — mostly code done 20 Oct 2026, needs the same migration as S1
+> The public views are in `supabase/add-service-marketplace.sql` PART F, so the one migration covers S1 and S2. Until it runs, `/services` shows the category tiles and a "verified providers are on their way" message instead of an error.
+
+- [x] **Home page section** (`components/ServicesSection.tsx`, `#services`, right after the jobs board): eyebrow, headline, 8 popular category tiles plus "All services", the 3 steps, a "Bookings open soon" note, and "Browse services" / "Offer your services" buttons. Uses a static category list, so it renders before the migration runs. English and isiZulu strings are added (isiZulu not yet reviewed by a first-language speaker)
+- [x] "Services" link in the main navbar, and `/services` plus all 29 category pages in `sitemap.ts`. *(Not yet in `llms.txt`.)*
+- [x] `/services` (all categories) and `/services/[category]` (one canonical page per category, with SEO metadata). Filters: category, province, and accepted payment method, using a plain GET form that works without JavaScript. **Not yet:** city or radius search, availability, price or rating filters. Rating can wait until S6 brings reviews
+- [x] Provider cards (`components/services/ProviderCardView.tsx`): display name (first name + last initial), photo, headline, up to 3 categories, the "From R45 per m²" lowest price, area and travel radius, "ID and police clearance checked [month year]", rating or "New on Spanispace", and the payment preference
+- [x] Provider profile `/services/provider/[id]`:
+  - signed-out visitors see the **summary only**, with a "Sign in to see the full rate card" panel
+  - signed-in users see the bio, the full rate card grouped by category (with minimum charges and notes), and availability
+  - no contact details anywhere, and the disclaimer appears at the bottom
+  - the **"Request a quote" button is disabled** with a "Messaging and bookings open soon" note until S3
+- [x] Safe public views, enforced in the database:
+  - `service_provider_cards`, granted to anon: the summary columns only
+  - `service_provider_rate_cards` and `service_provider_profiles`, granted to **authenticated only**, so the summary-only rule isn't just a UI choice
+  - all three use `security_barrier`, and only include providers that are verified, listed, have an in-date clearance, and have an approved certificate where one is needed
+  - regulated categories only appear once the certificate is approved
+- [ ] **Estimator** per category (enter 35 m², see each provider's estimate)
+- [ ] Portfolio photos (moved from S1): a public, admin-moderated bucket, with photos approved before they show
+- [ ] isiZulu for the `/services` pages themselves (they're English-only for now; the home section is translated)
+- [ ] `/login` ignores `?next=`, so after signing in from a provider page you land on the dashboard, not back on the profile
+- **Done when:** a signed-out visitor can find a verified provider by category and area, and nothing on the page exposes a phone number, email or link. *(Code done for this; it can only be tested once the migration has run and one provider is verified.)*
+
+#### S3 — Requests and guarded messaging
+- [ ] Add a `service_requests` table: the requester's need (category, description, suburb, preferred dates, photos, status `open`/`booked`/`completed`/`cancelled`). "Message" on a provider creates the request the first time, or attaches to the requester's open request for that category
+- [ ] **Several conversations per request:** `service_threads.request_id`, with (`request_id`, `provider_id`) unique. Add a request page at `/services/requests/[id]` that lists every conversation and its latest offer, so quotes can be compared
+- [ ] Add a per-need chat page at `/services/requests/[id]/chat/[threadId]`
+- [ ] Migration: add `service_threads` (with `request_id`, and nullable `company_id` and `service_job_id`), `service_messages` (`kind` text/offer/system, `blocked`) and `contact_violations`, plus an `is_service_thread_party()` helper. **No client INSERT policy on `service_messages`**
 - [ ] Add the send route `POST /api/services/messages`. It authenticates the sender, checks party membership, and runs `contactGuard` on the new message plus the sender's last 5 messages (this catches numbers split across messages). While the thread's `contact_unlocked` is false, a match is rejected and logged
 - [ ] Write `contactGuard` and test it against:
   - SA number formats (`0XX`, `+27`, `27`, with spaces, dots or dashes, in brackets)
@@ -415,26 +468,77 @@ Full spec: [project-details.md §7](project-details.md#7-new-feature-spanispace-
 - **Done when:** a test suite of at least 40 evasion strings is all blocked, ordinary job-description text is not (for example "2 rooms, 3 hours, R350"), and a direct Supabase client insert into `service_messages` is refused by RLS
 
 #### S4 — Agreement, payment, unlock
-- [ ] **S4.0 Choose the gateway.** Compare Paystack, PayFast, Peach and Yoco on the real cost of a **R10 charge** (fixed plus percentage fees), refund API, signed webhooks, sandbox and onboarding requirements (company registration and bank account). Recommendation: Paystack, unless the costs clearly favour another. Record the decision here
+- [ ] **S4.0 Choose the gateway.** Compare Paystack, PayFast, Peach and Yoco on:
+  - **hard requirement: holding funds and paying out later to provider bank accounts**, whether through marketplace or split payments, sub-accounts, or a transfers API with account verification
+  - the real cost of a **R10 charge**, and of a typical R500–R3,000 online job (fixed plus percentage fees)
+  - refund API (full and partial), signed webhooks, sandbox, and onboarding requirements
+
+  Recommendation: Paystack (sub-accounts, transfers), unless the comparison or the legal advice says otherwise. Record the decision here
+- [ ] Provider payout onboarding: providers who accept online payment add a bank account, verified through the gateway (account name matched to the ID). Store only the gateway's recipient or sub-account code in `provider_payout_accounts`
 - [ ] Migration: add `service_bookings` (status lifecycle per spec §7.5, `platform_fee` copied from `SERVICE_BOOKING_FEE_CENTS = 1000`, `terms_accepted_at`, `disclaimer_accepted_at`), `service_payments` (with an idempotency key) and `service_credits`
-- [ ] Offer card in chat: the provider sends the scope, dates and service price. The requester sees **the service price (paid to the provider) and the R10 Spanispace fee as separate lines**. Only the latest offer can be accepted
-- [ ] Checkout at `POST /api/services/bookings/[id]/pay`. Requires the disclaimer and immediate-unlock tick boxes. Applies an available credit first (a R10 credit makes it free and skips the gateway)
-- [ ] Webhook at `POST /api/services/webhook`: verify the signature, record the payment idempotently, and only then set `confirmed`, `paid_at` and `contact_unlocked = true` (service role). Post a system message in the thread showing both parties' verified phone numbers
+- [ ] Build the **Offer panel** in the chat (`service_offers`, versioned):
+  - either party can draft an offer: scope, start date, number of days, service price, and the payment method (limited to what the provider accepts)
+  - the service price and the R10 Spanispace fee show as separate lines
+  - **each party has an "I accept the terms and agree to this offer" button**
+  - any edit creates a new version and clears both acceptances
+  - `POST /api/services/offers/[id]/accept` creates the booking only when both sides have accepted the same version
+- [ ] Checkout at `POST /api/services/bookings/[id]/pay`:
+  - **cash job:** charge the R10 online (no cash option for the fee)
+  - **online job:** charge the **service price + R10** online in one payment, with the R10 recorded separately as Spanispace revenue and the service price recorded as `service_payouts.status = 'held'`
+  - requires the disclaimer and immediate-unlock tick boxes
+  - records `vat_cents = 0` and `vat_rate` on every fee charge. Receipts follow a `SPANISPACE_VAT_REGISTERED` setting (currently false, so no VAT is shown)
+  - an available credit applies to the R10 only
+- [ ] Webhook at `POST /api/services/webhook`: verify the signature, record the payment idempotently, and only then set `confirmed`, `paid_at` and `contact_unlocked = true` (service role). **The provider is not released, notified as booked, or shown the address until this succeeds.** Post a system message in the thread showing both parties' verified phone numbers
+- [ ] When a booking is confirmed, post a system message to the requester's **other conversations** under the same request ("The requester has booked another provider") and close them. The request goes to `booked`, and back to `open` if the booking is cancelled
 - [ ] Add a cron that expires offers accepted but unpaid for 48 hours
-- [ ] Implement the cancellation rules from spec §7.7a:
+- [ ] Implement the cancellation rules from spec §7.7a, including the held-price rules:
+  - full refund if the requester cancels more than 24 hours ahead
+  - if the requester cancels within 24 hours or is absent, refund minus a late-cancellation fee to the provider (10%, minimum R50, maximum R200, confirmed)
+  - full refund if the provider is at fault
   - refunds through the gateway API
   - R10 credits, at most one per 30 days, expiring after 12 months
-  - provider strikes
+  - provider strikes, plus `requester_strikes` and the reliability score
+  - **if approved:** the cash-job escalation (a commitment deposit after 2 late cancellations in 90 days, then cash bookings blocked after 3)
 - [ ] Email receipts through `lib/email.ts`, with a link to the cancellation policy (depends on Resend being configured, see Issue #9)
 - [ ] Add a requester bookings page at `/services/bookings`
-- **Done when:** a sandbox payment unlocks contact; replaying the same webhook does not double-process; a failed payment leaves the thread locked; a provider cancellation refunds in full; a requester cancelling more than 24 hours ahead gets a credit
+- **Done when:**
+  - a sandbox payment unlocks contact, and replaying the same webhook does not double-process
+  - a failed online debit leaves the provider unreleased and the thread locked
+  - an offer accepted by one side only creates no booking, and editing an offer clears both acceptances
+  - a provider cancellation refunds the service price and the R10
+  - a requester cancelling more than 24 hours ahead gets the service price back plus a R10 credit
+
+#### S4b — Job tracking and payouts
+- [ ] Migration: add `job_events` (append-only, no UPDATE/DELETE policy) and `service_payouts`, plus `start_code_hash`, `marked_complete_at`, `confirmed_complete_at` and `auto_confirm_at` on `service_bookings`
+- [ ] Build the job page `/services/jobs/[bookingId]` for both parties, with the timeline from spec §7.15:
+  - scheduled
+  - on the way
+  - **started, via the requester's 4-digit start code**
+  - in progress, with a daily check-in for multi-day jobs and notes and photos
+  - issue raised (a price change means a new offer version, and an online difference is charged or refunded)
+  - marked complete (needs an "after" photo where relevant)
+  - confirmed complete
+  - disputed
+  - closed
+- [ ] Add `POST /api/services/jobs/[id]/event`, which enforces who may trigger each step and in what order (server-side; the client only shows buttons)
+- [ ] **Online payout:** on `completed` (the requester confirms, or 72 hours of silence after "marked complete"), start a gateway transfer for the service price minus the gateway processing fee (the provider pays it, shown upfront, confirmed 20 Oct 2026). Track it in `service_payouts`
+- [ ] **Cash completion:** the provider taps "Cash received" and the requester confirms. A mismatch gets flagged to an admin
+- [ ] **Dispute:** freezes held funds. Admin decisions are release in full, release part and refund the rest, or refund in full, and every decision is logged
+- [ ] Timers (cron): no-show flag if the job isn't started within 2 hours of the start time; reminders at 24 and 48 hours; auto-confirm at 72 hours; hide contact details 7 days after closing
+- [ ] Add an emergency/report button on the job page (SAPS 10111 and an in-app report)
+- **Done when:**
+  - an online job runs end to end in the sandbox: debit, held, started with the code, marked complete, confirmed, payout sent
+  - a disputed job's money cannot be paid out until an admin decides
+  - a requester's silence releases the payout after 72 hours
+  - the provider cannot mark a job started without the code (or the requester's "arrived" tap)
 
 #### S5 — Company hiring
 - [ ] Migration: add `service_jobs`, and make RLS use `company_members` (Manager or above books, everyone else reads only)
 - [ ] Build `/company/services`: browse and shortlist, create a job (site address, site contact, PO reference, access/PPE notes), book several providers (R10 each), set up recurring bookings
 - [ ] Only verified companies can book
 - [ ] The unlock shares only the designated site contact with the provider
-- [ ] Generate tax invoices in the company's registered name (and VAT number if Spanispace is VAT-registered). Refunds are issued as credit notes
+- [ ] Generate **invoices** in the company's registered name. They switch to **tax invoices** with Spanispace's VAT number once it is VAT-registered (spec §8.1). Refunds are issued as credit notes
+- [ ] Add a rolling 12-month fee turnover figure to the admin dashboard, with an alert at R800,000 (ahead of the R1m compulsory VAT threshold; check the current figure)
 - **Done when:** a verified company Manager can book 3 cleaners for one job and download one invoice, and a company Viewer cannot book
 
 #### S6 — Reputation and safety
@@ -445,7 +549,8 @@ Full spec: [project-details.md §7](project-details.md#7-new-feature-spanispace-
 - **Done when:** a safety report pauses the listing within one request, and an expired clearance hides the provider from search
 
 #### S7 — Later
-- Escrow and payouts for the service price
+- Milestone or deposit payments for long multi-day jobs
+- Live location for "on the way"
 - A background-check API as an optional upgrade
 - R10 credit bundles to reduce gateway overhead
 - Monthly invoicing for companies
@@ -455,6 +560,7 @@ Full spec: [project-details.md §7](project-details.md#7-new-feature-spanispace-
 - Resend is not configured (Issue #9), so receipts and notifications won't send until it is.
 - Compliance checklist items 3 (refund policy), 6 (consent), 17 (age) and 20 (deletion) all intersect with this phase.
 - A R10 fee may be heavily eroded by gateway fees, so check this in S4.0.
+- **Holding online-job money** depends on the gateway's marketplace product and on legal advice (S0). If neither works, the fallback is to collect only the R10 online, with the service always paid directly as for cash.
 - Contact blocking can be evaded with images or voice. v1 bans attachments before the agreement and relies on reports and strikes.
 
 ---
@@ -623,7 +729,7 @@ Full spec: [project-details.md §7](project-details.md#7-new-feature-spanispace-
 | Company visibility & self-service parity | Q3 2026 | Job view/drop-off analytics, company-created events/training, messaging live |
 | 1,000 registered candidates | Q3–Q4 2026 | Email notifications + Google auth live |
 | First 5 paying companies | Q4 2026 | Stripe billing + company analytics |
-| Spanispace Services live (S0–S4) | Q1 2027 | Verified providers, guarded messaging, R10 booking fee via payment gateway |
+| Spanispace Services live (S0–S4b) | Q1 2027 | Verified providers, guarded multi-conversation requests, R10 booking fee, held online payments with job tracking and payouts |
 | 100 verified badges issued | Q1 2027 | Assessment engine live |
 | 10,000 registered candidates | Q1 2027 | AI matching + skills gap engine |
 | Mobile app beta | Q3 2027 | React Native app on Play Store |

@@ -7,6 +7,8 @@ import { COURSES, courseMinutes } from '@/data/courses';
 import AcademicPortal from '@/components/AcademicPortal';
 import SuccessStories from '@/components/SuccessStories';
 import JsonLd from '@/components/JsonLd';
+import ServicesSection from '@/components/ServicesSection';
+import { FALLBACK_CATEGORIES, POPULAR_SLUGS } from '@/lib/services/publicData';
 import { fetchPublicJobs } from '@/lib/publicJobs';
 import { fetchPublicUniApps } from '@/lib/publicAcademic';
 
@@ -117,6 +119,11 @@ export default async function Home() {
       <CVAuditBanner />
       <div id="jobs">
         <JobBoard initialJobs={jobs} />
+      </div>
+      <div id="services">
+        <ServicesSection
+          categories={POPULAR_SLUGS.map((slug) => FALLBACK_CATEGORIES.find((c) => c.slug === slug)!).filter(Boolean)}
+        />
       </div>
       <div id="training">
         <TrainingSection courseMeta={courseMeta} preview />

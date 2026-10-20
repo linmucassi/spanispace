@@ -99,13 +99,21 @@ export async function updateSession(request: NextRequest) {
   // optional. Applies to every /candidate/* request except the onboarding
   // page itself, which is where they fix it.
   if (isCandidateRoute && role === 'candidate' && !pathname.startsWith('/candidate/onboarding')) {
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('candidate_profiles')
       .select('phone')
       .eq('user_id', user.id)
       .maybeSingle();
 
-    if (!profile?.phone) {
+    // Only redirect on a successful read that really has no phone. A failed
+    // read (e.g. the 42P17 RLS recursion on 20 Oct 2026) used to look exactly
+    // like "no phone" and sent candidates who already had one to onboarding,
+    // where the save then failed on the same error. This gate is a UX prompt,
+    // not access control (RLS is), so letting the request through on an
+    // error is the safe direction.
+    if (profileError) {
+      console.error('[middleware] candidate profile check failed:', profileError.code, profileError.message);
+    } else if (!profile?.phone) {
       const onboardingUrl = new URL('/candidate/onboarding', request.url);
       onboardingUrl.searchParams.set('next', pathname);
       return NextResponse.redirect(onboardingUrl);
