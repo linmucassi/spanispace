@@ -221,6 +221,121 @@ Linda couldn't find the marketplace on the home screen. S1 had only built the pr
 - **Tests:** 85/85 contact-guard checks, adding 8 split-message cases (4 must-block, 4 must-allow). `tsc` and ESLint are clean on all the new Services files, and the build passes. Not tested against a database.
 - **Not done:** email notifications for new requests (Resend isn't configured), attachments (deliberately off), Realtime (polling for now).
 
+## Restyled filter dropdowns (jobs board and Services)
+
+Linda flagged the dropdowns on `/services` and the "Vetted Job Opportunities" jobs board as ugly. They were native `<select>`s, whose open menu is drawn by the operating system and can't be themed. New `components/ui/Select.tsx` replaces them:
+- a styled trigger and menu, with a checkmark on the selected option
+- the ARIA select-only combobox pattern, with arrow keys, Home/End, Enter/Space, Escape and type-to-jump
+
+It works in plain GET forms through a hidden input, which is disabled when the value is empty so "All" options don't add `?x=` to the URL. `submitOnChange` applies a filter the moment it's picked.
+
+Used on:
+- the jobs board (location and type, with the search box restyled to match, and all three now on one row on desktop)
+- the `/services` filters (the Search button is gone, since filters apply immediately; the form always posts to `/services`, which redirects `?category=` to its category page, so switching category from a category page works)
+- the Request-a-quote form (its area fields stack in the narrow sidebar)
+
+Verified with Playwright against the dev server, at desktop (1280) and phone (390) widths:
+- keyboard selection
+- the province filter, which applies immediately with a clean URL (`/services?province=Gauteng`)
+- switching category from `/services/painting` to `/services/cleaning`
+- screenshots of each menu open
+
+That pass caught and fixed a menu min-width that pushed the page sideways. Also: the "provider cards unavailable" log is now a warning, not an error, when the views don't exist yet (migration not run), so it no longer shows as an issue in the Next dev overlay.
+
+## Every dropdown converted; new 404 page
+
+**Dropdowns:** Linda asked for all the remaining native `<select>`s to be replaced, not just the ones she'd flagged. All 32 across 20 files now use `components/ui/Select.tsx`: register, post-job, the admin job/training/late-uni forms and source filters, the provider enrolment wizard, the company job/event/training forms, team roles, the interview length and invite picker, and the candidate document type and work type fields. `git grep "<select"` now only finds the component itself.
+
+`Select` gained some new options so portal forms keep their own sizing:
+- `labelClassName`, plus `triggerClassName` (merged with `tailwind-merge`)
+- `disabled`
+- `required`, a visually hidden proxy input carrying native validation that hands focus back to the trigger
+- a `selectChange(name, value)` helper, so the forms' shared `handleChange(e)` handlers work unchanged
+
+Checks:
+- `tsc` is clean and the build passes.
+- ESLint on all touched files reports 15 problems. `git blame` shows every one is on pre-existing lines.
+- Playwright: register's required industry is invalid while empty and valid after a pick; the post-job job type updates.
+- Not visually checked: portal and admin forms, which need a login.
+
+**404:** replaced the Three.js astronaut scene with Linda's design from `docs/modern_space_404_page.html`, ported to `components/NotFound404.tsx` plus a CSS module, served by a server `app/not-found.tsx` that self-hosts Orbitron. Changes from the original:
+- the placeholder "AuraOS" branding became the Spanispace wordmark and real footer links
+- Font Awesome became lucide icons, so there's no new CDN
+- the search box searches jobs (`/jobs?q=`)
+- the game listens to the keyboard only while open, and Escape closes it
+- every animation frame, listener and audio node is cleaned up
+- prefers-reduced-motion is respected
+
+`components/NotFoundScene.tsx` is deleted. `/jobs` now reads `?q=` and prefills the job title search, which also makes the home page's SearchAction structured data work. Verified with Playwright at desktop and phone widths: a 404 status, the game opens, runs and closes on Escape, the search lands on `/jobs?q=Pharmacist` with the box prefilled, and no runtime errors. Compared against a screenshot of the original HTML.
+
+## Provider enrolment wizard: required fields, no step-skipping
+
+Linda asked for the "What services do you offer?" fields to be required, for the step tabs to stop being clickable, and for the wizard to only move on once a step is filled in correctly. Changes to `app/candidate/services/enrol/EnrolWizard.tsx`:
+- **The step tabs are a progress indicator now, not buttons.** "Save and continue" is the only way forward, and Back still works.
+- **Each step is validated before saving** (`validateStep()`). Every problem field gets a red border and its own message, the first one is focused, and errors update live as they're fixed. A red "*" marks required fields.
+  - **Services & prices:** at least one service; each needs years of experience (a whole number, 0–60) and a description (10+ characters); each price line needs a name and a valid price. The minimum charge and notes stay optional, and are only checked if filled in.
+  - **Profile & area:** a headline (5+ characters), province, town/city, and at least one work day.
+  - **Identity:** SA ID or passport. The SA ID is Luhn-checked and the person must be 18+ (or the passport date of birth gives 18+). Nothing needs re-entering if it's already saved and unchanged.
+  - **Documents:** every required document uploaded and not rejected. A missing slot is outlined in red.
+  - Contact-detail scanning runs on every text field, as before.
+- **The server enforces the same rules** in `POST /api/services/provider`: years of experience and a description required for every service, a headline of 5+ characters, and at least one work day.
+- `tsc` and ESLint are clean. **Not tested in a browser:** the wizard needs a signed-in candidate and the services migration, which hasn't been run yet.
+
+## Services emails, requester pages inside the portal, grouped sidebar
+
+**Email notifications** (`lib/services/notify.ts`, new templates in `lib/email.ts`), sent from the API routes through the existing Resend helper:
+- **Provider gets "New Painting request from Thandi"** on every new conversation. It includes the requester's first name, suburb/city, a 280-character excerpt of the description, and a "Reply to the request" link.
+- **Requester gets a one-off "Your Painting request has been sent"** when a request is created. It isn't sent again when they add more providers to the same request.
+- **Either party gets "Sipho replied about your Painting request"** on a new message. This is throttled to **one email per unread batch**: none if they read the thread in the last 2 minutes (they're in the chat), and no second email until they've read it since the last one. New columns `requester_last_emailed_at` / `provider_last_emailed_at` were added to the not-yet-run `add-service-requests-messaging.sql`, with an `ADD COLUMN IF NOT EXISTS` for databases that already ran an earlier copy, and mirrored.
+- Every send is best effort, so a failed or unconfigured send never fails the request or message. **Nothing will actually send until `RESEND_API_KEY` / `EMAIL_FROM` are set in Netlify (Issue #9).** Names are escaped and cut to the first word, and the content never includes contact details (messages were contact-scanned before storing).
+- Verified by rendering all three templates: subjects, the first word only, `<script>` in a name never reaching the HTML, excerpts truncated with "…", and correct links.
+
+**Missing sidebar fixed:** "My service requests" lived at the public `/services/requests`, outside the candidate layout. The requester and chat pages moved into the portal:
+- `/candidate/services/hire` (list) and `/candidate/services/hire/[id]` (compare quotes)
+- `/candidate/services/chat/[threadId]` (chat for both parties; the request is looked up from the conversation)
+
+Both requesters and providers are candidate accounts, and middleware now covers these pages. The old `/services/requests/...` URLs redirect (307, checked with curl). All links, emails and the Request-a-quote form point at the new paths.
+
+**Sidebar groups** (`components/candidate/CandidateSidebar.tsx`): Dashboard, Calendar and My Profile stay top-level. Three collapsible groups:
+- **Job search:** Applications, Enrollments, Auto-Apply, AI CV Audit
+- **Inbox:** Messages, Invitations
+- **Services:** My Services, Hire Services
+
+A group opens by itself when you're on one of its pages and can be toggled, with `aria-expanded`/`aria-current`. A dot shows when a closed group contains NEW items.
+
+**Checks:** `tsc` is clean and the build passes. The only ESLint items on touched files are pre-existing (the mobile-menu effect and `<img>` warnings). **Not visually checked:** the sidebar and the moved pages, which need a candidate login.
+
+## Sidebar: Enrollments is standalone
+
+At Linda's request, Enrollments moved out of the "Job search" group to a top-level item after My Profile, because it belongs to studies, not jobs. Job search now holds Applications, Auto-Apply and AI CV Audit.
+
+## Orphaned accounts: the Curated thread landed on a dead profile
+
+Linda ran the SQL that opens a Spanispace Curated ↔ lindasmucassi@gmail.com conversation, but couldn't see it. A read-only check showed **two `public.users` rows with that exact email**:
+- `802cf3ff` (11 Aug) has **no sign-in account**
+- `5e35e357` (4 Sep) is her live Google login
+
+The SQL matched on `public.users.email`, took the first row, and attached the thread to the dead profile. That was Claude's mistake: it should have matched through `auth.users`. A corrected `UPDATE` moved the thread to the live profile. Linda ran it, and it was confirmed read-only.
+
+**Audit** (read-only, service role): 18 `auth.users` vs 25 `public.users`.
+- **7 orphans**: rows whose sign-in account is gone. No account is missing its row.
+- 3 orphans share an email with a live account: Linda, Percy, and a `com…@spanispace.com` company address.
+- 4 are diagnostic test signups from 22 Aug and 4 Sep, whose auth users were deleted. Two of them own the companies "Diag Co" and "Diag Co 2", with member rows.
+- Only Linda's orphan holds real data: her CV and 5 work experiences. Her live profile has none.
+- No orphan has applications, threads, messages, jobs, events or enrollments.
+
+**Root cause:** `users.id REFERENCES auth.users ON DELETE CASCADE` exists in `schema.sql`, but deleting logins in production left rows behind, so the constraint is most likely missing (or never validated) there.
+
+**`supabase/fix-orphaned-users.sql`** (new, **not run**, for Linda to review):
+- PART 0 is a preview query, plus a check of whether the foreign key exists.
+- PART 1 is one transaction:
+  - a guard aborts if there aren't exactly 7 orphans
+  - work experiences, education and documents move to the live account with the same email
+  - the orphans are deleted, and the cascade removes their profiles and company members
+  - the foreign key is restored (or validated)
+  - a final check expects 0 and 0
+- PART 2 notes the Storage leftovers: 4 old avatars that are safe to delete, and the CV file, which must stay.
+
 ## Files changed
 
 - `docs/project-details.md` (new)
@@ -246,3 +361,11 @@ Linda couldn't find the marketplace on the home screen. S1 had only built the pr
 - `components/services/RequestQuoteForm.tsx`, `components/services/ServiceChat.tsx` (new)
 - `app/(public)/services/requests/page.tsx`, `app/(public)/services/requests/[id]/page.tsx`, `app/(public)/services/requests/[id]/CancelRequestButton.tsx`, `app/(public)/services/requests/[id]/chat/[threadId]/page.tsx` (new)
 - `app/candidate/services/inbox/page.tsx`, `app/admin/service-violations/page.tsx` (new); `app/(public)/services/provider/[id]/page.tsx`, `app/candidate/services/page.tsx`, `components/candidate/CandidateSidebar.tsx`, `components/admin/AdminSidebar.tsx`
+- `components/ui/Select.tsx` (new), `components/JobBoard.tsx`, `components/services/ServicesBrowser.tsx`, `components/services/RequestQuoteForm.tsx`, `lib/services/publicData.ts`, `lib/i18n/en.ts`, `lib/i18n/zu.ts`
+- `components/NotFound404.tsx`, `components/NotFound404.module.css` (new); `app/not-found.tsx`; `components/NotFoundScene.tsx` (deleted); `app/(public)/jobs/page.tsx`
+- All 20 files that had a native `<select>` (see the section above)
+- `app/candidate/services/enrol/EnrolWizard.tsx`, `app/api/services/provider/route.ts` (required fields and step gating)
+- `lib/services/notify.ts` (new), `lib/email.ts`, `app/api/services/requests/route.ts`, `app/api/services/messages/route.ts`, `supabase/add-service-requests-messaging.sql`, `supabase/schema.sql`
+- `app/candidate/services/hire/page.tsx`, `app/candidate/services/hire/[id]/page.tsx`, `app/candidate/services/hire/[id]/CancelRequestButton.tsx`, `app/candidate/services/chat/[threadId]/page.tsx` (moved from `app/(public)/services/requests/...`, which are now redirects)
+- `components/candidate/CandidateSidebar.tsx`, `components/services/RequestQuoteForm.tsx`, `app/candidate/services/inbox/page.tsx`
+- `supabase/fix-orphaned-users.sql` (new, not run)

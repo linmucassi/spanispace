@@ -10,6 +10,7 @@ import { redirectToDashboard } from '@/lib/auth/roleRedirect';
 import { joinFullName } from '@/lib/name';
 import PhoneInput from '@/components/PhoneInput';
 import { Loader2 } from 'lucide-react';
+import Select from '@/components/ui/Select';
 
 // 'services' is a candidate account with a different landing page: it
 // creates exactly the same users/candidate_profiles rows (role
@@ -423,22 +424,18 @@ export default function RegisterPage() {
           {/* Company: Industry */}
           {tab === 'company' && (
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                {t('auth.industry')}
-              </label>
-              <select
-                value={industry}
-                onChange={(e) => setIndustry(e.target.value)}
+              <Select
+                label={t('auth.industry')}
+                labelClassName="block text-sm font-medium text-slate-700 mb-1"
+                triggerClassName="px-4 py-3 border-slate-300"
                 required
-                className="block w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none bg-white"
-              >
-                <option value="">{t('auth.selectIndustry')}</option>
-                {INDUSTRIES.map((ind) => (
-                  <option key={ind} value={ind.toLowerCase()}>
-                    {t(`auth.industry_${ind.toLowerCase()}`)}
-                  </option>
-                ))}
-              </select>
+                value={industry}
+                onChange={setIndustry}
+                options={[
+                  { value: '', label: t('auth.selectIndustry') },
+                  ...INDUSTRIES.map((ind) => ({ value: ind.toLowerCase(), label: t(`auth.industry_${ind.toLowerCase()}`) })),
+                ]}
+              />
             </div>
           )}
 

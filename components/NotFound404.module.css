@@ -1,0 +1,49 @@
+/* Ported from docs/modern_space_404_page.html (Tailwind CDN config + <style>). */
+
+.page {
+  background: #060814;
+}
+
+.glowText {
+  text-shadow: 0 0 20px rgba(168, 85, 247, 0.6), 0 0 40px rgba(59, 130, 246, 0.4);
+}
+
+.glass {
+  background: rgba(13, 17, 38, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btnNeon {
+  background: linear-gradient(135deg, #a855f7 0%, #3b82f6 100%);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.btnNeon:hover {
+  box-shadow: 0 0 25px rgba(168, 85, 247, 0.6);
+  transform: translateY(-2px);
+}
+
+.gameCanvas {
+  background: radial-gradient(circle at center, #0b0f26 0%, #03040a 100%);
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-18px) rotate(3deg); }
+}
+@keyframes pulseGlow {
+  0% { opacity: 0.4; filter: drop-shadow(0 0 15px rgba(168, 85, 247, 0.4)); }
+  100% { opacity: 0.9; filter: drop-shadow(0 0 35px rgba(6, 182, 212, 0.8)); }
+}
+@keyframes spinSlow {
+  to { transform: rotate(360deg); }
+}
+
+.float { animation: float 6s ease-in-out infinite; }
+.pulseGlow { animation: pulseGlow 3s infinite alternate; }
+.spinSlow { animation: spinSlow 20s linear infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .float, .pulseGlow, .spinSlow { animation: none; }
+}

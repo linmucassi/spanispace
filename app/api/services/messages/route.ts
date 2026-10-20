@@ -16,6 +16,7 @@ import {
   recordViolation,
   scanOutgoing,
 } from '@/lib/services/messaging';
+import { notifyNewMessage } from '@/lib/services/notify';
 
 function bad(error: string, status = 400) {
   return NextResponse.json({ error }, { status });
@@ -90,6 +91,9 @@ export async function POST(request: NextRequest) {
       ...(role === 'requester' ? { requester_last_read_at: now } : { provider_last_read_at: now }),
     })
     .eq('id', thread.id);
+
+  // Emails the other party, throttled to one per unread batch.
+  await notifyNewMessage(admin, { threadId: thread.id, senderRole: role, body: text });
 
   return NextResponse.json({ message });
 }

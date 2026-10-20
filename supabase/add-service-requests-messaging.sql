@@ -56,9 +56,18 @@ CREATE TABLE IF NOT EXISTS service_threads (
   last_message_at TIMESTAMPTZ DEFAULT NOW(),
   requester_last_read_at TIMESTAMPTZ,
   provider_last_read_at TIMESTAMPTZ,
+  -- Email throttle for new-message notifications (lib/services/notify.ts):
+  -- one email per unread batch, not one per message.
+  requester_last_emailed_at TIMESTAMPTZ,
+  provider_last_emailed_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE (request_id, provider_id)
 );
+
+-- For a database where an earlier version of this file already ran.
+ALTER TABLE service_threads
+  ADD COLUMN IF NOT EXISTS requester_last_emailed_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS provider_last_emailed_at TIMESTAMPTZ;
 
 CREATE INDEX IF NOT EXISTS idx_service_threads_provider ON service_threads(provider_id, last_message_at DESC);
 CREATE INDEX IF NOT EXISTS idx_service_threads_requester ON service_threads(requester_user_id, last_message_at DESC);

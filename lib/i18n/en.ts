@@ -176,8 +176,16 @@ const en = {
   },
   notFound: {
     title: '404',
-    message: "This page doesn't exist yet. Let's get you back on track.",
-    backHome: 'Back to Home',
+    eyebrow: 'Coordinates malfunction',
+    headingStart: 'Lost in',
+    headingEnd: 'deep space',
+    message: "The page you're looking for has drifted off course. Check the link, search for a job below, or head back home.",
+    searchPlaceholder: 'Search jobs, e.g. Pharmacist',
+    find: 'Find',
+    backHome: 'Return home',
+    goBack: 'Go back',
+    audio: 'Audio',
+    playGame: 'Play mini-game',
   },
   jobDetail: {
     applyForPosition: 'Apply for this Position',

@@ -178,8 +178,16 @@ const zu = {
   },
   notFound: {
     title: '404',
-    message: 'Leli khasi alikho okwamanje. Masikubuyisele endleleni.',
+    eyebrow: 'Izixhumanisi azisebenzi',
+    headingStart: 'Ulahlekile',
+    headingEnd: 'emkhathini',
+    message: 'Leli khasi alikho okwamanje. Hlola isixhumanisi, sesha umsebenzi ngezansi, noma ubuyele ekhaya.',
+    searchPlaceholder: 'Sesha imisebenzi, isb. Usokhemisi',
+    find: 'Thola',
     backHome: 'Buyela Ekhaya',
+    goBack: 'Buyela emuva',
+    audio: 'Umsindo',
+    playGame: 'Dlala umdlalo',
   },
   jobDetail: {
     applyForPosition: 'Faka Isicelo Salesi Sikhundla',

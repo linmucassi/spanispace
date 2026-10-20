@@ -71,7 +71,7 @@ export default function RequestQuoteForm({
         setError(data.error ?? 'Could not send your request.');
         return;
       }
-      router.push(`/services/requests/${data.requestId}/chat/${data.threadId}`);
+      router.push(`/candidate/services/chat/${data.threadId}`);
     } catch {
       setError('Could not reach Spanispace. Check your connection and try again.');
     } finally {

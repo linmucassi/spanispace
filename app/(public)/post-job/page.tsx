@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useTranslation } from '@/lib/i18n/context';
 import { submitNetlifyForm } from '@/lib/netlifyForms';
 import PhoneInput from '@/components/PhoneInput';
+import Select, { selectChange } from '@/components/ui/Select';
 
 export default function PostJobPage() {
   const { t } = useTranslation();
@@ -209,22 +210,21 @@ export default function PostJobPage() {
 
             {/* Job Type */}
             <div>
-              <label className="block text-sm font-medium text-ink-700 mb-1">
-                {t('postJob.jobType')}
-              </label>
-              <select
-                name="jobType"
+              <Select
+                label={t('postJob.jobType')}
+                labelClassName="block text-sm font-medium text-ink-700 mb-1"
+                triggerClassName="px-4 py-3"
                 value={form.jobType}
-                onChange={handleChange}
-                className="block w-full rounded-xl border border-ink-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none bg-white"
-              >
-                <option value="Full-time">{t('postJob.fullTime')}</option>
-                <option value="Part-time">{t('postJob.partTime')}</option>
-                <option value="Piece Job">{t('postJob.pieceJob')}</option>
-                <option value="Temporary">{t('postJob.temporary')}</option>
-                <option value="Contract">{t('postJob.contract')}</option>
-                <option value="Once-off">{t('postJob.onceOff')}</option>
-              </select>
+                onChange={(v) => handleChange(selectChange('jobType', v))}
+                options={[
+                  { value: 'Full-time', label: t('postJob.fullTime') },
+                  { value: 'Part-time', label: t('postJob.partTime') },
+                  { value: 'Piece Job', label: t('postJob.pieceJob') },
+                  { value: 'Temporary', label: t('postJob.temporary') },
+                  { value: 'Contract', label: t('postJob.contract') },
+                  { value: 'Once-off', label: t('postJob.onceOff') },
+                ]}
+              />
             </div>
 
             {/* Pay */}

@@ -349,3 +349,138 @@ export function welcomeEmail({
 
   return { subject, html, text };
 }
+
+// ---------------------------------------------------------------------------
+// Spanispace Services (lib/services/notify.ts decides when these are sent).
+// Every user-supplied value is escaped, and nothing here ever includes a
+// phone number or email: message previews were already passed through the
+// contact guard before they could be stored.
+// ---------------------------------------------------------------------------
+
+const SITE = 'https://spanispace.com';
+
+function firstNameOf(name: string): string {
+  return (name.trim().split(/\s+/)[0] || 'there').slice(0, 40);
+}
+
+function excerpt(text: string, max = 280): string {
+  const clean = text.replace(/\s+/g, ' ').trim();
+  return clean.length > max ? `${clean.slice(0, max - 1)}…` : clean;
+}
+
+export function serviceRequestReceivedEmail({
+  providerName,
+  requesterFirstName,
+  category,
+  area,
+  description,
+  chatPath,
+}: {
+  providerName: string;
+  requesterFirstName: string;
+  category: string;
+  area: string;
+  description: string;
+  chatPath: string;
+}): { subject: string; html: string; text: string } {
+  const who = firstNameOf(requesterFirstName);
+  const subject = `New ${category} request from ${who}`;
+  const preview = excerpt(description);
+  const link = `${SITE}${chatPath}`;
+  const text = [
+    `Hi ${firstNameOf(providerName)},`,
+    '',
+    `${who}${area ? ` in ${area}` : ''} would like a quote for ${category}:`,
+    '',
+    `"${preview}"`,
+    '',
+    `Reply on Spanispace to agree the job and price: ${link}`,
+    '',
+    'Contact details stay private until a booking is confirmed, so please keep the conversation on Spanispace.',
+  ].join('\n');
+  const html = wrapEmail(
+    `<p style="margin:0 0 16px;font-size:16px;">Hi ${escapeHtml(firstNameOf(providerName))},</p>
+     <p style="margin:0 0 16px;font-size:16px;line-height:1.6;"><strong>${escapeHtml(who)}</strong>${area ? ` in ${escapeHtml(area)}` : ''} would like a quote for <strong>${escapeHtml(category)}</strong>:</p>
+     <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#475569;border-left:3px solid #e2e8f0;padding-left:12px;">${escapeHtml(preview)}</p>
+     <p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:#64748b;">Contact details stay private until a booking is confirmed, so please keep the conversation on Spanispace.</p>`,
+    link,
+    'Reply to the request',
+  );
+  return { subject, html, text };
+}
+
+export function serviceRequestSentEmail({
+  requesterName,
+  category,
+  providerName,
+  description,
+  requestPath,
+}: {
+  requesterName: string;
+  category: string;
+  providerName: string;
+  description: string;
+  requestPath: string;
+}): { subject: string; html: string; text: string } {
+  const subject = `Your ${category} request has been sent`;
+  const preview = excerpt(description);
+  const link = `${SITE}${requestPath}`;
+  const text = [
+    `Hi ${firstNameOf(requesterName)},`,
+    '',
+    `Your request for ${category} has been sent to ${providerName}:`,
+    '',
+    `"${preview}"`,
+    '',
+    "We'll email you when they reply. You can also ask other providers for quotes on the same request and compare them side by side:",
+    link,
+    '',
+    'Contact details stay private until you book. Spanispace never asks you to pay a provider outside the platform before a booking is confirmed.',
+  ].join('\n');
+  const html = wrapEmail(
+    `<p style="margin:0 0 16px;font-size:16px;">Hi ${escapeHtml(firstNameOf(requesterName))},</p>
+     <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">Your request for <strong>${escapeHtml(category)}</strong> has been sent to <strong>${escapeHtml(providerName)}</strong>:</p>
+     <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#475569;border-left:3px solid #e2e8f0;padding-left:12px;">${escapeHtml(preview)}</p>
+     <p style="margin:0 0 16px;font-size:15px;line-height:1.6;">We'll email you when they reply. You can also ask other providers for quotes on the same request and compare them side by side.</p>
+     <p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:#64748b;">Contact details stay private until you book. Spanispace never asks you to pay a provider outside the platform before a booking is confirmed.</p>`,
+    link,
+    'View my request',
+  );
+  return { subject, html, text };
+}
+
+export function serviceMessageEmail({
+  recipientName,
+  senderName,
+  category,
+  preview,
+  chatPath,
+}: {
+  recipientName: string;
+  senderName: string;
+  category: string;
+  preview: string;
+  chatPath: string;
+}): { subject: string; html: string; text: string } {
+  const sender = firstNameOf(senderName);
+  const subject = `${sender} replied about your ${category} request`;
+  const body = excerpt(preview);
+  const link = `${SITE}${chatPath}`;
+  const text = [
+    `Hi ${firstNameOf(recipientName)},`,
+    '',
+    `${sender} sent you a message about ${category}:`,
+    '',
+    `"${body}"`,
+    '',
+    `Reply on Spanispace: ${link}`,
+  ].join('\n');
+  const html = wrapEmail(
+    `<p style="margin:0 0 16px;font-size:16px;">Hi ${escapeHtml(firstNameOf(recipientName))},</p>
+     <p style="margin:0 0 16px;font-size:16px;line-height:1.6;"><strong>${escapeHtml(sender)}</strong> sent you a message about <strong>${escapeHtml(category)}</strong>:</p>
+     <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#475569;border-left:3px solid #e2e8f0;padding-left:12px;">${escapeHtml(body)}</p>`,
+    link,
+    'Reply',
+  );
+  return { subject, html, text };
+}

@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
     const radius = Number(body.travel_radius_km);
     const paymentMethods = body.payment_methods as PaymentMethods;
 
-    if (!headline) return bad('Add a short headline, e.g. "Interior painter, 8 years experience".');
+    if (!headline || headline.length < 5) return bad('Add a short headline, e.g. "Interior painter, 8 years experience".');
     if (!province || !PROVINCES.includes(province)) return bad('Choose your province.');
     if (!city) return bad('Add your town or city.');
     if (!Number.isInteger(radius) || radius < 0 || radius > 500) return bad('Travel distance must be between 0 and 500 km.');
@@ -117,6 +117,7 @@ export async function POST(request: NextRequest) {
     const rawAvailability = (body.availability ?? {}) as Record<string, unknown>;
     const availability: Record<string, boolean | string> = {};
     for (const day of WEEKDAYS) availability[day] = rawAvailability[day] === true;
+    if (!WEEKDAYS.some((day) => availability[day] === true)) return bad('Choose at least one day you usually work.');
     const availabilityNotes = str(rawAvailability.notes, 200);
     if (availabilityNotes) availability.notes = availabilityNotes;
 
@@ -190,9 +191,13 @@ export async function POST(request: NextRequest) {
       if (seen.has(categoryId)) return bad('Each category can only be listed once.');
       seen.add(categoryId);
 
-      const years = service.years_experience === '' || service.years_experience == null ? null : Number(service.years_experience);
-      if (years !== null && (!Number.isInteger(years) || years < 0 || years > 60)) return bad('Years of experience must be between 0 and 60.');
+      // Required (Linda, 20 Oct 2026): every service needs years of experience
+      // and a short description, same rules as the wizard's validateStep().
+      if (service.years_experience === '' || service.years_experience == null) return bad('Add your years of experience for every service.');
+      const years = Number(service.years_experience);
+      if (!Number.isInteger(years) || years < 0 || years > 60) return bad('Years of experience must be a whole number from 0 to 60.');
       const description = str(service.description, 1000);
+      if (!description || description.length < 10) return bad('Describe every service in a sentence (at least 10 characters).');
 
       const rates = Array.isArray(service.rates) ? service.rates : [];
       if (rates.length === 0) return bad('Every service needs at least one price on its rate card.');

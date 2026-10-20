@@ -14,8 +14,15 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { Check, ChevronDown } from 'lucide-react';
+import { twMerge } from 'tailwind-merge';
 
 export type SelectOption = { value: string; label: string };
+
+// For forms whose shared handleChange(e) reads e.target.name / value / type:
+//   onChange={(v) => handleChange(selectChange('job_type', v))}
+export function selectChange(name: string, value: string) {
+  return { target: { name, value, type: 'select-one' } } as unknown as React.ChangeEvent<HTMLSelectElement>;
+}
 
 export default function Select({
   options,
@@ -26,7 +33,11 @@ export default function Select({
   label,
   hideLabel = false,
   submitOnChange = false,
+  required = false,
+  disabled = false,
   className = '',
+  labelClassName,
+  triggerClassName,
 }: {
   options: SelectOption[];
   value?: string;
@@ -36,7 +47,14 @@ export default function Select({
   label: string;
   hideLabel?: boolean;
   submitOnChange?: boolean;
+  /** Native "please fill in this field" validation, via a hidden proxy input. */
+  required?: boolean;
+  disabled?: boolean;
   className?: string;
+  /** Replaces the default label styling (portal forms use larger labels). */
+  labelClassName?: string;
+  /** Merged over the default trigger classes (e.g. px-4 py-3 for portal forms). */
+  triggerClassName?: string;
 }) {
   const id = useId();
   const [internal, setInternal] = useState(defaultValue ?? options[0]?.value ?? '');
@@ -140,11 +158,25 @@ export default function Select({
 
   return (
     <div ref={rootRef} className={`relative ${className}`}>
-      <span id={`${id}-label`} className={hideLabel ? 'sr-only' : 'block text-xs font-medium text-ink-500 mb-1'}>
+      <span id={`${id}-label`} className={hideLabel ? 'sr-only' : labelClassName ?? 'block text-xs font-medium text-ink-500 mb-1'}>
         {label}
       </span>
       {/* Disabled when empty so "All"-style options don't add ?name= to the URL. */}
       {name && <input ref={hiddenRef} type="hidden" name={name} value={current} disabled={current === ''} />}
+      {required && (
+        // Hidden inputs are never validated, so a visually hidden text input
+        // carries `required`; focusing it (when the browser reports it empty)
+        // hands focus back to the real trigger.
+        <input
+          tabIndex={-1}
+          aria-hidden
+          required
+          value={current}
+          onChange={() => {}}
+          onFocus={() => buttonRef.current?.focus()}
+          className="pointer-events-none absolute bottom-0 left-1/2 h-px w-px opacity-0"
+        />
+      )}
       <button
         ref={buttonRef}
         type="button"
@@ -155,11 +187,14 @@ export default function Select({
         aria-activedescendant={open ? `${id}-opt-${active}` : undefined}
         aria-labelledby={`${id}-label ${id}-button`}
         id={`${id}-button`}
+        disabled={disabled}
         onClick={() => (open ? setOpen(false) : openMenu())}
         onKeyDown={onKeyDown}
-        className={`flex w-full items-center justify-between gap-2 rounded-xl border bg-white px-3.5 py-2.5 text-left text-sm text-ink-900 transition-colors hover:border-ink-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 ${
-          open ? 'border-brand-500 ring-2 ring-brand-500/20' : 'border-ink-200'
-        }`}
+        className={twMerge(
+          'flex w-full items-center justify-between gap-2 rounded-xl border bg-white px-3.5 py-2.5 text-left text-sm text-ink-900 transition-colors hover:border-ink-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 disabled:cursor-not-allowed disabled:opacity-50',
+          open ? 'border-brand-500 ring-2 ring-brand-500/20' : 'border-ink-200',
+          triggerClassName,
+        )}
       >
         <span className="truncate">{selected?.label}</span>
         <ChevronDown className={`h-4 w-4 shrink-0 text-ink-400 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden />

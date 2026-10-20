@@ -16,25 +16,124 @@ import {
   Calendar,
   Wrench,
   Search,
+  Briefcase,
+  Inbox,
+  ChevronDown,
   LogOut,
   Menu,
   X,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
-const navItems: { name: string; href: string; icon: React.ElementType; isNew?: boolean }[] = [
+type NavLink = {
+  name: string;
+  href: string;
+  icon: React.ElementType;
+  isNew?: boolean;
+  // Paths under href that belong to a sibling instead (e.g. /candidate/services
+  // vs /candidate/services/hire), so only one item lights up.
+  exclude?: string[];
+};
+type NavGroup = { group: string; icon: React.ElementType; items: NavLink[] };
+type NavEntry = NavLink | NavGroup;
+
+// Related pages share a collapsible group (Linda, 20 Oct 2026). A group opens
+// by itself when you're on one of its pages.
+const nav: NavEntry[] = [
   { name: 'Dashboard', href: '/candidate/dashboard', icon: LayoutDashboard },
   { name: 'Calendar', href: '/candidate/calendar', icon: Calendar, isNew: true },
   { name: 'My Profile', href: '/candidate/profile', icon: User },
-  { name: 'Applications', href: '/candidate/applications', icon: FileText },
-  { name: 'Invitations', href: '/candidate/invites', icon: Mail, isNew: true },
-  { name: 'Auto-Apply', href: '/candidate/auto-apply', icon: Zap, isNew: true },
-  { name: 'Messages', href: '/candidate/messages', icon: MessageSquare },
-  { name: 'My Services', href: '/candidate/services', icon: Wrench, isNew: true },
-  { name: 'Hire Services', href: '/services/requests', icon: Search, isNew: true },
+  // Studies, not job search, so it stays top-level (Linda, 20 Oct 2026).
   { name: 'Enrollments', href: '/candidate/enrollments', icon: BookOpen },
-  { name: 'AI CV Audit', href: '/candidate/cv-audit', icon: Sparkles, isNew: true },
+  {
+    group: 'Job search',
+    icon: Briefcase,
+    items: [
+      { name: 'Applications', href: '/candidate/applications', icon: FileText },
+      { name: 'Auto-Apply', href: '/candidate/auto-apply', icon: Zap, isNew: true },
+      { name: 'AI CV Audit', href: '/candidate/cv-audit', icon: Sparkles, isNew: true },
+    ],
+  },
+  {
+    group: 'Inbox',
+    icon: Inbox,
+    items: [
+      { name: 'Messages', href: '/candidate/messages', icon: MessageSquare },
+      { name: 'Invitations', href: '/candidate/invites', icon: Mail, isNew: true },
+    ],
+  },
+  {
+    group: 'Services',
+    icon: Wrench,
+    items: [
+      // Includes the provider inbox and enrolment; the chat counts as "Services" overall.
+      { name: 'My Services', href: '/candidate/services', icon: Wrench, isNew: true, exclude: ['/candidate/services/hire'] },
+      { name: 'Hire Services', href: '/candidate/services/hire', icon: Search, isNew: true },
+    ],
+  },
 ];
+
+function isGroup(entry: NavEntry): entry is NavGroup {
+  return 'group' in entry;
+}
+
+function linkActive(item: NavLink, pathname: string): boolean {
+  if (item.exclude?.some((p) => pathname === p || pathname.startsWith(p + '/'))) return false;
+  return pathname === item.href || pathname.startsWith(item.href + '/');
+}
+
+function NavItem({ item, pathname, nested = false }: { item: NavLink; pathname: string; nested?: boolean }) {
+  const Icon = item.icon;
+  const active = linkActive(item, pathname);
+  return (
+    <Link
+      href={item.href}
+      aria-current={active ? 'page' : undefined}
+      className={`flex items-center gap-3 rounded-lg text-sm font-medium transition-colors ${nested ? 'pl-11 pr-3 py-2' : 'px-3 py-2.5'} ${
+        active ? 'bg-brand-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+      }`}
+    >
+      {!nested && <Icon className="w-5 h-5 shrink-0" />}
+      <span className="flex-1">{item.name}</span>
+      {item.isNew && !active && (
+        <span className="text-[10px] font-bold bg-brand-500 text-white px-1.5 py-0.5 rounded-full leading-none">NEW</span>
+      )}
+    </Link>
+  );
+}
+
+function NavGroupItem({ entry, pathname }: { entry: NavGroup; pathname: string }) {
+  const containsActive = entry.items.some((item) => linkActive(item, pathname));
+  // null = follow the route; true/false = the person toggled it.
+  const [toggled, setToggled] = useState<boolean | null>(null);
+  const open = toggled ?? containsActive;
+  const Icon = entry.icon;
+  const id = `nav-group-${entry.group.toLowerCase().replace(/\W+/g, '-')}`;
+  const hasNew = entry.items.some((item) => item.isNew);
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setToggled(!open)}
+        aria-expanded={open}
+        aria-controls={id}
+        className={`flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+          containsActive && !open ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+        }`}
+      >
+        <Icon className="w-5 h-5 shrink-0" />
+        <span className="flex-1 text-left">{entry.group}</span>
+        {hasNew && !open && <span className="h-1.5 w-1.5 rounded-full bg-brand-400" aria-label="Has new pages" />}
+        <ChevronDown className={`w-4 h-4 shrink-0 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden />
+      </button>
+      {open && (
+        <div id={id} className="mt-1 space-y-1">
+          {entry.items.map((item) => <NavItem key={item.href} item={item} pathname={pathname} nested />)}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function CandidateSidebar() {
   const pathname = usePathname();
@@ -129,31 +228,11 @@ export default function CandidateSidebar() {
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive =
-              pathname === item.href ||
-              pathname.startsWith(item.href + '/');
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-brand-600 text-white'
-                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                }`}
-              >
-                <Icon className="w-5 h-5 shrink-0" />
-                <span className="flex-1">{item.name}</span>
-                {item.isNew && !isActive && (
-                  <span className="text-[10px] font-bold bg-brand-500 text-white px-1.5 py-0.5 rounded-full leading-none">
-                    NEW
-                  </span>
-                )}
-              </Link>
-            );
-          })}
+          {nav.map((entry) =>
+            isGroup(entry)
+              ? <NavGroupItem key={entry.group} entry={entry} pathname={pathname} />
+              : <NavItem key={entry.href} item={entry} pathname={pathname} />,
+          )}
         </nav>
 
         {/* User + Logout */}

@@ -15,6 +15,7 @@ import {
   type TrainingLevel,
 } from '@/lib/training-level';
 import { resolveCompanyMembership } from '@/lib/company/resolveCompanyMembership';
+import Select, { selectChange } from '@/components/ui/Select';
 
 const CATEGORIES = ['Bootcamp', 'Short Course', 'Event'];
 const FORMATS = ['online', 'hybrid', 'in-person'];
@@ -245,30 +246,24 @@ export default function CompanyEditTraining() {
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Category</label>
-            <select
-              name="category"
+            <Select
+              label="Category"
+              labelClassName="block text-sm font-medium text-slate-700 mb-1"
+              triggerClassName="px-4 py-3 border-slate-200"
               value={form.category}
-              onChange={handleChange}
-              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm bg-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
-            >
-              {CATEGORIES.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
+              onChange={(v) => handleChange(selectChange('category', v))}
+              options={CATEGORIES.map((c) => ({ value: c, label: c }))}
+            />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Format</label>
-            <select
-              name="format"
+            <Select
+              label="Format"
+              labelClassName="block text-sm font-medium text-slate-700 mb-1"
+              triggerClassName="px-4 py-3 border-slate-200"
               value={form.format}
-              onChange={handleChange}
-              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm bg-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
-            >
-              {FORMATS.map((f) => (
-                <option key={f} value={f}>{f}</option>
-              ))}
-            </select>
+              onChange={(v) => handleChange(selectChange('format', v))}
+              options={FORMATS.map((f) => ({ value: f, label: f }))}
+            />
           </div>
         </div>
 
@@ -307,19 +302,14 @@ export default function CompanyEditTraining() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Level</label>
-          <select
-            name="level"
+          <Select
+            label="Level"
+            labelClassName="block text-sm font-medium text-slate-700 mb-1"
+            triggerClassName="px-4 py-3 border-slate-200"
             value={form.level}
-            onChange={handleChange}
-            className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm bg-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
-          >
-            {TRAINING_LEVELS.map((l) => (
-              <option key={l} value={l}>
-                {l === 'Beginner' ? 'Beginner, free for candidates' : 'Advanced, paid'}
-              </option>
-            ))}
-          </select>
+            onChange={(v) => handleChange(selectChange('level', v))}
+            options={TRAINING_LEVELS.map((l) => ({ value: l, label: l === 'Beginner' ? 'Beginner, free for candidates' : 'Advanced, paid' }))}
+          />
           <p className="text-xs text-slate-500 mt-1.5">{accessHelp(form.level)}</p>
         </div>
 

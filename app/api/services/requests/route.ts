@@ -8,6 +8,7 @@ import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { scanFields, explainContactScan } from '@/lib/services/contactGuard';
 import { PROVINCES } from '@/lib/services/config';
 import { MAX_THREADS_PER_REQUEST, isUuid, postSystemMessage, recordViolation } from '@/lib/services/messaging';
+import { notifyNewRequest } from '@/lib/services/notify';
 
 function bad(error: string, status = 400) {
   return NextResponse.json({ error }, { status });
@@ -75,6 +76,7 @@ export async function POST(request: NextRequest) {
 
   // ---- Reuse an existing open request, or create a new one.
   let requestId: string;
+  let isNewRequest = false;
   if (body.request_id) {
     if (!isUuid(body.request_id)) return bad('Unknown request.');
     const { data: existing } = await admin
@@ -123,6 +125,7 @@ export async function POST(request: NextRequest) {
       .single();
     if (error || !created) return bad(error?.message ?? 'Could not create your request.', 500);
     requestId = created.id;
+    isNewRequest = true;
   }
 
   // ---- One conversation per provider per request.
@@ -164,6 +167,10 @@ export async function POST(request: NextRequest) {
     await admin.from('service_messages').insert({ thread_id: thread.id, sender_id: user.id, kind: 'text', body: message });
     await admin.from('service_threads').update({ last_message_at: new Date().toISOString(), requester_last_read_at: new Date().toISOString() }).eq('id', thread.id);
   }
+
+  // Provider: "new request". Requester: one confirmation per request (not
+  // again when they add more providers to it). Best effort, never fails this.
+  await notifyNewRequest(admin, { threadId: thread.id, requestId, isNewRequest });
 
   return NextResponse.json({ requestId, threadId: thread.id });
 }

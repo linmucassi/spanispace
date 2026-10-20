@@ -5,7 +5,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { scanText, explainContactScan } from '@/lib/services/contactGuard';
+import { parseSaId, ageOn } from '@/lib/services/saId';
+import { twMerge } from 'tailwind-merge';
 import {
+  MIN_PROVIDER_AGE,
   PAYMENT_METHOD_LABELS,
   PROVIDER_DOC_LABELS,
   PROVINCES,
@@ -19,6 +22,7 @@ import {
   type ProviderStatus,
 } from '@/lib/services/config';
 import { Check, Loader2, Plus, Trash2, Upload, AlertTriangle, ShieldCheck } from 'lucide-react';
+import Select from '@/components/ui/Select';
 
 export type CategoryOption = {
   id: string;
@@ -75,11 +79,16 @@ const ACCEPTED_FILES = 'application/pdf,image/jpeg,image/png,image/webp,image/he
 const inputClass =
   'block w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none bg-white';
 
-function ContactWarning({ value }: { value: string }) {
-  const scan = scanText(value);
+// Under a field: the validation error (red) once the person has tried to
+// continue, otherwise a live contact-detail warning (amber) while typing.
+function FieldNote({ error, value }: { error?: string; value?: string }) {
+  if (error) return <p className="text-xs text-red-600 mt-1">{error}</p>;
+  const scan = scanText(value ?? '');
   if (!scan.blocked) return null;
   return <p className="text-xs text-amber-700 mt-1">{explainContactScan(scan.reasons)}</p>;
 }
+
+const INVALID = 'border-red-400 focus:border-red-500 focus:ring-red-500';
 
 export default function EnrolWizard({
   userId,
@@ -107,6 +116,9 @@ export default function EnrolWizard({
   const [error, setError] = useState<string | null>(null);
   const [problems, setProblems] = useState<string[]>([]);
   const [newCategory, setNewCategory] = useState('');
+  // Errors only show after the first "Save and continue" on a step, then
+  // update live as fields are fixed.
+  const [showErrors, setShowErrors] = useState(false);
 
   const locked = initial.status === 'pending';
   const identityLocked = initial.status === 'verified';
@@ -139,6 +151,17 @@ export default function EnrolWizard({
   }
 
   async function saveAndNext() {
+    // Nothing moves forward until this step is complete and valid. The API
+    // re-checks everything; this is so problems are shown on the fields.
+    const found = validateStep(step);
+    if (Object.keys(found).length > 0) {
+      setShowErrors(true);
+      setError('Please fix the highlighted fields before continuing.');
+      setProblems([]);
+      requestAnimationFrame(() => document.querySelector<HTMLElement>('[aria-invalid="true"], [data-invalid="true"]')?.focus());
+      return;
+    }
+    setShowErrors(false);
     let ok = true;
     if (step === 0) ok = await callApi({ action: 'services', services });
     if (step === 1) ok = await callApi({ action: 'profile', ...profile });
@@ -155,6 +178,13 @@ export default function EnrolWizard({
       setStep((s) => Math.min(s + 1, STEPS.length - 1));
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+  }
+
+  function goBack() {
+    setShowErrors(false);
+    setError(null);
+    setProblems([]);
+    setStep((s) => Math.max(0, s - 1));
   }
 
   async function submit() {
@@ -254,6 +284,79 @@ export default function EnrolWizard({
       })),
   ];
 
+  // ------------------------------------------------------------ validation
+  function validateStep(current: number): Record<string, string> {
+    const e: Record<string, string> = {};
+    const contact = (key: string, value: string) => {
+      const scan = scanText(value);
+      if (scan.blocked) e[key] = explainContactScan(scan.reasons);
+    };
+
+    if (current === 0) {
+      if (services.length === 0) e.services = 'Add at least one service you offer.';
+      services.forEach((svc, si) => {
+        const years = svc.years_experience.trim();
+        if (!years) e[`svc.${si}.years`] = 'Required.';
+        else if (!/^\d+$/.test(years) || Number(years) > 60) e[`svc.${si}.years`] = 'Enter a whole number from 0 to 60.';
+        if (svc.description.trim().length < 10) e[`svc.${si}.description`] = 'Describe this service in a sentence (at least 10 characters).';
+        else contact(`svc.${si}.description`, svc.description);
+        svc.rates.forEach((rate, ri) => {
+          const k = `svc.${si}.rate.${ri}`;
+          if (!rate.label.trim()) e[`${k}.label`] = 'Name this price, e.g. "Interior walls".';
+          else contact(`${k}.label`, rate.label);
+          const price = Number(rate.price_rands);
+          if (!rate.price_rands.trim()) e[`${k}.price`] = 'Enter a price.';
+          else if (!Number.isFinite(price) || price <= 0 || price > 1_000_000) e[`${k}.price`] = 'Enter a valid price.';
+          if (rate.minimum_rands.trim() && !(Number(rate.minimum_rands) > 0)) e[`${k}.minimum`] = 'Enter a valid minimum, or leave it empty.';
+          if (rate.notes.trim()) contact(`${k}.notes`, rate.notes);
+        });
+      });
+    }
+
+    if (current === 1) {
+      if (profile.headline.trim().length < 5) e.headline = 'Add a short headline (at least 5 characters).';
+      else contact('headline', profile.headline);
+      if (profile.bio.trim()) contact('bio', profile.bio);
+      if (!profile.province) e.province = 'Choose your province.';
+      if (!profile.city.trim()) e.city = 'Add your town or city.';
+      else contact('city', profile.city);
+      if (profile.suburb.trim()) contact('suburb', profile.suburb);
+      if (!WEEKDAYS.some((d) => profile.availability[d] === true)) e.days = 'Choose at least one day you usually work.';
+      const notes = typeof profile.availability.notes === 'string' ? profile.availability.notes : '';
+      if (notes.trim()) contact('availabilityNotes', notes);
+    }
+
+    if (current === 2 && !identityLocked) {
+      // Already saved and not being changed: nothing to re-enter.
+      const keepSaved = identitySaved && idKind === initial.idKind;
+      if (!idKind) e.idKind = 'Choose SA ID or passport.';
+      else if (idKind === 'sa_id' && !(keepSaved && !saIdNumber)) {
+        const parsed = parseSaId(saIdNumber);
+        if (!parsed.ok) e.saId = parsed.error;
+        else if (ageOn(parsed.dateOfBirth) < MIN_PROVIDER_AGE) e.saId = `You must be ${MIN_PROVIDER_AGE} or older to offer services.`;
+      } else if (idKind === 'passport' && !(keepSaved && !dateOfBirth)) {
+        if (!dateOfBirth) e.dob = 'Enter your date of birth.';
+        else if (ageOn(dateOfBirth) < MIN_PROVIDER_AGE) e.dob = `You must be ${MIN_PROVIDER_AGE} or older to offer services.`;
+      }
+    }
+
+    if (current === 3) {
+      if (!providerId) e.documents = 'Save your services first.';
+      for (const slot of docSlots) {
+        const has = documents.some(
+          (d) => d.doc_type === slot.docType && (d.category_id ?? null) === slot.categoryId && d.status !== 'rejected',
+        );
+        if (!has) e[`doc.${slot.docType}:${slot.categoryId ?? ''}`] = 'Upload this document to continue.';
+      }
+    }
+
+    return e;
+  }
+
+  const errors = showErrors ? validateStep(step) : {};
+  const cls = (base: string, key: string) => (errors[key] ? twMerge(base, INVALID) : base);
+  const invalid = (key: string) => (errors[key] ? true : undefined);
+
   // --------------------------------------------------------------- render
   return (
     <div className="max-w-3xl mx-auto">
@@ -276,20 +379,20 @@ export default function EnrolWizard({
         </div>
       )}
 
-      {/* Step indicator */}
-      <ol className="flex flex-wrap gap-2 mb-6">
+      {/* Progress only. Steps can't be jumped: "Save and continue" is the
+          only way forward, and it only moves on when the step is valid. */}
+      <ol className="flex flex-wrap gap-2 mb-6" aria-label="Enrolment progress">
         {STEPS.map((label, i) => (
-          <li key={label}>
-            <button
-              type="button"
-              onClick={() => setStep(i)}
-              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                i === step ? 'bg-brand-600 text-white' : i < step ? 'bg-brand-50 text-brand-700' : 'bg-slate-100 text-slate-500'
-              }`}
-            >
-              {i < step ? <Check className="w-3 h-3" /> : <span>{i + 1}</span>}
-              {label}
-            </button>
+          <li
+            key={label}
+            aria-current={i === step ? 'step' : undefined}
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium select-none ${
+              i === step ? 'bg-brand-600 text-white' : i < step ? 'bg-brand-50 text-brand-700' : 'bg-slate-100 text-slate-400'
+            }`}
+          >
+            {i < step ? <Check className="w-3 h-3" aria-hidden /> : <span>{i + 1}</span>}
+            {label}
+            {i < step && <span className="sr-only"> (done)</span>}
           </li>
         ))}
       </ol>
@@ -325,43 +428,58 @@ export default function EnrolWizard({
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <label className="block">
-                      <span className="text-xs font-medium text-slate-600">Years of experience</span>
-                      <input type="number" min={0} max={60} value={service.years_experience} onChange={(e) => updateService(si, { years_experience: e.target.value })} className={inputClass} />
+                      <span className="text-xs font-medium text-slate-600">Years of experience <span className="text-red-500" aria-hidden>*</span></span>
+                      <input type="number" min={0} max={60} required aria-invalid={invalid(`svc.${si}.years`)} value={service.years_experience} onChange={(e) => updateService(si, { years_experience: e.target.value })} className={cls(inputClass, `svc.${si}.years`)} />
+                      <FieldNote error={errors[`svc.${si}.years`]} />
                     </label>
                     <label className="block sm:col-span-2">
-                      <span className="text-xs font-medium text-slate-600">Short description (optional)</span>
-                      <input type="text" maxLength={1000} value={service.description} onChange={(e) => updateService(si, { description: e.target.value })} className={inputClass} placeholder="e.g. Interior and exterior walls, I bring my own rollers" />
-                      <ContactWarning value={service.description} />
+                      <span className="text-xs font-medium text-slate-600">Short description <span className="text-red-500" aria-hidden>*</span></span>
+                      <input type="text" maxLength={1000} required aria-invalid={invalid(`svc.${si}.description`)} value={service.description} onChange={(e) => updateService(si, { description: e.target.value })} className={cls(inputClass, `svc.${si}.description`)} placeholder="e.g. Interior and exterior walls, I bring my own rollers" />
+                      <FieldNote error={errors[`svc.${si}.description`]} value={service.description} />
                     </label>
                   </div>
 
                   <div className="space-y-2">
-                    <p className="text-xs font-medium text-slate-600">Rate card</p>
-                    {service.rates.map((rate, ri) => (
+                    <p className="text-xs font-medium text-slate-600">Rate card <span className="text-slate-400 font-normal">(price name and price are required; minimum and notes are optional)</span></p>
+                    {service.rates.map((rate, ri) => {
+                      const k = `svc.${si}.rate.${ri}`;
+                      const rowErrors = [errors[`${k}.label`], errors[`${k}.price`], errors[`${k}.minimum`], errors[`${k}.notes`]].filter(Boolean);
+                      return (
                       <div key={ri} className="grid grid-cols-2 sm:grid-cols-12 gap-2 items-start">
-                        <input aria-label="Price name" className={`${inputClass} col-span-2 sm:col-span-4`} placeholder="e.g. Interior walls" value={rate.label} onChange={(e) => updateRate(si, ri, { label: e.target.value })} maxLength={80} />
+                        <input aria-label="Price name" required aria-invalid={invalid(`${k}.label`)} className={cls(`${inputClass} col-span-2 sm:col-span-4`, `${k}.label`)} placeholder="e.g. Interior walls" value={rate.label} onChange={(e) => updateRate(si, ri, { label: e.target.value })} maxLength={80} />
                         <div className="relative sm:col-span-3">
                           <span className="absolute left-3 top-2.5 text-sm text-slate-400">R</span>
-                          <input aria-label="Price in rand" type="number" min={1} step="0.01" className={`${inputClass} pl-7`} placeholder="45" value={rate.price_rands} onChange={(e) => updateRate(si, ri, { price_rands: e.target.value })} />
+                          <input aria-label="Price in rand" required aria-invalid={invalid(`${k}.price`)} type="number" min={1} step="0.01" className={cls(`${inputClass} pl-7`, `${k}.price`)} placeholder="45" value={rate.price_rands} onChange={(e) => updateRate(si, ri, { price_rands: e.target.value })} />
                         </div>
-                        <select aria-label="Unit" className={`${inputClass} sm:col-span-3`} value={rate.unit} onChange={(e) => updateRate(si, ri, { unit: e.target.value as PricingUnit })}>
-                          {category.units.map((u) => <option key={u} value={u}>{UNIT_LABELS[u]}</option>)}
-                        </select>
+                        <Select
+                          label="Unit"
+                          hideLabel
+                          className="sm:col-span-3"
+                          triggerClassName="px-3 border-slate-300"
+                          value={rate.unit}
+                          onChange={(v) => updateRate(si, ri, { unit: v as PricingUnit })}
+                          options={category.units.map((u) => ({ value: u, label: UNIT_LABELS[u] }))}
+                        />
                         <div className="relative sm:col-span-2">
                           <span className="absolute left-3 top-2.5 text-sm text-slate-400">R</span>
-                          <input aria-label="Minimum charge in rand" type="number" min={1} step="0.01" className={`${inputClass} pl-7`} placeholder="Min" title="Minimum charge (optional)" value={rate.minimum_rands} onChange={(e) => updateRate(si, ri, { minimum_rands: e.target.value })} />
+                          <input aria-label="Minimum charge in rand (optional)" aria-invalid={invalid(`${k}.minimum`)} type="number" min={1} step="0.01" className={cls(`${inputClass} pl-7`, `${k}.minimum`)} placeholder="Min" title="Minimum charge (optional)" value={rate.minimum_rands} onChange={(e) => updateRate(si, ri, { minimum_rands: e.target.value })} />
                         </div>
                         <div className="col-span-2 sm:col-span-12 flex gap-2">
-                          <input aria-label="Notes" className={inputClass} placeholder="Notes (optional), e.g. paint not included" value={rate.notes} onChange={(e) => updateRate(si, ri, { notes: e.target.value })} maxLength={200} />
+                          <input aria-label="Notes (optional)" aria-invalid={invalid(`${k}.notes`)} className={cls(inputClass, `${k}.notes`)} placeholder="Notes (optional), e.g. paint not included" value={rate.notes} onChange={(e) => updateRate(si, ri, { notes: e.target.value })} maxLength={200} />
                           {service.rates.length > 1 && (
                             <button type="button" onClick={() => updateService(si, { rates: service.rates.filter((_, i) => i !== ri) })} className="text-slate-400 hover:text-red-600 px-2" aria-label="Remove price">
                               <Trash2 className="w-4 h-4" />
                             </button>
                           )}
                         </div>
-                        <div className="col-span-2 sm:col-span-12"><ContactWarning value={`${rate.label} ${rate.notes}`} /></div>
+                        <div className="col-span-2 sm:col-span-12">
+                          {rowErrors.length > 0
+                            ? rowErrors.map((msg) => <p key={msg} className="text-xs text-red-600">{msg}</p>)
+                            : <FieldNote value={`${rate.label} ${rate.notes}`} />}
+                        </div>
                       </div>
-                    ))}
+                      );
+                    })}
                     {service.rates.length < 10 && (
                       <button
                         type="button"
@@ -377,16 +495,25 @@ export default function EnrolWizard({
             })}
 
             <div className="flex flex-col sm:flex-row gap-2">
-              <select className={inputClass} value={newCategory} onChange={(e) => setNewCategory(e.target.value)} aria-label="Choose a service to add">
-                <option value="">Choose a service to add…</option>
-                {categories.filter((c) => !services.some((s) => s.category_id === c.id)).map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}{c.requires_qualification ? ' (certificate needed)' : ''}</option>
-                ))}
-              </select>
+              <Select
+                label="Choose a service to add"
+                hideLabel
+                className="flex-1"
+                triggerClassName="px-3 border-slate-300"
+                value={newCategory}
+                onChange={setNewCategory}
+                options={[
+                  { value: '', label: 'Choose a service to add…' },
+                  ...categories
+                    .filter((c) => !services.some((s) => s.category_id === c.id))
+                    .map((c) => ({ value: c.id, label: `${c.name}${c.requires_qualification ? ' (certificate needed)' : ''}` })),
+                ]}
+              />
               <button type="button" onClick={addService} disabled={!newCategory} className="shrink-0 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40 flex items-center justify-center gap-1">
                 <Plus className="w-4 h-4" /> Add service
               </button>
             </div>
+            {errors.services && <p className="text-sm text-red-600" role="alert">{errors.services}</p>}
           </>
         )}
 
@@ -398,30 +525,36 @@ export default function EnrolWizard({
               <p className="text-sm text-slate-500">Don&apos;t include phone numbers, emails or social media. Customers contact you through Spanispace messages.</p>
             </div>
             <label className="block">
-              <span className="text-sm font-medium text-slate-700">Headline</span>
-              <input className={inputClass} maxLength={120} value={profile.headline} onChange={(e) => setProfile({ ...profile, headline: e.target.value })} placeholder="e.g. Neat interior painter, 8 years experience" />
-              <ContactWarning value={profile.headline} />
+              <span className="text-sm font-medium text-slate-700">Headline <span className="text-red-500" aria-hidden>*</span></span>
+              <input required aria-invalid={invalid('headline')} className={cls(inputClass, 'headline')} maxLength={120} value={profile.headline} onChange={(e) => setProfile({ ...profile, headline: e.target.value })} placeholder="e.g. Neat interior painter, 8 years experience" />
+              <FieldNote error={errors.headline} value={profile.headline} />
             </label>
             <label className="block">
               <span className="text-sm font-medium text-slate-700">About you (optional)</span>
-              <textarea className={inputClass} rows={4} maxLength={2000} value={profile.bio} onChange={(e) => setProfile({ ...profile, bio: e.target.value })} placeholder="Your experience, the kind of jobs you enjoy, what customers can expect." />
-              <ContactWarning value={profile.bio} />
+              <textarea aria-invalid={invalid('bio')} className={cls(inputClass, 'bio')} rows={4} maxLength={2000} value={profile.bio} onChange={(e) => setProfile({ ...profile, bio: e.target.value })} placeholder="Your experience, the kind of jobs you enjoy, what customers can expect." />
+              <FieldNote error={errors.bio} value={profile.bio} />
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <Select
+                  label="Province *"
+                  labelClassName="block text-sm font-medium text-slate-700"
+                  triggerClassName={errors.province ? 'px-3 border-red-400' : 'px-3 border-slate-300'}
+                  value={profile.province}
+                  onChange={(v) => setProfile({ ...profile, province: v })}
+                  options={[{ value: '', label: 'Choose…' }, ...PROVINCES.map((p) => ({ value: p, label: p }))]}
+                />
+                <FieldNote error={errors.province} />
+              </div>
               <label className="block">
-                <span className="text-sm font-medium text-slate-700">Province</span>
-                <select className={inputClass} value={profile.province} onChange={(e) => setProfile({ ...profile, province: e.target.value })}>
-                  <option value="">Choose…</option>
-                  {PROVINCES.map((p) => <option key={p} value={p}>{p}</option>)}
-                </select>
-              </label>
-              <label className="block">
-                <span className="text-sm font-medium text-slate-700">Town / city</span>
-                <input className={inputClass} value={profile.city} onChange={(e) => setProfile({ ...profile, city: e.target.value })} placeholder="e.g. Soweto" />
+                <span className="text-sm font-medium text-slate-700">Town / city <span className="text-red-500" aria-hidden>*</span></span>
+                <input required aria-invalid={invalid('city')} className={cls(inputClass, 'city')} value={profile.city} onChange={(e) => setProfile({ ...profile, city: e.target.value })} placeholder="e.g. Soweto" />
+                <FieldNote error={errors.city} value={profile.city} />
               </label>
               <label className="block">
                 <span className="text-sm font-medium text-slate-700">Suburb (optional)</span>
-                <input className={inputClass} value={profile.suburb} onChange={(e) => setProfile({ ...profile, suburb: e.target.value })} placeholder="e.g. Orlando East" />
+                <input aria-invalid={invalid('suburb')} className={cls(inputClass, 'suburb')} value={profile.suburb} onChange={(e) => setProfile({ ...profile, suburb: e.target.value })} placeholder="e.g. Orlando East" />
+                <FieldNote error={errors.suburb} value={profile.suburb} />
               </label>
             </div>
             <label className="block">
@@ -429,7 +562,7 @@ export default function EnrolWizard({
               <input type="range" min={0} max={100} step={5} value={profile.travel_radius_km} onChange={(e) => setProfile({ ...profile, travel_radius_km: Number(e.target.value) })} className="w-full accent-brand-600" />
             </label>
             <div>
-              <span className="text-sm font-medium text-slate-700">Days you usually work</span>
+              <span className="text-sm font-medium text-slate-700">Days you usually work <span className="text-red-500" aria-hidden>*</span></span>
               <div className="flex flex-wrap gap-2 mt-1">
                 {WEEKDAYS.map((day) => {
                   const on = profile.availability[day] === true;
@@ -446,13 +579,16 @@ export default function EnrolWizard({
                   );
                 })}
               </div>
+              <FieldNote error={errors.days} />
               <input
-                className={`${inputClass} mt-2`}
+                aria-invalid={invalid('availabilityNotes')}
+                className={cls(`${inputClass} mt-2`, 'availabilityNotes')}
                 maxLength={200}
                 placeholder="Notes (optional), e.g. weekdays from 8am, Saturdays until 1pm"
                 value={typeof profile.availability.notes === 'string' ? profile.availability.notes : ''}
                 onChange={(e) => setProfile({ ...profile, availability: { ...profile.availability, notes: e.target.value } })}
               />
+              <FieldNote error={errors.availabilityNotes} />
             </div>
             <div>
               <span className="text-sm font-medium text-slate-700">How do you want customers to pay you for the service?</span>
@@ -492,16 +628,19 @@ export default function EnrolWizard({
                     </label>
                   ))}
                 </div>
+                <FieldNote error={errors.idKind} />
                 {idKind === 'sa_id' && (
                   <label className="block">
                     <span className="text-sm font-medium text-slate-700">SA ID number{identitySaved ? ' (saved; enter again only to change it)' : ''}</span>
-                    <input className={inputClass} inputMode="numeric" maxLength={13} value={saIdNumber} onChange={(e) => setSaIdNumber(e.target.value.replace(/\D/g, ''))} placeholder="13 digits" autoComplete="off" />
+                    <input aria-invalid={invalid('saId')} className={cls(inputClass, 'saId')} inputMode="numeric" maxLength={13} value={saIdNumber} onChange={(e) => setSaIdNumber(e.target.value.replace(/\D/g, ''))} placeholder="13 digits" autoComplete="off" />
+                    <FieldNote error={errors.saId} />
                   </label>
                 )}
                 {idKind === 'passport' && (
                   <label className="block">
                     <span className="text-sm font-medium text-slate-700">Date of birth{identitySaved ? ' (saved; enter again only to change it)' : ''}</span>
-                    <input type="date" className={inputClass} value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
+                    <input type="date" aria-invalid={invalid('dob')} className={cls(inputClass, 'dob')} value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
+                    <FieldNote error={errors.dob} />
                     <span className="text-xs text-slate-500">You&apos;ll also need to upload a valid work permit or visa.</span>
                   </label>
                 )}
@@ -535,6 +674,7 @@ export default function EnrolWizard({
                         ? 'A clear photo of your face holding your ID next to it.'
                         : slot.hint ?? undefined}
                     uploaded={uploaded}
+                    error={errors[`doc.${key}`]}
                     busy={uploading === key}
                     onUpload={(file) => uploadDocument(slot.docType, file, slot.categoryId)}
                     onRemove={removeDocument}
@@ -583,7 +723,7 @@ export default function EnrolWizard({
         )}
 
         <div className="flex items-center justify-between pt-2">
-          <button type="button" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0} className="text-sm font-medium text-slate-500 hover:text-slate-800 disabled:opacity-0">
+          <button type="button" onClick={goBack} disabled={step === 0} className="text-sm font-medium text-slate-500 hover:text-slate-800 disabled:opacity-0">
             Back
           </button>
           {step < STEPS.length - 1 ? (
@@ -605,6 +745,7 @@ function DocumentSlot({
   label,
   hint,
   uploaded,
+  error,
   busy,
   onUpload,
   onRemove,
@@ -612,6 +753,7 @@ function DocumentSlot({
   label: string;
   hint?: string;
   uploaded: ProviderDocument[];
+  error?: string;
   busy: boolean;
   onUpload: (file: File) => void;
   onRemove: (doc: ProviderDocument) => void;
@@ -619,16 +761,18 @@ function DocumentSlot({
   const fileRef = useRef<HTMLInputElement>(null);
   const hasActive = uploaded.some((d) => d.status !== 'rejected');
   return (
-    <li className="rounded-xl border border-slate-200 p-4">
+    <li className={`rounded-xl border p-4 ${error ? 'border-red-300 bg-red-50/40' : 'border-slate-200'}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm font-semibold text-slate-900 flex items-center gap-1.5">
             {hasActive && <Check className="w-4 h-4 text-green-600" />} {label}
           </p>
           {hint && <p className="text-xs text-slate-500 mt-0.5">{hint}</p>}
+          {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
         </div>
         <button
           type="button"
+          data-invalid={error ? 'true' : undefined}
           onClick={() => fileRef.current?.click()}
           disabled={busy}
           className="shrink-0 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-1"

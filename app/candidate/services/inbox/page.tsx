@@ -46,7 +46,7 @@ export default async function ProviderInboxPage() {
             const unread = t.last_message_at && (!t.provider_last_read_at || t.last_message_at > t.provider_last_read_at);
             return (
               <li key={t.id}>
-                <Link href={`/services/requests/${t.request_id}/chat/${t.id}`} className="block bg-white rounded-2xl border border-slate-200 p-4 hover:border-brand-500 transition-colors">
+                <Link href={`/candidate/services/chat/${t.id}`} className="block bg-white rounded-2xl border border-slate-200 p-4 hover:border-brand-500 transition-colors">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="font-semibold text-slate-900">{nameByThread.get(t.id)} · {category?.name}</p>
                     <span className="flex items-center gap-2">

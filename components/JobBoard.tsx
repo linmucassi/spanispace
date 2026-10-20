@@ -14,10 +14,11 @@ const PAGE_SIZE = 15;
 
 interface JobBoardProps {
   initialJobs?: Job[];
+  initialSearch?: string;
 }
 
-const JobBoard: React.FC<JobBoardProps> = ({ initialJobs }) => {
-  const [search, setSearch] = useState('');
+const JobBoard: React.FC<JobBoardProps> = ({ initialJobs, initialSearch = '' }) => {
+  const [search, setSearch] = useState(initialSearch);
   const [filter, setFilter] = useState('All');
   const [locationFilter, setLocationFilter] = useState('All');
   const [page, setPage] = useState(1);
