@@ -3,7 +3,7 @@
 **Platform:** Talent Bridge for South African Job Seekers
 **Founders:** Linda & Percy | **Location:** Gauteng, South Africa
 **Mission:** Empower 100,000+ SA youth with job-ready skills and direct employment pathways by 2030
-**Last Updated:** 15 October 2026
+**Last Updated:** 20 October 2026
 
 ---
 
@@ -332,6 +332,20 @@ Full pre-launch audit of the live site, 9 Aug 2026. Branch `fix/ship-check-launc
 - Admin records "hire confirmed" event
 - Triggers invoice generation for 10–15% success fee
 - Simple hire confirmation flow in admin panel
+
+---
+
+### Phase 2b — Spanispace Services marketplace (specified 20 Oct 2026, not started)
+> Goal: let verified individuals offer short-term everyday services (cleaning, laundry, painting, plumbing and more) that any user can hire, with Spanispace earning a booking fee from the requester.
+
+Full spec: [project-details.md §7](project-details.md#7-new-feature-spanispace-services). Summary:
+- **Providers:** new "Offer services" signup, or opt-in from an existing candidate account (they stay a candidate too). Enrolment, then admin verification (ID, selfie, SAPS police clearance, proof of address, trade certificates where needed), then a Service Provider Agreement before the listing goes live
+- **Requesters:** any signed-in user can search, message and hire
+- **No contact details before payment:** phone numbers, emails, links and handles are blocked server-side in service chats and on profiles (`lib/services/contactGuard.ts`) until the booking is `confirmed`. Today's `MessagesInbox` inserts straight from the client, so service messages need an API route or trigger
+- **Fees:** the Spanispace booking fee is separate from the service price, shown upfront, and charged to the requester only once a structured offer is accepted. Only the payment webhook can confirm a booking and unlock contact
+- **Phases:** S1 enrolment and verification → S2 public search → S3 guarded messaging → S4 offers, payment and unlock → S5 reviews, reports and disputes → S6 escrow (later)
+- **Blocked on decisions:** fee model and amount, payment gateway (shared with 2.1), police clearance approach, launch categories, refund/cancellation policy (compliance item 3)
+- **New migration:** `supabase/add-service-marketplace.sql` (not yet written)
 
 ---
 
