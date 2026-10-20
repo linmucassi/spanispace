@@ -5,6 +5,37 @@ import { BadgeCheck, Lock, MapPin, MessageSquare, Star } from 'lucide-react';
 import { PAYMENT_METHOD_LABELS, UNIT_LABELS, WEEKDAYS, WEEKDAY_LABELS, formatRand } from '@/lib/services/config';
 import { fetchProviderCard, fetchProviderDetails, type RateCardRow } from '@/lib/services/publicData';
 import { initials, verifiedLabel } from '@/components/services/ProviderCardView';
+import RequestQuoteForm, { type OpenRequest } from '@/components/services/RequestQuoteForm';
+import { createServerSupabase } from '@/lib/supabase/server';
+
+// Who is looking, for the request panel: signed out, the provider looking at
+// their own listing, or a potential customer (with their open requests, so a
+// second provider can be added to the same job for comparison).
+async function viewerContext(providerId: string) {
+  const supabase = await createServerSupabase();
+  if (!supabase) return { kind: 'signed_out' as const };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { kind: 'signed_out' as const };
+
+  const [{ data: ownProvider }, { data: userRow }, { data: requests }] = await Promise.all([
+    supabase.from('service_providers').select('id').eq('user_id', user.id).maybeSingle(),
+    supabase.from('users').select('role').eq('id', user.id).maybeSingle(),
+    supabase
+      .from('service_requests')
+      .select('id, description, category:service_categories(slug)')
+      .eq('requester_user_id', user.id)
+      .eq('status', 'open')
+      .order('created_at', { ascending: false }),
+  ]);
+  if (ownProvider?.id === providerId) return { kind: 'own' as const };
+  if (userRow?.role === 'company') return { kind: 'company' as const };
+
+  const openRequests: OpenRequest[] = (requests ?? []).map((r) => {
+    const category = Array.isArray(r.category) ? r.category[0] : r.category;
+    return { id: r.id, description: r.description, category_slug: category?.slug ?? '' };
+  });
+  return { kind: 'customer' as const, openRequests };
+}
 
 type Params = Promise<{ id: string }>;
 
@@ -20,7 +51,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
 
 export default async function ProviderPage({ params }: { params: Params }) {
   const { id } = await params;
-  const [card, details] = await Promise.all([fetchProviderCard(id), fetchProviderDetails(id)]);
+  const [card, details, viewer] = await Promise.all([fetchProviderCard(id), fetchProviderDetails(id), viewerContext(id)]);
   if (!card) notFound();
 
   const area = [card.suburb, card.city, card.province].filter(Boolean).join(', ');
@@ -139,10 +170,27 @@ export default async function ProviderPage({ params }: { params: Params }) {
               </p>
               <p className="text-ink-600">Paid for the service: <strong>{PAYMENT_METHOD_LABELS[card.payment_methods]}</strong></p>
 
-              <button type="button" disabled className="w-full rounded-xl bg-ink-200 px-5 py-3 text-sm font-bold text-ink-500 cursor-not-allowed flex items-center justify-center gap-2">
-                <MessageSquare className="h-4 w-4" aria-hidden /> Request a quote
-              </button>
-              <p className="text-xs text-ink-500">Messaging and bookings open soon. A R10 booking fee applies when you book, and contact details are shared once the booking is confirmed.</p>
+              {viewer.kind === 'customer' && (
+                <RequestQuoteForm
+                  providerId={card.id}
+                  providerName={card.display_name.split(' ')[0]}
+                  categories={card.category_slugs.map((slug, i) => ({ slug, name: card.category_names[i] }))}
+                  openRequests={viewer.openRequests}
+                  defaultProvince={card.province}
+                />
+              )}
+              {viewer.kind === 'signed_out' && (
+                <Link href="/login" className="w-full rounded-xl bg-brand-600 px-5 py-3 text-sm font-bold text-white hover:bg-brand-700 flex items-center justify-center gap-2">
+                  <MessageSquare className="h-4 w-4" aria-hidden /> Sign in to request a quote
+                </Link>
+              )}
+              {viewer.kind === 'own' && (
+                <p className="rounded-xl bg-ink-50 px-4 py-3 text-xs text-ink-600">This is how customers see your listing. <Link href="/candidate/services" className="underline">Manage it</Link>.</p>
+              )}
+              {viewer.kind === 'company' && (
+                <p className="rounded-xl bg-ink-50 px-4 py-3 text-xs text-ink-600">Booking services as a company is coming soon. For now, please use a personal account.</p>
+              )}
+              <p className="text-xs text-ink-500">Contact details stay private until a booking is confirmed. Agreeing a price and booking (R10 booking fee) open soon. For now, you can chat and compare quotes.</p>
             </div>
             <p className="text-xs text-ink-400">
               Providers are independent and not Spanispace employees. Spanispace checks identity and police clearance at

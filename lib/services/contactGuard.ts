@@ -144,6 +144,18 @@ export function scanText(input: string | null | undefined): ContactScan {
   return { blocked: reasons.length > 0, reasons };
 }
 
+// Scans a new message on its own, then joined with the sender's previous
+// messages (oldest first), to catch a number or email split across several
+// sends ("082" ... "123" ... "4567"). Phrase-based reasons are only taken
+// from the single-message scan, so an old "call me" can't keep blocking.
+export function scanWithHistory(previous: string[], body: string): ContactReason[] {
+  const single = scanText(body);
+  if (single.blocked) return single.reasons;
+  if (previous.length === 0) return [];
+  const combined = scanText([...previous, body].join(' '));
+  return combined.reasons.filter((r) => r === 'phone' || r === 'email');
+}
+
 // Scans several named fields at once; returns only the fields that failed.
 export function scanFields(
   fields: Record<string, string | null | undefined>,

@@ -20,7 +20,7 @@ The platform currently has three portals:
 | **Company** | Employers, multi-user organisations | Post and manage jobs, see view/drop-off analytics, search the talent pool, invite candidates, run events and training, message candidates, schedule interviews, manage a team with roles (Owner/Admin/Manager/Member/Viewer) |
 | **Admin** | Spanispace staff (Super Admin / Platform Admin) | Vet jobs, events, trainings and companies, verify candidate documents, verify service providers (`/admin/service-providers`), manage users and invites, review scraped and curated listings |
 
-The public site is open to everyone and offers a jobs board (company-posted, admin-curated and scraped listings), learnerships, events, a training catalogue, late university/college applications, and **Spanispace Services** (`/services`), where you can browse verified providers for short jobs. Bookings for Services aren't open yet. It is available in English and isiZulu (isiZulu is in beta).
+The public site is open to everyone and offers a jobs board (company-posted, admin-curated and scraped listings), learnerships, events, a training catalogue, late university/college applications, and **Spanispace Services** (`/services`), where you can browse verified providers for short jobs. Customers can request quotes and chat with providers (contact details blocked). Booking and payment aren't open yet. It is available in English and isiZulu (isiZulu is in beta).
 
 ## 2. The problem
 
@@ -361,14 +361,14 @@ RLS rules to apply:
 
 ### 7.11 Delivery phases
 
-The full step-by-step implementation plan, with tasks, files and done criteria, is in [ROADMAP.md Phase 2b](ROADMAP.md#phase-2b--spanispace-services-marketplace-planned-20-oct-2026-s1--s2-code-done). Summary:
+The full step-by-step implementation plan, with tasks, files and done criteria, is in [ROADMAP.md Phase 2b](ROADMAP.md#phase-2b--spanispace-services-marketplace-planned-20-oct-2026-s1s3-code-done). Summary:
 
 | Phase | Status (20 Oct 2026) | Scope |
 |-------|--------|-------|
 | **S0: Legal and terms** | Provider agreement drafted, the rest open | Terms "Services" section, Service Provider Agreement, middleman disclaimer, cancellation policy, privacy policy updates, lawyer review |
 | **S1: Foundations** | ✅ Code done, migration not run | Migration, categories (all), provider enrolment (opt-in and new signup), police clearance upload, admin verification queue, agreement acceptance |
 | **S2: Discovery** | ✅ Mostly done (no estimator or portfolio yet), same migration | Public `/services` search, profiles with rate cards and the estimator, payment-method filter, only verified providers listed |
-| **S3: Requests and guarded messaging** | Not started | Service requests with several conversations per need, per-request chat page, `contactGuard` with server-side enforcement, violation logging |
+| **S3: Requests and guarded messaging** | ✅ Code done, needs `add-service-requests-messaging.sql`. No email notifications yet | Service requests with several conversations per need, per-request chat page, `contactGuard` with server-side enforcement, violation logging |
 | **S4: Agreement and payment** | Not started (no gateway yet) | Gateway selection (must support held funds and payouts), versioned offers with acceptance from both sides, R10 online for cash jobs, or service price + R10 online for online jobs, webhook confirmation, contact unlock, receipts, refunds and credits |
 | **S4b: Job tracking and payouts** | Not started | Job timeline and start code, provider marks complete, requester confirms or the 72h auto-confirm, online payouts, cash-received confirmation, dispute freeze |
 | **S5: Company hiring** | Not started | `/company/services`, RBAC, multi-provider and recurring jobs, invoices (tax invoices once VAT-registered) |

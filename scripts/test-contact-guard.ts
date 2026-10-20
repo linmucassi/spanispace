@@ -1,7 +1,7 @@
 // Run: npx tsx scripts/test-contact-guard.ts
 // Exits non-zero if any case fails. See lib/services/contactGuard.ts.
 
-import { scanText, type ContactReason } from '../lib/services/contactGuard';
+import { scanText, scanWithHistory, type ContactReason } from '../lib/services/contactGuard';
 import { parseSaId, ageOn } from '../lib/services/saId';
 
 // Every one of these must be blocked, with at least the listed reason.
@@ -109,6 +109,33 @@ for (const text of MUST_ALLOW) {
   }
 }
 
+// Split across messages: previous messages (oldest first) + the new one.
+const HISTORY_BLOCK: [string[], string][] = [
+  [['my no is 082'], '123 4567'],
+  [['082', '123'], '4567'],
+  [['zero eight two', 'one two three'], 'four five six seven'],
+  [['thandi'], '@gmail.com'],
+];
+const HISTORY_ALLOW: [string[], string][] = [
+  [['Price is R350 for the room'], '2 rooms then'],
+  [['Can you come on 2026/10/20?'], 'Or 2026/10/22 works too'],
+  [['call me when you arrive'], 'I will be at the gate'], // old phrase must not keep blocking
+  [['Lounge is 35 m2', 'bedrooms 12 m2 each'], 'so about 59 m2 total'],
+];
+for (const [previous, body] of HISTORY_BLOCK) {
+  if (scanWithHistory(previous, body).length === 0) {
+    failures++;
+    console.error(`FAIL (history should block): ${JSON.stringify(previous)} + ${JSON.stringify(body)}`);
+  }
+}
+for (const [previous, body] of HISTORY_ALLOW) {
+  const reasons = scanWithHistory(previous, body);
+  if (reasons.length > 0) {
+    failures++;
+    console.error(`FAIL (history false positive ${JSON.stringify(reasons)}): ${JSON.stringify(previous)} + ${JSON.stringify(body)}`);
+  }
+}
+
 // SA ID parsing. 8001015009087 is the widely used valid sample number.
 const today = new Date(2026, 9, 20);
 const sample = parseSaId('8001015009087', today);
@@ -129,9 +156,9 @@ if (ageOn('2008-10-21', today) !== 17 || ageOn('2008-10-20', today) !== 18) {
   console.error('FAIL: ageOn boundary');
 }
 
-const total = MUST_BLOCK.length + MUST_ALLOW.length + 4;
+const total = MUST_BLOCK.length + MUST_ALLOW.length + HISTORY_BLOCK.length + HISTORY_ALLOW.length + 4;
 if (failures > 0) {
   console.error(`\n${failures} of ${total} checks failed.`);
   process.exit(1);
 }
-console.log(`All ${total} checks passed (${MUST_BLOCK.length} must-block, ${MUST_ALLOW.length} must-allow, 4 SA ID).`);
+console.log(`All ${total} checks passed (${MUST_BLOCK.length} must-block, ${MUST_ALLOW.length} must-allow, ${HISTORY_BLOCK.length + HISTORY_ALLOW.length} split-message, 4 SA ID).`);

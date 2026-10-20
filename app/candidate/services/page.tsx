@@ -14,6 +14,11 @@ import {
 } from '@/lib/services/config';
 import { BadgeCheck, Clock, FileWarning, ShieldAlert, Wrench } from 'lucide-react';
 
+// Server component: computed per request, not during a client re-render.
+function daysAgoIso(days: number) {
+  return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+}
+
 const STATUS_COPY: Record<ProviderStatus, { title: string; body: string; tone: string }> = {
   draft: {
     title: 'Enrolment not finished',
@@ -80,7 +85,7 @@ export default async function MyServicesPage({ searchParams }: { searchParams: P
     );
   }
 
-  const [{ data: services }, { data: documents }, { count: strikeCount }] = await Promise.all([
+  const [{ data: services }, { data: documents }, { count: strikeCount }, { data: inboxThreads }] = await Promise.all([
     supabase
       .from('provider_services')
       .select('id, qualification_status, years_experience, category:service_categories(name, requires_qualification), rates:provider_rates(label, unit, price_cents, minimum_charge_cents, sort_order)')
@@ -95,8 +100,18 @@ export default async function MyServicesPage({ searchParams }: { searchParams: P
       .select('id', { count: 'exact', head: true })
       .eq('provider_id', provider.id)
       .is('removed_at', null)
-      .gte('created_at', new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()),
+      .gte('created_at', daysAgoIso(90)),
+    // Fails quietly (null) until add-service-requests-messaging.sql has run.
+    supabase
+      .from('service_threads')
+      .select('id, status, last_message_at, provider_last_read_at')
+      .eq('provider_id', provider.id),
   ]);
+
+  const openRequests = (inboxThreads ?? []).filter((t) => t.status === 'open').length;
+  const unreadRequests = (inboxThreads ?? []).filter(
+    (t) => t.last_message_at && (!t.provider_last_read_at || t.last_message_at > t.provider_last_read_at),
+  ).length;
 
   const status = provider.verification_status as ProviderStatus;
   const copy = STATUS_COPY[status];
@@ -148,6 +163,18 @@ export default async function MyServicesPage({ searchParams }: { searchParams: P
           </div>
         )}
       </section>
+
+      <Link href="/candidate/services/inbox" className="flex items-center justify-between gap-3 bg-white rounded-2xl border border-slate-200 p-5 hover:border-brand-500 transition-colors">
+        <div>
+          <h2 className="font-semibold text-slate-900">Service requests</h2>
+          <p className="text-sm text-slate-500">{openRequests} open conversation{openRequests === 1 ? '' : 's'}</p>
+        </div>
+        {unreadRequests > 0 ? (
+          <span className="rounded-full bg-brand-600 px-2.5 py-1 text-xs font-bold text-white">{unreadRequests} new</span>
+        ) : (
+          <span className="text-sm font-semibold text-brand-600">Open inbox</span>
+        )}
+      </Link>
 
       {(strikeCount ?? 0) > 0 && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 flex items-start gap-2">

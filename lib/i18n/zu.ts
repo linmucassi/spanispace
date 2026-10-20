@@ -53,6 +53,8 @@ const zu = {
     pieceJob: 'Amatoho',
     temporary: 'Okwesikhashana',
     allLocations: 'Zonke Izindawo',
+    locationLabel: 'Indawo',
+    typeLabel: 'Uhlobo lomsebenzi',
     southAfricaOnly: 'iNingizimu Afrika Kuphela',
     roleTitle: 'Isikhundla / Isihloko',
     company: 'Inkampani',

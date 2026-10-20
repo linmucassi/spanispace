@@ -3,6 +3,7 @@ import { ShieldCheck } from 'lucide-react';
 import { PROVINCES } from '@/lib/services/config';
 import { fetchProviderCards, fetchServiceCategories, type ServiceCategory } from '@/lib/services/publicData';
 import ProviderCardView from './ProviderCardView';
+import Select from '@/components/ui/Select';
 
 // Shared by /services and /services/[category]. Plain GET form for the
 // filters, so it works without JavaScript and every filtered view is a
@@ -22,7 +23,9 @@ export default async function ServicesBrowser({
   ]);
 
   const filtered = !!(province || pay);
-  const formAction = category ? `/services/${category.slug}` : '/services';
+  // Always /services: it redirects ?category=x to /services/x (keeping the
+  // other filters), so switching service from a category page works too.
+  const formAction = '/services';
 
   return (
     <div className="min-h-screen bg-white pt-24 pb-16">
@@ -39,34 +42,44 @@ export default async function ServicesBrowser({
           {category?.requires_qualification && ' This is a regulated trade, so providers listed here have also had their trade certificate checked.'}
         </p>
 
-        <form action={formAction} method="get" className="mt-6 flex flex-col sm:flex-row gap-2 sm:items-end">
-          {!category && (
-            <label className="flex-1">
-              <span className="block text-xs font-medium text-ink-500 mb-1">Service</span>
-              <select name="category" defaultValue="" className="w-full rounded-xl border border-ink-200 bg-white px-3 py-2.5 text-sm text-ink-900">
-                <option value="">All services</option>
-                {categories.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
-              </select>
-            </label>
+        {/* Each filter submits as soon as it's picked (submitOnChange), so
+            there's no Search button to forget. */}
+        <form action={formAction} method="get" className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {category ? (
+            <Select
+              label="Service"
+              defaultValue={category.slug}
+              submitOnChange
+              name="category"
+              options={categories.map((c) => ({ value: c.slug, label: c.name }))}
+            />
+          ) : (
+            <Select
+              label="Service"
+              name="category"
+              defaultValue=""
+              submitOnChange
+              options={[{ value: '', label: 'All services' }, ...categories.map((c) => ({ value: c.slug, label: c.name }))]}
+            />
           )}
-          <label className="flex-1">
-            <span className="block text-xs font-medium text-ink-500 mb-1">Province</span>
-            <select name="province" defaultValue={province ?? ''} className="w-full rounded-xl border border-ink-200 bg-white px-3 py-2.5 text-sm text-ink-900">
-              <option value="">Anywhere in South Africa</option>
-              {PROVINCES.map((p) => <option key={p} value={p}>{p}</option>)}
-            </select>
-          </label>
-          <label className="flex-1">
-            <span className="block text-xs font-medium text-ink-500 mb-1">Payment</span>
-            <select name="pay" defaultValue={pay ?? ''} className="w-full rounded-xl border border-ink-200 bg-white px-3 py-2.5 text-sm text-ink-900">
-              <option value="">Cash or online</option>
-              <option value="cash">Accepts cash</option>
-              <option value="online">Accepts online payment</option>
-            </select>
-          </label>
-          <button type="submit" className="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-brand-700">
-            Search
-          </button>
+          <Select
+            label="Province"
+            name="province"
+            defaultValue={province ?? ''}
+            submitOnChange
+            options={[{ value: '', label: 'Anywhere in South Africa' }, ...PROVINCES.map((p) => ({ value: p, label: p }))]}
+          />
+          <Select
+            label="Payment"
+            name="pay"
+            defaultValue={pay ?? ''}
+            submitOnChange
+            options={[
+              { value: '', label: 'Cash or online' },
+              { value: 'cash', label: 'Accepts cash' },
+              { value: 'online', label: 'Accepts online payment' },
+            ]}
+          />
         </form>
 
         {!category && (

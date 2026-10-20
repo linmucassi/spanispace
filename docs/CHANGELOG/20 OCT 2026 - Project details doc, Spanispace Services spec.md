@@ -201,6 +201,26 @@ Linda couldn't find the marketplace on the home screen. S1 had only built the pr
 - `docs/ROADMAP.md`: new "Spanispace Services marketplace" row in **What's Built**, covering S1 + S2 status and that the migration hasn't been run.
 - `docs/project-details.md`: the §7.11 phase table now has a status column (S0 partly, S1 code done, S2 mostly done, S3–S7 not started). The §1 overview and the §4 business model mention Services and where it stands.
 
+## Spanispace Services S3: requests and guarded messaging
+
+"Request a quote" now works. It needs the new migration `supabase/add-service-requests-messaging.sql`, run after `add-service-marketplace.sql`. Neither has been run yet.
+
+- **Database:** `service_requests`, `service_threads` (one per provider per request, at most 10), `service_messages` and `contact_violations`. They are **read-only for the parties, with no client write policies at all**. Every write goes through the API with the service role after an auth check. That's what makes contact blocking enforceable: a direct PostgREST insert has no policy to pass. The `SECURITY DEFINER` helpers avoid policy recursion (today's lesson). `service_thread_requester_name()` gives providers only the requester's first name.
+- **API:**
+  - `POST /api/services/requests` creates a request and its first conversation, or adds a provider to an existing open request for the same category. It checks the provider is live and offers the category (with an approved certificate where one is needed), blocks contacting yourself, sends company accounts to S5, and contact-scans every text field.
+  - `POST /api/services/messages` is the enforcement point. It scans the message on its own and joined with the sender's last 4 messages (new `scanWithHistory()` in `contactGuard.ts`). Blocked messages are logged and never delivered. It also enforces 20 messages a minute, 2,000 characters, closed-thread and inactive-provider checks.
+  - `POST /api/services/threads/[id]` handles read, decline (provider) and close. `POST /api/services/requests/[id]` cancels a request and closes its conversations.
+- **UI:**
+  - the Request-a-quote form on provider pages
+  - `/services/requests` (list) and `/services/requests/[id]` (compare conversations side by side)
+  - the chat page `/services/requests/[id]/chat/[threadId]`, shared by both parties: 5-second polling, live warning, decline/close using the app's `useConfirm` dialog
+  - the provider inbox `/candidate/services/inbox`, plus an unread card on My Services
+  - `/admin/service-violations`
+  - sidebar links: "Hire Services" (candidate) and "Contact Violations" (admin)
+- `lib/services/messaging-constants.ts` keeps the limits client-safe, since `messaging.ts` imports the service-role client.
+- **Tests:** 85/85 contact-guard checks, adding 8 split-message cases (4 must-block, 4 must-allow). `tsc` and ESLint are clean on all the new Services files, and the build passes. Not tested against a database.
+- **Not done:** email notifications for new requests (Resend isn't configured), attachments (deliberately off), Realtime (polling for now).
+
 ## Files changed
 
 - `docs/project-details.md` (new)
@@ -220,3 +240,9 @@ Linda couldn't find the marketplace on the home screen. S1 had only built the pr
 - `components/ServicesSection.tsx`, `components/services/ProviderCardView.tsx`, `components/services/ServicesBrowser.tsx`, `lib/services/publicData.ts` (new)
 - `app/(public)/services/page.tsx`, `app/(public)/services/[category]/page.tsx`, `app/(public)/services/provider/[id]/page.tsx` (new)
 - `app/(public)/page.tsx`, `components/Navbar.tsx`, `app/sitemap.ts`
+- `supabase/add-service-requests-messaging.sql` (new), `supabase/schema.sql`
+- `lib/services/messaging.ts`, `lib/services/messaging-constants.ts` (new), `lib/services/contactGuard.ts`, `scripts/test-contact-guard.ts`
+- `app/api/services/requests/route.ts`, `app/api/services/requests/[id]/route.ts`, `app/api/services/messages/route.ts`, `app/api/services/threads/[id]/route.ts` (new)
+- `components/services/RequestQuoteForm.tsx`, `components/services/ServiceChat.tsx` (new)
+- `app/(public)/services/requests/page.tsx`, `app/(public)/services/requests/[id]/page.tsx`, `app/(public)/services/requests/[id]/CancelRequestButton.tsx`, `app/(public)/services/requests/[id]/chat/[threadId]/page.tsx` (new)
+- `app/candidate/services/inbox/page.tsx`, `app/admin/service-violations/page.tsx` (new); `app/(public)/services/provider/[id]/page.tsx`, `app/candidate/services/page.tsx`, `components/candidate/CandidateSidebar.tsx`, `components/admin/AdminSidebar.tsx`

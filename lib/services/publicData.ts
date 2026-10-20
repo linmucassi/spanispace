@@ -100,8 +100,11 @@ export async function fetchProviderCards(filters: {
 
   const { data, error } = await query;
   if (error) {
-    // 42P01/PGRST205: the view doesn't exist yet (migration not run).
-    console.error('[services] provider cards unavailable:', error.code, error.message);
+    // 42P01/PGRST205: the view doesn't exist yet (migration not run). That's
+    // an expected state before launch, so only a warning; anything else is a
+    // real failure.
+    const notCreatedYet = error.code === 'PGRST205' || error.code === '42P01';
+    (notCreatedYet ? console.warn : console.error)('[services] provider cards unavailable:', error.code, error.message);
     return { cards: [], available: false };
   }
   return { cards: (data ?? []) as ProviderCard[], available: true };

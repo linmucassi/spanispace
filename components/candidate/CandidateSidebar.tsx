@@ -15,6 +15,7 @@ import {
   Mail,
   Calendar,
   Wrench,
+  Search,
   LogOut,
   Menu,
   X,
@@ -30,6 +31,7 @@ const navItems: { name: string; href: string; icon: React.ElementType; isNew?: b
   { name: 'Auto-Apply', href: '/candidate/auto-apply', icon: Zap, isNew: true },
   { name: 'Messages', href: '/candidate/messages', icon: MessageSquare },
   { name: 'My Services', href: '/candidate/services', icon: Wrench, isNew: true },
+  { name: 'Hire Services', href: '/services/requests', icon: Search, isNew: true },
   { name: 'Enrollments', href: '/candidate/enrollments', icon: BookOpen },
   { name: 'AI CV Audit', href: '/candidate/cv-audit', icon: Sparkles, isNew: true },
 ];

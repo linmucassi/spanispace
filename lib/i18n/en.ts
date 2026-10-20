@@ -53,6 +53,8 @@ const en = {
     pieceJob: 'Piece Job',
     temporary: 'Temporary',
     allLocations: 'All Locations',
+    locationLabel: 'Location',
+    typeLabel: 'Job type',
     southAfricaOnly: 'South Africa Only',
     roleTitle: 'Role / Title',
     company: 'Company',
