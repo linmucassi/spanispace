@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { accessHelp, isFreeLevel, isMissingLevelColumn, withoutLevel, TRAINING_LEVELS, type TrainingLevel } from '@/lib/training-level';
+import Select, { selectChange } from '@/components/ui/Select';
 
 export default function AdminNewTraining() {
   const router = useRouter();
@@ -47,8 +48,8 @@ export default function AdminNewTraining() {
         <div><label className="block text-sm font-medium text-slate-700 mb-1">Title *</label><input name="title" value={form.title} onChange={handleChange} required className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none" /></div>
         <div><label className="block text-sm font-medium text-slate-700 mb-1">Description</label><textarea name="description" value={form.description} onChange={handleChange} rows={3} className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none resize-none" /></div>
         <div className="grid grid-cols-2 gap-4">
-          <div><label className="block text-sm font-medium text-slate-700 mb-1">Category</label><select name="category" value={form.category} onChange={handleChange} className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm bg-white focus:border-brand-500 outline-none"><option>Bootcamp</option><option>Short Course</option><option>Event</option></select></div>
-          <div><label className="block text-sm font-medium text-slate-700 mb-1">Format</label><select name="format" value={form.format} onChange={handleChange} className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm bg-white focus:border-brand-500 outline-none"><option value="online">Online</option><option value="hybrid">Hybrid</option><option value="in-person">In-person</option></select></div>
+          <Select label="Category" labelClassName="block text-sm font-medium text-slate-700 mb-1" triggerClassName="px-4 py-3 border-slate-200" value={form.category} onChange={(v) => handleChange(selectChange('category', v))} options={['Bootcamp', 'Short Course', 'Event'].map((v) => ({ value: v, label: v }))} />
+          <Select label="Format" labelClassName="block text-sm font-medium text-slate-700 mb-1" triggerClassName="px-4 py-3 border-slate-200" value={form.format} onChange={(v) => handleChange(selectChange('format', v))} options={[{ value: 'online', label: 'Online' }, { value: 'hybrid', label: 'Hybrid' }, { value: 'in-person', label: 'In-person' }]} />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div><label className="block text-sm font-medium text-slate-700 mb-1">Start Date</label><input name="start_date" type="date" value={form.start_date} onChange={handleChange} className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 outline-none" /></div>
@@ -56,12 +57,14 @@ export default function AdminNewTraining() {
         </div>
         <div><label className="block text-sm font-medium text-slate-700 mb-1">Skills Covered (comma-separated)</label><input name="skills_covered" value={form.skills_covered} onChange={handleChange} placeholder="AI, Python, DevOps" className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 outline-none" /></div>
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Level</label>
-          <select name="level" value={form.level} onChange={handleChange} className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm bg-white focus:border-brand-500 outline-none">
-            {TRAINING_LEVELS.map((l) => (
-              <option key={l} value={l}>{l === 'Beginner' ? 'Beginner, free for candidates' : 'Advanced, paid'}</option>
-            ))}
-          </select>
+          <Select
+            label="Level"
+            labelClassName="block text-sm font-medium text-slate-700 mb-1"
+            triggerClassName="px-4 py-3 border-slate-200"
+            value={form.level}
+            onChange={(v) => handleChange(selectChange('level', v))}
+            options={TRAINING_LEVELS.map((l) => ({ value: l, label: l === 'Beginner' ? 'Beginner, free for candidates' : 'Advanced, paid' }))}
+          />
           <p className="text-xs text-slate-500 mt-1.5">{accessHelp(form.level)}</p>
         </div>
         {error && <p className="text-red-600 text-sm">{error}</p>}

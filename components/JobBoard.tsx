@@ -8,15 +8,17 @@ import { isSouthAfricanJob } from '../lib/jobLocation';
 import { useTranslation } from '../lib/i18n/context';
 import { WORK_KIND_CHIP, WORK_KIND_EDGE, workKind } from '../lib/work-type';
 import { isExpiringSoon, relativeDaysAgo } from '../lib/listingFreshness';
+import Select from './ui/Select';
 
 const PAGE_SIZE = 15;
 
 interface JobBoardProps {
   initialJobs?: Job[];
+  initialSearch?: string;
 }
 
-const JobBoard: React.FC<JobBoardProps> = ({ initialJobs }) => {
-  const [search, setSearch] = useState('');
+const JobBoard: React.FC<JobBoardProps> = ({ initialJobs, initialSearch = '' }) => {
+  const [search, setSearch] = useState(initialSearch);
   const [filter, setFilter] = useState('All');
   const [locationFilter, setLocationFilter] = useState('All');
   const [page, setPage] = useState(1);
@@ -70,39 +72,45 @@ const JobBoard: React.FC<JobBoardProps> = ({ initialJobs }) => {
           <h2 className="font-display text-3xl font-extrabold text-ink-900">{t('jobs.title')}</h2>
           <p className="text-ink-500 mt-2">{t('jobs.subtitle')}</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-col sm:flex-row gap-2 md:shrink-0">
           <input
             type="text"
             value={search}
             onChange={(e) => handleSearchChange(e.target.value)}
             placeholder={t('jobs.searchPlaceholder')}
-            className="bg-white border border-ink-200 rounded-lg px-3 py-2 text-sm min-w-[220px]"
+            className="bg-white border border-ink-200 rounded-xl px-3.5 py-2.5 text-sm text-ink-900 placeholder-ink-400 sm:flex-1 md:flex-none md:w-64 hover:border-ink-300 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
             aria-label={t('jobs.searchPlaceholder')}
           />
-          <select
+          <Select
+            label={t('jobs.locationLabel')}
+            hideLabel
+            className="sm:w-48"
             value={locationFilter}
-            onChange={(e) => handleLocationFilterChange(e.target.value)}
-            className="bg-white border border-ink-200 rounded-lg px-3 py-2 text-sm"
-          >
-            <option value="All">{t('jobs.allLocations')}</option>
-            <option value="ZA">{t('jobs.southAfricaOnly')}</option>
-          </select>
-          <select
+            onChange={handleLocationFilterChange}
+            options={[
+              { value: 'All', label: t('jobs.allLocations') },
+              { value: 'ZA', label: t('jobs.southAfricaOnly') },
+            ]}
+          />
+          <Select
+            label={t('jobs.typeLabel')}
+            hideLabel
+            className="sm:w-40"
             value={filter}
-            onChange={(e) => handleFilterChange(e.target.value)}
-            className="bg-white border border-ink-200 rounded-lg px-3 py-2 text-sm"
-          >
-            <option value="All">{t('jobs.allTypes')}</option>
-            <option value="Full-time">{t('jobs.fullTime')}</option>
-            <option value="Part-time">{t('jobs.partTime')}</option>
-            <option value="Piece Job">{t('jobs.pieceJob')}</option>
-            <option value="Temporary">{t('jobs.temporary')}</option>
-            <option value="Contract">{t('jobs.contract')}</option>
-            <option value="Remote">{t('jobs.remote')}</option>
-            <option value="Hybrid">{t('jobs.hybrid')}</option>
-            <option value="On-site">{t('jobs.onSite')}</option>
-            <option value="Learnership">{t('jobs.learnership')}</option>
-          </select>
+            onChange={handleFilterChange}
+            options={[
+              { value: 'All', label: t('jobs.allTypes') },
+              { value: 'Full-time', label: t('jobs.fullTime') },
+              { value: 'Part-time', label: t('jobs.partTime') },
+              { value: 'Piece Job', label: t('jobs.pieceJob') },
+              { value: 'Temporary', label: t('jobs.temporary') },
+              { value: 'Contract', label: t('jobs.contract') },
+              { value: 'Remote', label: t('jobs.remote') },
+              { value: 'Hybrid', label: t('jobs.hybrid') },
+              { value: 'On-site', label: t('jobs.onSite') },
+              { value: 'Learnership', label: t('jobs.learnership') },
+            ]}
+          />
         </div>
       </div>
 

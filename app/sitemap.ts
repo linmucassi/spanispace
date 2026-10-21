@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { JOBS } from '@/data/constants';
 import { COURSES, GUIDES, lessonSlug } from '@/data/courses';
+import { FALLBACK_CATEGORIES } from '@/lib/services/publicData';
 
 const BASE_URL = 'https://spanispace.com';
 
@@ -52,5 +53,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.7,
   }));
 
-  return [...staticRoutes, ...courseRoutes, ...guideRoutes, ...jobRoutes];
+  const serviceRoutes: MetadataRoute.Sitemap = [
+    { url: `${BASE_URL}/services`, lastModified: now, changeFrequency: 'daily' as const, priority: 0.8 },
+    ...FALLBACK_CATEGORIES.map((c) => ({
+      url: `${BASE_URL}/services/${c.slug}`,
+      lastModified: now,
+      changeFrequency: 'daily' as const,
+      priority: 0.6,
+    })),
+  ];
+
+  return [...staticRoutes, ...serviceRoutes, ...courseRoutes, ...guideRoutes, ...jobRoutes];
 }

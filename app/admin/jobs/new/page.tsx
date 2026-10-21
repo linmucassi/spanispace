@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { normalizeUrl } from '@/lib/normalizeUrl';
+import Select, { selectChange } from '@/components/ui/Select';
 
 export default function AdminNewJob() {
   const router = useRouter();
@@ -122,14 +123,14 @@ export default function AdminNewJob() {
               className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Job Type</label>
-            <select name="job_type" value={form.job_type} onChange={handleChange}
-              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm bg-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none">
-              <option>Full-time</option><option>Part-time</option><option>Piece Job</option>
-              <option>Temporary</option><option>Contract</option>
-              <option>Remote</option><option>Hybrid</option><option>On-site</option>
-              <option>Learnership</option><option>Internship</option><option>Once-off</option>
-            </select>
+            <Select
+              label="Job Type"
+              labelClassName="block text-sm font-medium text-slate-700 mb-1"
+              triggerClassName="px-4 py-3 border-slate-200"
+              value={form.job_type}
+              onChange={(v) => handleChange(selectChange('job_type', v))}
+              options={['Full-time', 'Part-time', 'Piece Job', 'Temporary', 'Contract', 'Remote', 'Hybrid', 'On-site', 'Learnership', 'Internship', 'Once-off'].map((v) => ({ value: v, label: v }))}
+            />
           </div>
         </div>
 
@@ -158,12 +159,14 @@ export default function AdminNewJob() {
               className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Verification Status</label>
-            <select name="vetted_status" value={form.vetted_status} onChange={handleChange}
-              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm bg-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none">
-              <option value="verified">Verified</option>
-              <option value="pending">Pending</option>
-            </select>
+            <Select
+              label="Verification Status"
+              labelClassName="block text-sm font-medium text-slate-700 mb-1"
+              triggerClassName="px-4 py-3 border-slate-200"
+              value={form.vetted_status}
+              onChange={(v) => handleChange(selectChange('vetted_status', v))}
+              options={[{ value: 'verified', label: 'Verified' }, { value: 'pending', label: 'Pending' }]}
+            />
           </div>
         </div>
 

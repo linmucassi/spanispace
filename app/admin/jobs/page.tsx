@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import type { DbJob } from '@/types/database';
 import { isExpiringSoon } from '@/lib/listingFreshness';
 import { useConfirm } from '@/components/useConfirm';
+import Select from '@/components/ui/Select';
 
 export default function AdminJobs() {
   const [jobs, setJobs] = useState<DbJob[]>([]);
@@ -144,16 +145,20 @@ export default function AdminJobs() {
             {f.charAt(0).toUpperCase() + f.slice(1)}
           </button>
         ))}
-        <select
+        <Select
+          label="Source"
+          hideLabel
+          className="ml-auto w-44"
+          triggerClassName="py-2 rounded-lg font-medium text-slate-600 border-slate-200"
           value={originFilter}
-          onChange={(e) => setOriginFilter(e.target.value)}
-          className="ml-auto px-3 py-2 rounded-lg text-sm font-medium bg-white border border-slate-200 text-slate-600"
-        >
-          <option value="all">All sources</option>
-          <option value="company">Company-posted</option>
-          <option value="admin_curated">Admin-curated</option>
-          <option value="scraped">Scraped</option>
-        </select>
+          onChange={setOriginFilter}
+          options={[
+            { value: 'all', label: 'All sources' },
+            { value: 'company', label: 'Company-posted' },
+            { value: 'admin_curated', label: 'Admin-curated' },
+            { value: 'scraped', label: 'Scraped' },
+          ]}
+        />
       </div>
 
       {/* Bulk actions */}

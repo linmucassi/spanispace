@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { resolveCompanyMembership, canManage, type CompanyMembership } from '@/lib/company/resolveCompanyMembership';
 import type { DbCompanyMember, CompanyRole } from '@/types/database';
+import Select from '@/components/ui/Select';
 
 const ROLES: CompanyRole[] = ['owner', 'admin', 'manager', 'member', 'viewer'];
 const ROLE_LABELS: Record<CompanyRole, string> = {
@@ -139,15 +140,15 @@ export default function CompanyTeam() {
               placeholder="teammate@example.com"
               className="flex-1 rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-brand-500 outline-none"
             />
-            <select
+            <Select
+              label="Role"
+              hideLabel
+              className="sm:w-40"
+              triggerClassName="px-4 border-slate-200"
               value={addRole}
-              onChange={(e) => setAddRole(e.target.value as CompanyRole)}
-              className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm bg-white focus:border-brand-500 outline-none"
-            >
-              {ROLES.filter((r) => r !== 'owner').map((r) => (
-                <option key={r} value={r}>{ROLE_LABELS[r]}</option>
-              ))}
-            </select>
+              onChange={(v) => setAddRole(v as CompanyRole)}
+              options={ROLES.filter((r) => r !== 'owner').map((r) => ({ value: r, label: ROLE_LABELS[r] }))}
+            />
             <button
               type="submit"
               disabled={addSaving}
@@ -188,16 +189,16 @@ export default function CompanyTeam() {
                   <td className="px-6 py-4 text-sm font-medium text-slate-900">{m.users?.email ?? '-'}</td>
                   <td className="px-6 py-4">
                     {canManageTeam && m.role !== 'owner' ? (
-                      <select
-                        value={m.role}
-                        onChange={(e) => changeRole(m.id, e.target.value as CompanyRole)}
+                      <Select
+                        label={`Role for ${m.users?.email ?? 'team member'}`}
+                        hideLabel
+                        className="w-32"
+                        triggerClassName="px-2.5 py-1 rounded-lg text-xs border-slate-200"
                         disabled={busy === m.id}
-                        className="rounded-lg border border-slate-200 px-2 py-1 text-xs bg-white"
-                      >
-                        {ROLES.filter((r) => r !== 'owner').map((r) => (
-                          <option key={r} value={r}>{ROLE_LABELS[r]}</option>
-                        ))}
-                      </select>
+                        value={m.role}
+                        onChange={(v) => changeRole(m.id, v as CompanyRole)}
+                        options={ROLES.filter((r) => r !== 'owner').map((r) => ({ value: r, label: ROLE_LABELS[r] }))}
+                      />
                     ) : (
                       <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-600">
                         {ROLE_LABELS[m.role]}

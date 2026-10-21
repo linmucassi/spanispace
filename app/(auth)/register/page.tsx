@@ -10,8 +10,14 @@ import { redirectToDashboard } from '@/lib/auth/roleRedirect';
 import { joinFullName } from '@/lib/name';
 import PhoneInput from '@/components/PhoneInput';
 import { Loader2 } from 'lucide-react';
+import Select from '@/components/ui/Select';
 
-type Tab = 'candidate' | 'company';
+// 'services' is a candidate account with a different landing page: it
+// creates exactly the same users/candidate_profiles rows (role
+// 'candidate'), then routes to the provider enrolment wizard. Being a
+// service provider is a capability added afterwards by
+// POST /api/services/provider, never by handle_new_user().
+type Tab = 'candidate' | 'services' | 'company';
 
 type InvitePreview = {
   valid: boolean;
@@ -71,6 +77,7 @@ export default function RegisterPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    if (params.get('as') === 'services') setTab('services');
     const token = params.get('invite');
     if (!token) return;
     setInviteToken(token);
@@ -130,6 +137,10 @@ export default function RegisterPage() {
       }
     }
     if (!supabase) return;
+    if (tab === 'services') {
+      router.push('/candidate/services/enrol');
+      return;
+    }
     await redirectToDashboard(supabase, router, userId, t('auth.roleCheckFailed'), setError);
   };
 
@@ -154,10 +165,19 @@ export default function RegisterPage() {
       return;
     }
 
+    // signup_intent is read by /candidate/dashboard to nudge an email-confirmed
+    // "services" signup back to the enrolment wizard. handle_new_user()
+    // ignores it.
     const metadata =
-      tab === 'candidate'
-        ? { role: 'candidate', full_name: joinFullName(firstName, lastName), phone, location }
-        : { role: 'company', company_name: companyName, industry, location };
+      tab === 'company'
+        ? { role: 'company', company_name: companyName, industry, location }
+        : {
+            role: 'candidate',
+            full_name: joinFullName(firstName, lastName),
+            phone,
+            location,
+            ...(tab === 'services' ? { signup_intent: 'services' } : {}),
+          };
 
     const callbackUrl = new URL('/callback', window.location.origin);
     // If confirmation email is required, no session exists until that link
@@ -195,6 +215,8 @@ export default function RegisterPage() {
     // what it granted, falling back to the tab-based dashboard otherwise.
     if (inviteToken) {
       await acceptInviteAndRedirect(supabase, data.user!.id);
+    } else if (tab === 'services') {
+      router.push('/candidate/services/enrol');
     } else if (tab === 'candidate') {
       router.push('/candidate/dashboard');
     } else {
@@ -245,6 +267,17 @@ export default function RegisterPage() {
           </button>
           <button
             type="button"
+            onClick={() => handleTabSwitch('services')}
+            className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all ${
+              tab === 'services'
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            {t('auth.tabServices')}
+          </button>
+          <button
+            type="button"
             onClick={() => handleTabSwitch('company')}
             className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all ${
               tab === 'company'
@@ -257,7 +290,13 @@ export default function RegisterPage() {
         </div>
       )}
 
-      {tab === 'candidate' && !success && (
+      {tab === 'services' && !success && (
+        <p className="mb-4 text-sm text-brand-700 bg-brand-50 border border-brand-100 rounded-2xl px-4 py-3">
+          {t('auth.servicesSignupNote')}
+        </p>
+      )}
+
+      {tab !== 'company' && !success && (
         <div className="mb-6">
           <div ref={googleButtonRef} className={googleLoading ? 'opacity-50 pointer-events-none' : ''} />
           <p className="text-center text-xs text-slate-400 mt-2">{t('auth.googleCandidateNote')}</p>
@@ -283,8 +322,8 @@ export default function RegisterPage() {
         </div>
       ) : (
         <form onSubmit={handleRegister} className="space-y-4">
-          {/* Candidate-specific fields */}
-          {tab === 'candidate' && (
+          {/* Candidate-specific fields (also used by the services tab) */}
+          {tab !== 'company' && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -366,7 +405,7 @@ export default function RegisterPage() {
           </div>
 
           {/* Candidate: Phone */}
-          {tab === 'candidate' && (
+          {tab !== 'company' && (
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 {t('auth.phone')}
@@ -385,22 +424,18 @@ export default function RegisterPage() {
           {/* Company: Industry */}
           {tab === 'company' && (
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                {t('auth.industry')}
-              </label>
-              <select
-                value={industry}
-                onChange={(e) => setIndustry(e.target.value)}
+              <Select
+                label={t('auth.industry')}
+                labelClassName="block text-sm font-medium text-slate-700 mb-1"
+                triggerClassName="px-4 py-3 border-slate-300"
                 required
-                className="block w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none bg-white"
-              >
-                <option value="">{t('auth.selectIndustry')}</option>
-                {INDUSTRIES.map((ind) => (
-                  <option key={ind} value={ind.toLowerCase()}>
-                    {t(`auth.industry_${ind.toLowerCase()}`)}
-                  </option>
-                ))}
-              </select>
+                value={industry}
+                onChange={setIndustry}
+                options={[
+                  { value: '', label: t('auth.selectIndustry') },
+                  ...INDUSTRIES.map((ind) => ({ value: ind.toLowerCase(), label: t(`auth.industry_${ind.toLowerCase()}`) })),
+                ]}
+              />
             </div>
           )}
 

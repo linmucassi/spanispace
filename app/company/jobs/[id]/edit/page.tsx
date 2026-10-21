@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { normalizeUrl } from '@/lib/normalizeUrl';
 import { resolveCompanyMembership } from '@/lib/company/resolveCompanyMembership';
+import Select, { selectChange } from '@/components/ui/Select';
 
 const JOB_TYPES = [
   'Full-time',
@@ -314,21 +315,14 @@ export default function CompanyEditJob() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              Job Type
-            </label>
-            <select
-              name="job_type"
+            <Select
+              label="Job Type"
+              labelClassName="block text-sm font-medium text-slate-700 mb-1"
+              triggerClassName="px-4 py-3 border-slate-200"
               value={form.job_type}
-              onChange={handleChange}
-              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm bg-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
-            >
-              {JOB_TYPES.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => handleChange(selectChange('job_type', v))}
+              options={JOB_TYPES.map((type) => ({ value: type, label: type }))}
+            />
           </div>
         </div>
 

@@ -105,6 +105,7 @@ const Navbar: React.FC = () => {
   // The old Academy and Academic entries said the same thing three ways.
   const navItems = [
     { name: t('nav.jobs'), href: '/jobs' },
+    { name: t('nav.services'), href: '/services' },
     { name: t('nav.training'), href: '/training' },
     { name: t('nav.university'), href: '/university' },
     { name: t('nav.events'), href: '/events' },

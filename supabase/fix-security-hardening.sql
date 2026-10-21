@@ -202,16 +202,37 @@ CREATE TRIGGER lock_vetted_status_trainings BEFORE UPDATE ON trainings
 -- ---------------------------------------------------------------------
 -- 5. A company can see the profiles of candidates who applied to its
 --    jobs, and only those  (should-fix S3)
+--
+--    Goes through the SECURITY DEFINER helper company_has_applicant(), NOT
+--    an inline EXISTS on applications. The inline version (this file's
+--    original text) recurses forever: applications' own "Candidates read
+--    own applications" policy queries candidate_profiles back. Every read of
+--    candidate_profiles then fails with 42P17 "infinite recursion", which
+--    sent every candidate to the onboarding gate and broke its save. That
+--    happened on 13 Aug 2026 and again on 20 Oct 2026, after this file was
+--    re-run on 15 Oct and overwrote fix-candidate-profile-visibility-recursion.sql.
+--    The helper is defined here too (same body as that file), so re-running
+--    this file in any order is safe.
 -- ---------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.company_has_applicant(p_candidate_id UUID)
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.applications a
+    JOIN public.jobs j ON j.id = a.job_id
+    JOIN public.company_profiles cp ON cp.id = j.company_id
+    WHERE a.candidate_id = p_candidate_id AND cp.user_id = auth.uid()
+  );
+$$;
+
 DROP POLICY IF EXISTS "Companies read applicant profiles" ON candidate_profiles;
 CREATE POLICY "Companies read applicant profiles" ON candidate_profiles FOR SELECT USING (
-  EXISTS (
-    SELECT 1
-    FROM applications a
-    JOIN jobs j ON j.id = a.job_id
-    JOIN company_profiles cp ON cp.id = j.company_id
-    WHERE a.candidate_id = candidate_profiles.id AND cp.user_id = auth.uid()
-  )
+  public.company_has_applicant(id)
 );
 
 

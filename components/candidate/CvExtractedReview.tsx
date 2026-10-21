@@ -9,6 +9,7 @@
 import PhoneInput from '@/components/PhoneInput';
 import { WORK_TYPE_LABELS } from './WorkExperience';
 import { X } from 'lucide-react';
+import Select from '@/components/ui/Select';
 
 export interface CvAutofillWorkEntry {
   job_title: string;
@@ -155,15 +156,14 @@ export default function CvExtractedReview({
                     placeholder="Employer"
                     className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-900 focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
                   />
-                  <select
+                  <Select
+                    label="Type of work"
+                    hideLabel
+                    triggerClassName="py-1.5 rounded-lg border-slate-300"
                     value={entry.work_type}
-                    onChange={(e) => updateEntry(i, { work_type: e.target.value })}
-                    className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-900 bg-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
-                  >
-                    {Object.entries(WORK_TYPE_LABELS).map(([value, label]) => (
-                      <option key={value} value={value}>{label}</option>
-                    ))}
-                  </select>
+                    onChange={(v) => updateEntry(i, { work_type: v })}
+                    options={Object.entries(WORK_TYPE_LABELS).map(([value, label]) => ({ value, label }))}
+                  />
                   <input
                     value={entry.duration_text ?? ''}
                     onChange={(e) => updateEntry(i, { duration_text: e.target.value })}

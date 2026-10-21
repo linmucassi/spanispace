@@ -26,6 +26,16 @@ Linda confirmed that every SQL file in the roadmap's "Outstanding: Production Mi
 
 Still to confirm: the issue #8 admin-audit and demotion step, the super_admin bootstrap `UPDATE` (otherwise `/admin/users` and admin invites don't work), and the post-migration smoke test.
 
+## Email delivery and DNS audit (issues #9, #11)
+
+Netlify was connected to Claude Code via MCP, and live DNS was queried.
+- **Transactional email has never sent in production.** `RESEND_API_KEY` and `EMAIL_FROM` aren't set on the Netlify site (`soft-dango-fd7dc2`). `lib/email.ts` treats missing vars as "not configured" and skips sending without an error, so application notices, notification digests and the 10 Sep welcome email have all been no-ops. In the roadmap, the Email notifications row is downgraded to 🔴.
+- **DNS** is on Netlify DNS. Zoho MX and SPF are in place. There's no DMARC, no Resend records and no Zoho DKIM.
+- **Plan change for issue #9:** Supabase auth SMTP will go through Resend (`smtp.resend.com`, username `resend`), not Zoho. Resend needs setting up anyway, and this avoids the Zoho app password and plan limits. The DMARC record will start at `p=none` rather than the `p=quarantine` in issue #11, so mail that isn't authenticated yet doesn't land in spam.
+- **Security:** `SUPABASE_SERVICE_ROLE_KEY` was stored in Netlify as a non-secret, so it was readable in plain text by anyone on the team. Linda is marking it secret. The agent's attempt to do so was blocked by Claude Code's safety rules on secret writes, so secrets stay a manual step.
+
+Full step-by-step plans are under Issues #9 and #11 in `docs/ROADMAP.md`.
+
 ## Files changed
 - `.github/workflows/keepalive.yml` (new)
 - `docs/ROADMAP.md`
