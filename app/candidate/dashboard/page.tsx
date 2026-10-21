@@ -1,15 +1,34 @@
 import Link from 'next/link';
+import { ArrowUpRight, BookOpen, FileText, Gauge, Mail, ShieldCheck, Star } from 'lucide-react';
 import { createServerSupabase } from '@/lib/supabase/server';
 import ProfileCompletenessCard from '@/components/candidate/ProfileCompletenessCard';
 import AvatarUpload from '@/components/candidate/AvatarUpload';
+import StatCard from '@/components/ui/StatCard';
+import { Panel, PageHeader, MeterList, btnPrimary, btnSecondary, type Meter } from '@/components/ui/Panel';
+import type { Tone } from '@/components/ui/RingGauge';
 import { COURSES } from '@/data/courses';
 
 const statusColors: Record<string, string> = {
-  pending: 'bg-yellow-100 text-yellow-800',
-  reviewed: 'bg-blue-100 text-blue-800',
-  shortlisted: 'bg-green-100 text-green-800',
-  rejected: 'bg-red-100 text-red-800',
-  hired: 'bg-emerald-100 text-emerald-800',
+  pending: 'bg-amber-50 text-amber-700 border-amber-100',
+  reviewed: 'bg-brand-50 text-brand-700 border-brand-100',
+  shortlisted: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+  rejected: 'bg-rose-50 text-rose-700 border-rose-100',
+  hired: 'bg-violet-50 text-violet-700 border-violet-100',
+};
+
+// The pipeline, in the order an application moves through it.
+const PIPELINE: { status: string; label: string; tone: Tone }[] = [
+  { status: 'pending', label: 'Sent, waiting for review', tone: 'amber' },
+  { status: 'reviewed', label: 'Reviewed', tone: 'brand' },
+  { status: 'shortlisted', label: 'Shortlisted', tone: 'emerald' },
+  { status: 'hired', label: 'Hired', tone: 'violet' },
+  { status: 'rejected', label: 'Not this time', tone: 'rose' },
+];
+
+const VERIFICATION = {
+  verified: { label: 'Verified', text: 'Companies see the verified badge on your profile.', chip: 'bg-emerald-50 text-emerald-700' },
+  pending: { label: 'Pending', text: 'Documents submitted, waiting on admin review.', chip: 'bg-amber-50 text-amber-700' },
+  not_started: { label: 'Not started', text: 'Upload an ID document to start verification.', chip: 'bg-ink-100 text-ink-500' },
 };
 
 export default async function CandidateDashboard() {
@@ -18,13 +37,13 @@ export default async function CandidateDashboard() {
   if (!supabase) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
-        <div className="bg-white rounded-xl border border-slate-200 p-8 text-center">
-          <p className="text-slate-500">
+        <PageHeader title="Dashboard" />
+        <Panel>
+          <p className="text-center text-ink-500">
             Supabase is not configured. Please set your environment variables to
             enable the dashboard.
           </p>
-        </div>
+        </Panel>
       </div>
     );
   }
@@ -36,10 +55,10 @@ export default async function CandidateDashboard() {
   if (!user) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
-        <div className="bg-white rounded-xl border border-slate-200 p-8 text-center">
-          <p className="text-slate-500">Please sign in to view your dashboard.</p>
-        </div>
+        <PageHeader title="Dashboard" />
+        <Panel>
+          <p className="text-center text-ink-500">Please sign in to view your dashboard.</p>
+        </Panel>
       </div>
     );
   }
@@ -69,8 +88,7 @@ export default async function CandidateDashboard() {
 
   const [
     cvCountRes,
-    totalApplicationsRes,
-    shortlistedRes,
+    applicationStatusesRes,
     recentApplicationsRes,
     pendingVerificationsRes,
     pendingInvitesRes,
@@ -82,14 +100,12 @@ export default async function CandidateDashboard() {
     // candidate_profiles.cv_url -- that column predates the library and
     // nothing writes to it anymore.
     supabase.from('candidate_documents').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('doc_type', 'cv'),
+    // Statuses only: the pipeline chart and both counts come from this one read.
     candidateId
-      ? supabase.from('applications').select('*', { count: 'exact', head: true }).eq('candidate_id', candidateId)
-      : noCount,
+      ? supabase.from('applications').select('status').eq('candidate_id', candidateId)
+      : noRows,
     candidateId
-      ? supabase.from('applications').select('*', { count: 'exact', head: true }).eq('candidate_id', candidateId).eq('status', 'shortlisted')
-      : noCount,
-    candidateId
-      ? supabase.from('applications').select('id, status, created_at, job:jobs(title)').eq('candidate_id', candidateId).order('created_at', { ascending: false }).limit(10)
+      ? supabase.from('applications').select('id, status, created_at, job:jobs(title)').eq('candidate_id', candidateId).order('created_at', { ascending: false }).limit(6)
       : noRows,
     // Document verification status -- profile.verified is a standing badge,
     // flipped only by an explicit admin action
@@ -120,8 +136,14 @@ export default async function CandidateDashboard() {
   const showServicesNudge = user.user_metadata?.signup_intent === 'services' && !serviceProviderRes.error && !serviceProviderRes.data;
 
   const hasCv = (cvCountRes.count ?? 0) > 0;
-  const totalApplications = totalApplicationsRes.count ?? 0;
-  const shortlistedCount = shortlistedRes.count ?? 0;
+  const statuses = ((applicationStatusesRes.data as { status: string }[] | null) ?? []).map((a) => a.status);
+  const totalApplications = statuses.length;
+  const shortlistedCount = statuses.filter((st) => st === 'shortlisted').length;
+  const pipeline: Meter[] = PIPELINE.map((step) => ({
+    label: step.label,
+    value: statuses.filter((st) => st === step.status).length,
+    tone: step.tone,
+  }));
 
   // A failed read must not render as "you have not applied to any jobs yet".
   const applicationsLoadFailed = Boolean('error' in recentApplicationsRes && recentApplicationsRes.error);
@@ -138,6 +160,7 @@ export default async function CandidateDashboard() {
     : (pendingVerificationsRes.count ?? 0) > 0
       ? 'pending'
       : 'not_started';
+  const verification = VERIFICATION[verificationState];
 
   const pendingInvites = pendingInvitesRes.count ?? 0;
   const activeEnrollments = activeEnrollmentsRes.count ?? 0;
@@ -148,250 +171,190 @@ export default async function CandidateDashboard() {
     return { course, completed };
   }).filter((p) => p.completed > 0);
 
-  const stats = [
-    {
-      label: 'Total Applications',
-      value: totalApplications,
-      color: 'bg-brand-50 text-brand-700',
-    },
-    {
-      label: 'Shortlisted',
-      value: shortlistedCount,
-      color: 'bg-green-50 text-green-700',
-    },
-    {
-      label: 'Profile Score',
-      value: `${profileScore}%`,
-      color: 'bg-amber-50 text-amber-700',
-    },
-    {
-      label: 'Active Enrollments',
-      value: activeEnrollments,
-      color: 'bg-purple-50 text-purple-700',
-    },
-  ];
+  const firstName = fullName.split(' ')[0];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {showServicesNudge && (
-        <div className="rounded-2xl border border-brand-100 bg-brand-50 px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex flex-col justify-between gap-3 rounded-3xl border border-brand-100 bg-brand-50 px-5 py-4 sm:flex-row sm:items-center">
           <div>
             <p className="font-semibold text-brand-900">Finish setting up your services</p>
             <p className="text-sm text-brand-700">Add your rate card and upload your verification documents to start receiving bookings.</p>
           </div>
-          <Link href="/candidate/services/enrol" className="shrink-0 rounded-xl bg-brand-600 px-4 py-2 text-sm font-bold text-white hover:bg-brand-700 text-center">
+          <Link href="/candidate/piecejobs/enrol" className={`${btnPrimary} shrink-0`}>
             Continue
           </Link>
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-4">
-          <AvatarUpload
-            userId={user.id}
-            avatarUrl={profile?.avatar_url ?? null}
-            fullName={fullName}
-            editable={false}
-            size="sm"
-          />
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">
-              Welcome back, {fullName}
-            </h1>
-            <p className="text-slate-500 mt-1">
-              Here is what is happening with your job search.
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <Link
-            href="/candidate/profile/preview"
-            className="text-sm font-medium text-brand-600 hover:text-brand-700"
-          >
-            Preview my profile
-          </Link>
-          <Link
-            href="/#jobs"
-            className="inline-flex items-center px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors"
-          >
-            Browse Jobs
-          </Link>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat) => (
-          <div
-            key={stat.label}
-            className="bg-white rounded-xl border border-slate-200 p-5"
-          >
-            <p className="text-sm text-slate-500">{stat.label}</p>
-            <p className={`text-2xl font-bold mt-1 ${stat.color.split(' ')[1]}`}>
-              {stat.value}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      <ProfileCompletenessCard
-        profileScore={profileScore}
-        profile={{ ...(profile ?? {}), hasCv }}
-        hasApplied={totalApplications > 0}
+      <PageHeader
+        leading={<AvatarUpload userId={user.id} avatarUrl={profile?.avatar_url ?? null} fullName={fullName} editable={false} size="sm" />}
+        title="Welcome back,"
+        muted={firstName}
+        subtitle="Here is what is happening with your job search."
+        actions={
+          <>
+            <Link href="/candidate/profile/preview" className={btnSecondary}>Preview my profile</Link>
+            <Link href="/jobs" className={btnPrimary}>
+              Browse jobs <ArrowUpRight className="h-4 w-4" aria-hidden />
+            </Link>
+          </>
+        }
       />
 
-      {/* Talent pool / verification / invites */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="bg-white rounded-xl border border-slate-200 p-5 flex items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold text-slate-900">Profile Verification</p>
-            <p className="text-sm text-slate-500 mt-0.5">
-              {verificationState === 'verified'
-                ? 'Verified — companies see this badge on your profile.'
-                : verificationState === 'pending'
-                  ? 'Documents submitted, waiting on admin review.'
-                  : 'Upload an ID document to start verification.'}
-            </p>
-          </div>
-          <span
-            className={`shrink-0 inline-flex px-2.5 py-1 rounded-full text-xs font-bold ${
-              verificationState === 'verified'
-                ? 'bg-green-100 text-green-700'
-                : verificationState === 'pending'
-                  ? 'bg-amber-100 text-amber-700'
-                  : 'bg-slate-100 text-slate-500'
-            }`}
-          >
-            {verificationState === 'verified' ? 'Verified' : verificationState === 'pending' ? 'Pending' : 'Not started'}
-          </span>
-        </div>
-        <Link
-          href="/candidate/invites"
-          className="bg-white rounded-xl border border-slate-200 p-5 flex items-center justify-between gap-3 hover:border-brand-300 transition-colors"
-        >
-          <div>
-            <p className="text-sm font-semibold text-slate-900">Invitations</p>
-            <p className="text-sm text-slate-500 mt-0.5">
-              {pendingInvites > 0
-                ? `${pendingInvites} ${pendingInvites === 1 ? 'company wants' : 'companies want'} you to apply`
-                : 'Companies can invite you to apply once you opt in'}
-            </p>
-          </div>
-          {pendingInvites > 0 && (
-            <span className="shrink-0 inline-flex px-2.5 py-1 rounded-full text-xs font-bold bg-brand-100 text-brand-700">
-              {pendingInvites}
-            </span>
-          )}
-        </Link>
+      {/* Stats */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          label="Applications"
+          value={totalApplications}
+          icon={FileText}
+          href="/candidate/applications"
+          hint={totalApplications === 0 ? 'Apply to your first job to get started' : `${shortlistedCount} shortlisted so far`}
+        />
+        <StatCard
+          label="Shortlisted"
+          value={shortlistedCount}
+          icon={Star}
+          tone="emerald"
+          ring={totalApplications > 0 ? { value: shortlistedCount, max: totalApplications } : undefined}
+          hint={totalApplications > 0 ? 'Share of your applications' : 'Shortlists show up here'}
+        />
+        <StatCard
+          label="Profile score"
+          value={`${profileScore}%`}
+          icon={Gauge}
+          tone="amber"
+          href="/candidate/profile"
+          ring={{ value: profileScore }}
+          hint="Higher scores rank first in company searches"
+        />
+        <StatCard
+          label="Enrollments"
+          value={activeEnrollments}
+          icon={BookOpen}
+          tone="violet"
+          href="/candidate/enrollments"
+          hint={activeEnrollments === 0 ? 'Courses you join show up here' : 'Active courses'}
+        />
       </div>
 
-      {/* Training progress */}
-      {trainingProgress.length > 0 && (
-        <div className="bg-white rounded-xl border border-slate-200">
-          <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-900">Training Progress</h2>
-            <Link
-              href="/training"
-              className="text-sm font-medium text-brand-600 hover:text-brand-700"
-            >
-              Browse Training
-            </Link>
-          </div>
-          <div className="p-6 space-y-4">
-            {trainingProgress.map(({ course, completed }) => {
-              const percent = Math.round((completed / course.lessons.length) * 100);
-              return (
-                <div key={course.slug}>
-                  <div className="flex items-center justify-between text-sm mb-1.5">
-                    <Link
-                      href={`/training/${course.slug}`}
-                      className="font-medium text-slate-900 hover:text-brand-600"
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <div className="space-y-6 xl:col-span-2">
+          <ProfileCompletenessCard
+            profileScore={profileScore}
+            profile={{ ...(profile ?? {}), hasCv }}
+            hasApplied={totalApplications > 0}
+          />
+
+          <Panel
+            title="Recent applications"
+            action={
+              totalApplications > 0 && (
+                <Link href="/candidate/applications" className="text-sm font-semibold text-brand-600 hover:text-brand-700">
+                  View all
+                </Link>
+              )
+            }
+            bodyClassName="p-3 pt-4"
+          >
+            {applicationsLoadFailed ? (
+              <p className="p-6 text-center text-ink-500">
+                We could not load your applications just now. Please refresh the page,
+                and if it keeps happening let us know.
+              </p>
+            ) : recentApplications.length === 0 ? (
+              <div className="p-8 text-center">
+                <p className="text-ink-500">You have not applied to any jobs yet.</p>
+                <Link href="/jobs" className={`${btnPrimary} mt-4`}>
+                  Browse jobs
+                </Link>
+              </div>
+            ) : (
+              <ul className="space-y-1">
+                {recentApplications.map((app) => (
+                  <li key={app.id} className="flex items-center gap-4 rounded-2xl px-3 py-3 hover:bg-ink-50">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-ink-50 text-ink-400">
+                      <FileText className="h-4 w-4" aria-hidden />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-ink-900">{app.job?.title ?? 'Untitled job'}</p>
+                      <p className="text-xs text-ink-400">
+                        Applied {new Date(app.created_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </p>
+                    </div>
+                    <span
+                      className={`shrink-0 rounded-lg border px-2.5 py-0.5 text-xs font-semibold capitalize ${
+                        statusColors[app.status] ?? 'border-ink-100 bg-ink-50 text-ink-600'
+                      }`}
                     >
+                      {app.status}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Panel>
+        </div>
+
+        <div className="space-y-6">
+          <Panel title="Application pipeline" subtitle={totalApplications > 0 ? `${totalApplications} in total` : 'Nothing sent yet'}>
+            <MeterList items={pipeline} max={Math.max(1, totalApplications)} />
+          </Panel>
+
+          <Panel bodyClassName="p-3">
+            <div className="flex items-center gap-3 rounded-2xl px-3 py-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+                <ShieldCheck className="h-5 w-5" aria-hidden />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-ink-900">Profile verification</p>
+                <p className="text-xs text-ink-400">{verification.text}</p>
+              </div>
+              <span className={`shrink-0 rounded-lg px-2 py-0.5 text-xs font-semibold ${verification.chip}`}>{verification.label}</span>
+            </div>
+            <Link href="/candidate/invites" className="flex items-center gap-3 rounded-2xl px-3 py-3 hover:bg-ink-50">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+                <Mail className="h-5 w-5" aria-hidden />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-ink-900">Invitations</p>
+                <p className="text-xs text-ink-400">
+                  {pendingInvites > 0
+                    ? `${pendingInvites} ${pendingInvites === 1 ? 'company wants' : 'companies want'} you to apply`
+                    : 'Companies can invite you to apply once you opt in'}
+                </p>
+              </div>
+              {pendingInvites > 0 && (
+                <span className="shrink-0 rounded-lg bg-brand-600 px-2 py-0.5 text-xs font-bold text-white">{pendingInvites}</span>
+              )}
+            </Link>
+          </Panel>
+
+          {trainingProgress.length > 0 && (
+            <Panel
+              title="Training progress"
+              action={
+                <Link href="/training" className="text-sm font-semibold text-brand-600 hover:text-brand-700">
+                  Browse
+                </Link>
+              }
+            >
+              <MeterList
+                max={100}
+                items={trainingProgress.map(({ course, completed }) => ({
+                  label: (
+                    <Link href={`/training/${course.slug}`} className="hover:text-brand-600">
                       {course.title}
                     </Link>
-                    <span className="text-slate-500">
-                      {completed} of {course.lessons.length} lessons
-                    </span>
-                  </div>
-                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-brand-600 transition-all"
-                      style={{ width: `${percent}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                  ),
+                  value: Math.round((completed / course.lessons.length) * 100),
+                  suffix: `${completed}/${course.lessons.length}`,
+                  tone: 'violet' as const,
+                }))}
+              />
+            </Panel>
+          )}
         </div>
-      )}
-
-      {/* Recent Applications */}
-      <div className="bg-white rounded-xl border border-slate-200">
-        <div className="px-6 py-4 border-b border-slate-200">
-          <h2 className="text-lg font-semibold text-slate-900">
-            Recent Applications
-          </h2>
-        </div>
-
-        {applicationsLoadFailed ? (
-          <div className="p-8 text-center">
-            <p className="text-slate-500">
-              We could not load your applications just now. Please refresh the page,
-              and if it keeps happening let us know.
-            </p>
-          </div>
-        ) : recentApplications.length === 0 ? (
-          <div className="p-8 text-center">
-            <p className="text-slate-500">
-              You have not applied to any jobs yet.
-            </p>
-            <Link
-              href="/#jobs"
-              className="inline-flex items-center mt-4 px-4 py-2 bg-brand-600 text-white text-sm font-medium rounded-lg hover:bg-brand-700 transition-colors"
-            >
-              Browse Jobs
-            </Link>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                  <th className="px-6 py-3">Job Title</th>
-                  <th className="px-6 py-3">Status</th>
-                  <th className="px-6 py-3">Applied Date</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {recentApplications.map((app) => (
-                  <tr key={app.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 text-sm font-medium text-slate-900">
-                      {app.job?.title ?? 'Untitled Job'}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${
-                          statusColors[app.status] ?? 'bg-slate-100 text-slate-700'
-                        }`}
-                      >
-                        {app.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-slate-500">
-                      {new Date(app.created_at).toLocaleDateString('en-ZA', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric',
-                      })}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
       </div>
     </div>
   );

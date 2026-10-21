@@ -361,7 +361,7 @@ RLS rules to apply:
 
 ### 7.11 Delivery phases
 
-The full step-by-step implementation plan, with tasks, files and done criteria, is in [ROADMAP.md Phase 2b](ROADMAP.md#phase-2b--spanispace-services-marketplace-planned-20-oct-2026-s1s3-code-done). Summary:
+The full step-by-step implementation plan, with tasks, files and done criteria, is in [ROADMAP.md Phase 2b](ROADMAP.md#phase-2b--spanispace-piecejobs-marketplace-renamed-from-services-20-oct-2026). Summary:
 
 | Phase | Status (20 Oct 2026) | Scope |
 |-------|--------|-------|

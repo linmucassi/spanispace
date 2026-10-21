@@ -1,6 +1,6 @@
 'use client';
 
-// Blocked attempts to share contact details or move a Spanispace Services
+// Blocked attempts to share contact details or move a Spanispace PieceJobs
 // conversation off-platform before a booking is paid. Each row is a message
 // the other party never saw. Accounts at or over the flag threshold (3 in 7
 // days) are highlighted for review. Suspending a provider happens in
@@ -77,7 +77,7 @@ export default function AdminServiceViolations() {
       <div className="mb-6">
         <h1 className="text-2xl font-extrabold text-slate-900">Contact Violations</h1>
         <p className="text-slate-500 text-sm">
-          Messages blocked because they tried to share contact details or move a Spanispace Services job off-platform before booking. The other party never saw them.
+          Messages blocked because they tried to share contact details or move a Spanispace PieceJobs job off-platform before booking. The other party never saw them.
         </p>
       </div>
 

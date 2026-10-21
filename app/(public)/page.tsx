@@ -1,4 +1,4 @@
-import Hero from '@/components/Hero';
+import Hero, { type HeroJob } from '@/components/Hero';
 import { VettedStatus } from '@/types';
 import CVAuditBanner from '@/components/CVAuditBanner';
 import JobBoard from '@/components/JobBoard';
@@ -108,13 +108,28 @@ export default async function Home() {
       { lessons: course.lessons.length, minutes: courseMinutes(course) },
     ])
   );
+  // Live numbers for the hero (it used to show hardcoded ones).
+  const typeCounts = new Map<string, number>();
+  for (const job of jobs) typeCounts.set(job.type, (typeCounts.get(job.type) ?? 0) + 1);
+  const jobsByType = [...typeCounts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4)
+    .map(([type, count]) => ({ type, count }));
+  const latestJobs: HeroJob[] = jobs.slice(0, 3).map((j) => ({ id: j.id, role: j.role, company: j.company, location: j.location, type: j.type }));
+
   return (
     <>
       <JsonLd data={organizationSchema} />
       <JsonLd data={websiteSchema} />
       <JsonLd data={faqSchema} />
       <div id="home">
-        <Hero />
+        <Hero
+          jobCount={jobs.length}
+          courseCount={COURSES.length}
+          pieceJobCategories={FALLBACK_CATEGORIES.length}
+          latestJobs={latestJobs}
+          jobsByType={jobsByType}
+        />
       </div>
       <CVAuditBanner />
       <div id="jobs">
@@ -125,8 +140,10 @@ export default async function Home() {
           categories={POPULAR_SLUGS.map((slug) => FALLBACK_CATEGORIES.find((c) => c.slug === slug)!).filter(Boolean)}
         />
       </div>
-      <div id="training">
-        <TrainingSection courseMeta={courseMeta} preview />
+      <div id="training" className="mt-12 mb-4 scroll-mt-24 px-3 sm:px-4 md:mt-16">
+        <div className="mx-auto max-w-7xl overflow-hidden rounded-[2rem]">
+          <TrainingSection courseMeta={courseMeta} preview />
+        </div>
       </div>
       <div id="academic">
         <AcademicPortal updates={uniApps} />

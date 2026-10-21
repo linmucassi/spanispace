@@ -35,7 +35,7 @@ export default function JobDetailView({ job }: { job: PublicJobDetail }) {
   }, [job.id, job.source]);
 
   return (
-    <div className="min-h-screen pt-24 pb-20 px-4">
+    <div className="min-h-screen pt-28 pb-20 px-4">
       <div className="max-w-3xl mx-auto">
         <Link
           href="/jobs"

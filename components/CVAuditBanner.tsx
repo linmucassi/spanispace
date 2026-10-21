@@ -10,10 +10,10 @@ import Link from 'next/link';
  */
 export default function CVAuditBanner() {
   return (
-    <div className="bg-brand-600 py-5 px-4">
-      <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+    <div className="px-4">
+      <div className="theme-static relative mx-auto -mt-8 flex max-w-7xl flex-col items-center justify-between gap-4 overflow-hidden rounded-3xl bg-gradient-to-r from-brand-700 to-brand-500 px-6 py-5 shadow-lg shadow-brand-600/20 sm:flex-row">
         <div className="flex items-center gap-3">
-          <span className="flex-shrink-0 h-9 w-9 rounded-lg bg-white/15 flex items-center justify-center">
+          <span className="flex-shrink-0 h-10 w-10 rounded-full bg-white/15 flex items-center justify-center">
             <svg viewBox="0 0 20 20" className="h-4 w-4 fill-white" aria-hidden>
               <path d="M4 1h8l4 4v14H4zm8 1.5V6h3.5zM6.5 10h7v1.4h-7zm0 3h7v1.4h-7z" />
             </svg>
@@ -32,7 +32,7 @@ export default function CVAuditBanner() {
         </div>
         <Link
           href="/candidate/cv-audit"
-          className="flex-shrink-0 px-5 py-2.5 bg-white text-brand-700 text-sm font-bold rounded-xl hover:bg-brand-50 transition-colors"
+          className="flex-shrink-0 px-5 py-2.5 bg-white text-brand-700 text-sm font-bold rounded-full shadow-sm hover:bg-brand-50 transition-colors"
         >
           Audit My CV
         </Link>

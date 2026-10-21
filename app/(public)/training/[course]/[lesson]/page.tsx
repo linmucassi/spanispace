@@ -169,7 +169,7 @@ export default async function LessonPage({ params }: Props) {
             {/* The closing letter used to sit at the bottom of the one long page,
                 where almost nobody reached it. It belongs here, at the finish. */}
             {!next && (
-              <div className="mt-12 bg-ink-900 text-white rounded-3xl p-7 md:p-10">
+              <div className="theme-static mt-12 bg-ink-900 text-white rounded-3xl p-7 md:p-10">
                 <p className="text-xs font-mono font-bold uppercase tracking-[0.16em] text-brand-400 mb-4">
                   <T k="course.finished" vars={{ course: course.title }} />
                 </p>

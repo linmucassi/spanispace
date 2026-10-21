@@ -59,7 +59,7 @@ export default async function CoursePage({ params }: Props) {
   return (
     <div className="pt-16">
       {/* Everything a reader needs to decide, above the fold, in five lines. */}
-      <section className="bg-ink-900 text-white">
+      <section className="theme-static bg-ink-900 text-white">
         <div className="max-w-3xl mx-auto px-4 py-12 md:py-16">
           <Link
             href="/training"

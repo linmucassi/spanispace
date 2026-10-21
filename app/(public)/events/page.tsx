@@ -75,7 +75,7 @@ export default function EventsPage() {
   }, []);
 
   return (
-    <div className="min-h-screen pt-24 pb-20 px-4">
+    <div className="min-h-screen pt-28 pb-20 px-4">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">

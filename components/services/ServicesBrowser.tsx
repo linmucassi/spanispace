@@ -25,13 +25,13 @@ export default async function ServicesBrowser({
   const filtered = !!(province || pay);
   // Always /services: it redirects ?category=x to /services/x (keeping the
   // other filters), so switching service from a category page works too.
-  const formAction = '/services';
+  const formAction = '/piecejobs';
 
   return (
-    <div className="min-h-screen bg-white pt-24 pb-16">
+    <div className="min-h-screen pt-28 pb-16">
       <div className="max-w-6xl mx-auto px-4">
         <nav className="text-sm text-ink-500 mb-3" aria-label="Breadcrumb">
-          <Link href="/services" className="hover:text-brand-600">Services</Link>
+          <Link href="/piecejobs" className="hover:text-brand-600">PieceJobs</Link>
           {category && <> <span aria-hidden>/</span> <span className="text-ink-800">{category.name}</span></>}
         </nav>
         <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-ink-900">
@@ -59,7 +59,7 @@ export default async function ServicesBrowser({
               name="category"
               defaultValue=""
               submitOnChange
-              options={[{ value: '', label: 'All services' }, ...categories.map((c) => ({ value: c.slug, label: c.name }))]}
+              options={[{ value: '', label: 'All categories' }, ...categories.map((c) => ({ value: c.slug, label: c.name }))]}
             />
           )}
           <Select
@@ -85,7 +85,7 @@ export default async function ServicesBrowser({
         {!category && (
           <div className="flex flex-wrap gap-2 mt-6">
             {categories.map((c) => (
-              <Link key={c.slug} href={`/services/${c.slug}`} className="rounded-full border border-ink-200 px-3 py-1.5 text-sm text-ink-700 hover:border-brand-500 hover:text-brand-700">
+              <Link key={c.slug} href={`/piecejobs/${c.slug}`} className="rounded-full border border-ink-200 px-3 py-1.5 text-sm text-ink-700 hover:border-brand-500 hover:text-brand-700">
                 {c.name}
               </Link>
             ))}
@@ -121,7 +121,7 @@ export default async function ServicesBrowser({
         <p className="text-xs text-ink-400 mt-12 max-w-3xl">
           Spanispace is a marketplace that connects you with independent service providers. Providers are not Spanispace
           employees. We check identity and police clearance at enrolment, but we don&apos;t guarantee the quality of a service.
-          See the <Link href="/services/provider-agreement" className="underline">Service Provider Agreement</Link>.
+          See the <Link href="/piecejobs/provider-agreement" className="underline">Service Provider Agreement</Link>.
         </p>
       </div>
     </div>

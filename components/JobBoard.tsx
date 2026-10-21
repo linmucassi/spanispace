@@ -6,7 +6,7 @@ import { JOBS } from '../data/constants';
 import { VettedStatus, type Job } from '../types';
 import { isSouthAfricanJob } from '../lib/jobLocation';
 import { useTranslation } from '../lib/i18n/context';
-import { WORK_KIND_CHIP, WORK_KIND_EDGE, workKind } from '../lib/work-type';
+import { WORK_KIND_CHIP, WORK_KIND_TILE, workKind } from '../lib/work-type';
 import { isExpiringSoon, relativeDaysAgo } from '../lib/listingFreshness';
 import Select from './ui/Select';
 
@@ -69,7 +69,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ initialJobs, initialSearch = '' }) 
     <div className="pt-8 pb-16 px-4 max-w-7xl mx-auto">
       <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
         <div>
-          <h2 className="font-display text-3xl font-extrabold text-ink-900">{t('jobs.title')}</h2>
+          <h2 className="font-display text-3xl font-extrabold tracking-tight text-ink-900 md:text-4xl">{t('jobs.title')}</h2>
           <p className="text-ink-500 mt-2">{t('jobs.subtitle')}</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 md:shrink-0">
@@ -78,7 +78,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ initialJobs, initialSearch = '' }) 
             value={search}
             onChange={(e) => handleSearchChange(e.target.value)}
             placeholder={t('jobs.searchPlaceholder')}
-            className="bg-white border border-ink-200 rounded-xl px-3.5 py-2.5 text-sm text-ink-900 placeholder-ink-400 sm:flex-1 md:flex-none md:w-64 hover:border-ink-300 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+            className="bg-white border border-white shadow-sm rounded-full px-4 py-2.5 text-sm text-ink-900 placeholder-ink-400 sm:flex-1 md:flex-none md:w-64 hover:border-ink-300 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
             aria-label={t('jobs.searchPlaceholder')}
           />
           <Select
@@ -121,7 +121,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ initialJobs, initialSearch = '' }) 
           edge. A table is for comparing columns on a wide screen. This audience
           is on a phone, scanning, deciding on pay and place. So: cards, ordered
           the way the decision is actually made. */}
-      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {pagedJobs.map((job) => {
           const isExpired = new Date(job.expiryDate) < now;
           const kind = workKind(job.type);
@@ -131,9 +131,9 @@ const JobBoard: React.FC<JobBoardProps> = ({ initialJobs, initialSearch = '' }) 
             <li key={job.id}>
               <Link
                 href={`/jobs/${job.id}`}
-                className={`group flex h-full flex-col rounded-xl border border-l-4 border-ink-200 bg-white p-5 transition-colors hover:border-ink-300 ${
-                  WORK_KIND_EDGE[kind]
-                } ${isExpired ? 'opacity-55' : ''}`}
+                className={`panel group flex h-full flex-col p-5 transition-all hover:-translate-y-0.5 hover:shadow-md ${
+                  isExpired ? 'opacity-55' : ''
+                }`}
               >
                 {/* Trust first, and it can no longer be clipped. */}
                 <div className="mb-4 flex items-center justify-between gap-2">
@@ -166,10 +166,17 @@ const JobBoard: React.FC<JobBoardProps> = ({ initialJobs, initialSearch = '' }) 
                   </span>
                 </div>
 
-                <h3 className="font-display text-lg font-bold leading-snug text-ink-900 group-hover:text-brand-600">
-                  {job.role}
-                </h3>
-                <p className="mt-1 text-sm text-ink-500">{job.company}</p>
+                <div className="flex items-start gap-3">
+                  <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl font-display text-base font-bold ${WORK_KIND_TILE[kind]}`} aria-hidden>
+                    {job.company.trim().charAt(0).toUpperCase() || '?'}
+                  </span>
+                  <div className="min-w-0">
+                    <h3 className="font-display text-lg font-bold leading-snug text-ink-900 group-hover:text-brand-600">
+                      {job.role}
+                    </h3>
+                    <p className="mt-0.5 text-sm text-ink-500">{job.company}</p>
+                  </div>
+                </div>
 
                 <div className="mt-auto pt-5">
                   <p className="flex items-start gap-1.5 text-sm text-ink-600">
@@ -195,7 +202,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ initialJobs, initialSearch = '' }) 
                       <span />
                     )}
                     <span
-                      className={`shrink-0 rounded-md border px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${WORK_KIND_CHIP[kind]}`}
+                      className={`shrink-0 rounded-lg border px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${WORK_KIND_CHIP[kind]}`}
                     >
                       {job.type}
                     </span>
@@ -207,7 +214,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ initialJobs, initialSearch = '' }) 
         })}
       </ul>
       {pagedJobs.length === 0 && (
-        <p className="rounded-xl border border-dashed border-ink-200 py-16 text-center text-ink-400">
+        <p className="rounded-3xl border border-dashed border-ink-200 py-16 text-center text-ink-400">
           {t('jobs.noJobs')}
         </p>
       )}
@@ -222,7 +229,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ initialJobs, initialSearch = '' }) 
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="px-3 py-1.5 rounded-lg border border-ink-200 text-sm font-medium text-ink-600 hover:bg-ink-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="px-4 py-2 rounded-full border border-white bg-white shadow-sm text-sm font-medium text-ink-600 hover:text-ink-900 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               ← Prev
             </button>
@@ -232,7 +239,7 @@ const JobBoard: React.FC<JobBoardProps> = ({ initialJobs, initialSearch = '' }) 
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="px-3 py-1.5 rounded-lg border border-ink-200 text-sm font-medium text-ink-600 hover:bg-ink-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="px-4 py-2 rounded-full border border-white bg-white shadow-sm text-sm font-medium text-ink-600 hover:text-ink-900 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               Next →
             </button>

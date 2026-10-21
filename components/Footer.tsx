@@ -67,7 +67,9 @@ const Footer: React.FC = () => {
   };
 
   return (
-    <footer className="bg-ink-900 text-ink-400 py-12 px-4 mb-20 md:mb-0">
+    // A floating dark panel inset from the page edges (soft-UI redesign, 21 Oct 2026).
+    <footer className="px-3 pb-24 pt-4 sm:px-4 md:pb-4">
+      <div className="theme-static mx-auto max-w-7xl rounded-[2rem] bg-ink-900 px-6 py-12 text-ink-400 sm:px-10">
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
         <div className="col-span-1 md:col-span-1">
           <div className="mb-6">
@@ -131,12 +133,12 @@ const Footer: React.FC = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Email"
-              className="bg-ink-800 border-none rounded-l-xl px-4 py-2 w-full focus:ring-1 focus:ring-brand-500 outline-none text-white"
+              className="bg-ink-800 border-none rounded-l-full px-4 py-2.5 w-full focus:ring-1 focus:ring-brand-500 outline-none text-white"
             />
             <button
               type="submit"
               disabled={newsletterStatus === 'loading'}
-              className="bg-brand-600 text-white px-4 py-2 rounded-r-xl hover:bg-brand-700 transition-colors font-bold disabled:opacity-50"
+              className="bg-brand-600 text-white px-5 py-2.5 rounded-r-full hover:bg-brand-700 transition-colors font-bold disabled:opacity-50"
             >
               {newsletterStatus === 'loading' ? '...' : t('footer.join')}
             </button>
@@ -166,7 +168,7 @@ const Footer: React.FC = () => {
           </Link>
         </div>
       </div>
-     
+      </div>
     </footer>
   );
 };

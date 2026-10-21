@@ -52,7 +52,7 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-900 px-4">
+    <div className="theme-static min-h-screen flex items-center justify-center bg-slate-900 px-4">
       <div className="max-w-sm w-full">
         <div className="text-center mb-8">
           <div className="bg-brand-600 w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-xl mx-auto mb-4">

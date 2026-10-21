@@ -1,6 +1,6 @@
 'use client';
 
-// Service provider verification queue (Spanispace Services, S1).
+// Service provider verification queue (Spanispace PieceJobs, S1).
 // Documents live in the PRIVATE 'provider-documents' bucket and are opened
 // through 2-minute signed URLs -- never public links. The guard trigger in
 // supabase/add-service-marketplace.sql refuses "verified" without an
@@ -215,7 +215,7 @@ export default function AdminServiceProviders() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-extrabold text-slate-900">Service Providers</h1>
+        <h1 className="text-2xl font-extrabold text-slate-900">PieceJobs Providers</h1>
         <p className="text-slate-500 text-sm">
           Verify identity, police clearance, address and trade certificates before a provider can go live. Requesters only ever see the resulting badge.
         </p>
