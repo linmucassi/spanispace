@@ -1,184 +1,49 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
 import {
   LayoutDashboard,
   Briefcase,
   FileText,
   Users,
+  UserPlus,
   Building2,
   Calendar,
+  CalendarDays,
   GraduationCap,
   MessageSquare,
   Send,
-  LogOut,
-  Menu,
-  X,
 } from 'lucide-react';
+import PortalSidebar, { type NavSection } from '@/components/portal/PortalSidebar';
 
-const navItems = [
-  { name: 'Dashboard', href: '/company/dashboard', icon: LayoutDashboard },
-  { name: 'Calendar', href: '/company/calendar', icon: Calendar },
-  { name: 'My Jobs', href: '/company/jobs', icon: Briefcase },
-  { name: 'Applications', href: '/company/applications', icon: FileText },
-  { name: 'Find Candidates', href: '/company/candidates', icon: Users },
-  { name: 'Sent Invites', href: '/company/invites', icon: Send },
-  { name: 'Messages', href: '/company/messages', icon: MessageSquare },
-  { name: 'My Events', href: '/company/events', icon: Calendar },
-  { name: 'My Training', href: '/company/training', icon: GraduationCap },
-  { name: 'Team', href: '/company/team', icon: Users },
-  { name: 'Company Profile', href: '/company/profile', icon: Building2 },
+const sections: NavSection[] = [
+  {
+    label: 'Menu',
+    entries: [
+      { name: 'Dashboard', href: '/company/dashboard', icon: LayoutDashboard },
+      { name: 'Calendar', href: '/company/calendar', icon: Calendar },
+    ],
+  },
+  {
+    label: 'Hiring',
+    entries: [
+      { name: 'My Jobs', href: '/company/jobs', icon: Briefcase },
+      { name: 'Applications', href: '/company/applications', icon: FileText },
+      { name: 'Find Candidates', href: '/company/candidates', icon: UserPlus },
+      { name: 'Sent Invites', href: '/company/invites', icon: Send },
+      { name: 'Messages', href: '/company/messages', icon: MessageSquare },
+    ],
+  },
+  {
+    label: 'Company',
+    entries: [
+      { name: 'My Events', href: '/company/events', icon: CalendarDays },
+      { name: 'My Training', href: '/company/training', icon: GraduationCap },
+      { name: 'Team', href: '/company/team', icon: Users },
+      { name: 'Company Profile', href: '/company/profile', icon: Building2 },
+    ],
+  },
 ];
 
 export default function CompanySidebar() {
-  const pathname = usePathname();
-  const router = useRouter();
-  const [companyName, setCompanyName] = useState<string>('');
-  const [signingOut, setSigningOut] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
-
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
-
-  useEffect(() => {
-    async function fetchCompany() {
-      const supabase = createClient();
-      if (!supabase) return;
-
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) return;
-
-      const { data } = await supabase
-        .from('company_profiles')
-        .select('company_name')
-        .eq('user_id', user.id)
-        .single();
-
-      if (data) {
-        setCompanyName(data.company_name);
-      }
-    }
-
-    fetchCompany();
-  }, []);
-
-  const handleLogout = async () => {
-    setSigningOut(true);
-    const supabase = createClient();
-    if (supabase) {
-      await supabase.auth.signOut();
-    }
-    router.push('/login');
-  };
-
-  return (
-    <>
-      {/* Mobile top bar */}
-      <div className="md:hidden fixed top-0 left-0 right-0 h-14 bg-slate-900 text-white flex items-center justify-between px-4 z-40">
-        <Link href="/company/dashboard" className="flex items-center gap-2">
-          <div className="bg-brand-600 w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs">
-            S
-          </div>
-          <span className="font-bold tracking-tight">spanispace</span>
-        </Link>
-        <button
-          onClick={() => setMobileOpen(true)}
-          aria-label="Open menu"
-          className="p-2 rounded-lg hover:bg-slate-800"
-        >
-          <Menu className="w-5 h-5" />
-        </button>
-      </div>
-
-      {/* Backdrop */}
-      {mobileOpen && (
-        <div
-          onClick={() => setMobileOpen(false)}
-          className="md:hidden fixed inset-0 bg-black/50 z-40"
-        />
-      )}
-
-      <aside
-        className={`fixed top-0 left-0 h-full w-64 bg-slate-900 text-white flex flex-col z-50 transition-transform duration-200 ${
-          mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-        }`}
-      >
-        {/* Logo */}
-        <div className="px-6 py-5 border-b border-slate-800 flex items-center justify-between">
-          <Link href="/company/dashboard" className="flex items-center">
-            <img src="/assets/logo-wordmark.png" alt="Spanispace" className="h-10 w-auto brightness-0 invert" />
-            <span className="block text-[10px] text-slate-400 uppercase tracking-widest ml-2 mt-1">Company</span>
-          </Link>
-          <button
-            onClick={() => setMobileOpen(false)}
-            aria-label="Close menu"
-            className="md:hidden p-1.5 rounded-lg hover:bg-slate-800"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Company Name */}
-        {companyName && (
-          <div className="px-6 py-3 border-b border-slate-800">
-            <p className="text-xs text-slate-400 uppercase tracking-wider mb-0.5">
-              Signed in as
-            </p>
-            <p className="text-sm font-semibold text-white truncate">
-              {companyName}
-            </p>
-          </div>
-        )}
-
-        {/* Nav */}
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
-            const isActive =
-              pathname === item.href || pathname.startsWith(item.href + '/');
-            const Icon = item.icon;
-
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-brand-600 text-white'
-                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                }`}
-              >
-                <Icon className="w-5 h-5 shrink-0" />
-                {item.name}
-              </Link>
-            );
-          })}
-        </nav>
-
-        {/* Footer */}
-        <div className="px-4 py-4 border-t border-slate-800 space-y-3">
-          <Link
-            href="/"
-            className="block text-xs text-slate-500 hover:text-slate-300 transition-colors"
-          >
-            &larr; Back to Site
-          </Link>
-          <button
-            onClick={handleLogout}
-            disabled={signingOut}
-            className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-white transition-colors disabled:opacity-50"
-          >
-            <LogOut className="w-4 h-4" />
-            {signingOut ? 'Signing out...' : 'Logout'}
-          </button>
-        </div>
-      </aside>
-    </>
-  );
+  return <PortalSidebar portal="company" label="Company" homeHref="/company/dashboard" sections={sections} />;
 }

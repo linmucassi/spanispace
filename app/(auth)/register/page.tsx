@@ -138,7 +138,7 @@ export default function RegisterPage() {
     }
     if (!supabase) return;
     if (tab === 'services') {
-      router.push('/candidate/services/enrol');
+      router.push('/candidate/piecejobs/enrol');
       return;
     }
     await redirectToDashboard(supabase, router, userId, t('auth.roleCheckFailed'), setError);
@@ -216,7 +216,7 @@ export default function RegisterPage() {
     if (inviteToken) {
       await acceptInviteAndRedirect(supabase, data.user!.id);
     } else if (tab === 'services') {
-      router.push('/candidate/services/enrol');
+      router.push('/candidate/piecejobs/enrol');
     } else if (tab === 'candidate') {
       router.push('/candidate/dashboard');
     } else {

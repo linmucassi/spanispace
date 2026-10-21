@@ -96,7 +96,7 @@ export default function PostJobPage() {
   }
 
   return (
-    <div className="min-h-screen pt-24 pb-20 px-4 bg-gradient-to-b from-brand-50/50 to-white">
+    <div className="min-h-screen pt-28 pb-20 px-4 bg-gradient-to-b from-brand-50/50 to-white">
       <div className="max-w-lg mx-auto">
         <div className="bg-white rounded-2xl shadow-xl border border-ink-100 p-8">
           <h1 className="text-2xl font-bold text-ink-900 mb-2">{t('postJob.title')}</h1>

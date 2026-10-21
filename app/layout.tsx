@@ -1,15 +1,15 @@
 import './globals.css';
 import type { Metadata, Viewport } from 'next';
-import { Archivo, Inter } from 'next/font/google';
+import { Inter, Plus_Jakarta_Sans } from 'next/font/google';
 import Providers from './providers';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-body', display: 'swap' });
 
-// Archivo carries the headlines. It is wide, confident and slightly squared,
-// which echoes the SPAN mark, and it is a different voice from the Inter that
-// every generated template defaults to for everything. Inter stays for body
-// copy, where it is unbeaten at small sizes on a cheap phone screen.
-const archivo = Archivo({
+// Plus Jakarta Sans carries the headlines (21 Oct 2026, replacing Archivo):
+// the rounded, tight geometric face of the soft-UI references in
+// docs/dashboard ui. Inter stays for body copy, where it is unbeaten at small
+// sizes on a cheap phone screen.
+const display = Plus_Jakarta_Sans({
   subsets: ['latin'],
   weight: ['600', '700', '800'],
   variable: '--font-display',
@@ -17,7 +17,7 @@ const archivo = Archivo({
 });
 
 export const viewport: Viewport = {
-  themeColor: '#0b1a2e',
+  themeColor: '#eef1f6',
   width: 'device-width',
   initialScale: 1,
 };
@@ -106,7 +106,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="scroll-pt-20">
-      <body className={`${inter.variable} ${archivo.variable} ${inter.className}`}>
+      <body className={`${inter.variable} ${display.variable} ${inter.className}`}>
         <Providers>{children}</Providers>
       </body>
     </html>

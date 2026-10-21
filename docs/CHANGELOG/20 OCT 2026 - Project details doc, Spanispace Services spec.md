@@ -395,6 +395,57 @@ Linda asked for profile pictures in the chats.
   - **No new migration.** It all loads through existing RLS, and candidates can still see jobs they applied to after they close (`has_applied_to_job`). A job the viewer can't read shows "This job is no longer listed".
 - `tsc`, ESLint and the build are clean. Not tested in a browser (it needs a signed-in session).
 
+## "Services" renamed "PieceJobs"; profile menu in every portal
+
+**Rename** (Linda chose labels + URLs; sidebar items "My PieceJobs" / "Hire for PieceJobs"):
+- **Routes:** `app/(public)/services` → `app/(public)/piecejobs`, and `app/candidate/services` → `app/candidate/piecejobs`. `git mv` failed with "Permission denied" because the dev server held the folders on Windows, so they were copied and the old ones `git rm`'d. Git still records them as renames.
+- **Redirects:** the old `/services/requests` redirect pages were replaced by permanent redirects in `next.config.ts`, so old links (including in emails already sent) keep working:
+  - `/services/*` → `/piecejobs/*`
+  - `/candidate/services/*` → `/candidate/piecejobs/*`
+  - `/services/requests[/id[/chat/t]]` → the portal hire/chat pages
+- **Links:** every internal link and email path was updated. `/api/services/*`, the database tables and the `lib/services` / `components/services` code folders keep their names, since users never see them.
+- **Labels:**
+  - navbar "PieceJobs"
+  - "Spanispace PieceJobs" throughout
+  - sidebar group **PieceJobs** with **My PieceJobs** / **Hire for PieceJobs**
+  - admin "PieceJobs Providers"
+  - "PieceJobs requests"
+  - register tab "I do PieceJobs"
+  - home page buttons "Browse PieceJobs" / "Offer PieceJobs"
+  - the category filter's empty option is now "All categories"
+
+  isiZulu strings were updated too (brand kept as "PieceJobs"). Plain-English phrases like "Services & prices" stay.
+- **Name clash to watch:** the jobs board already has a job type called "Piece Job" (a short paid job with an employer), which is different from the PieceJobs marketplace.
+
+**Profile menu** (`components/PortalUserMenu.tsx`), so you can get back to the site from anywhere in a dashboard:
+- **Where:** top right in the candidate, company and admin portals: a new strip in each layout on desktop, and next to the hamburger in each sidebar's mobile top bar.
+- **Picture:** the candidate avatar, the company logo (for the owner login or a team member), or initials.
+- **Dropdown:** name + email, Home, Jobs, PieceJobs, Training, University, Events, Dashboard, profile, Sign out. It closes on Escape, an outside click or a link click.
+
+**Verified** with Playwright, logged in as the new test accounts:
+- the candidate menu lists all nine items, and its PieceJobs link lands on `/piecejobs`
+- the sidebar group shows My PieceJobs / Hire for PieceJobs
+- the phone menu works
+- the company menu shows "Test Company"
+- no page errors
+
+Every redirect was also checked against `next start` of the production build (308s to the right targets, `/api/services` untouched). `tsc` and the build are clean. ESLint's only errors in touched files are the sidebars' existing mobile-menu effects.
+- **Your running dev server needs a restart** to pick up the new redirects in `next.config.ts`.
+- Small finding: the login page's labels aren't associated with their inputs (an accessibility gap). Not fixed yet.
+
+## Test data: jobs for Test Company, a PieceJobs test provider
+
+Linda asked for a few jobs under `test@company.com` and a PieceJobs test account. Both were created in **production** with the service-role key (data only, no schema change).
+
+- **4 jobs under Test Company**, active and verified for 30 days, all applied for on Spanispace: Junior Frontend Developer (Full-time, Johannesburg), Customer Support Agent (Hybrid, Cape Town), Data Capture Intern (Internship, Durban), Weekend Event Assistant (Piece Job, weekends, Pretoria). Each description starts "Test listing for Spanispace QA - not a real vacancy."
+  - The `lock_vetted_status` trigger only lets `is_admin()` change `vetted_status` on update, and the service role is not an admin. So the jobs were first inserted as pending, then deleted (no applications) and re-inserted as verified. Inserts aren't locked.
+- **`test@piecejobs.com` / `123456`**: a pre-confirmed candidate, "Test PieceJobs", phone `+27600000002`, so it skips onboarding. It is a **verified, listed** provider in Braamfontein, Johannesburg (25 km radius, Mon-Sat, cash or online) with police clearance dates for 12 months from today and the 2026-10-20 terms accepted. No real documents were uploaded. It lists:
+  - Cleaning: R80 per hour (minimum R240), R250 per room deep clean
+  - Laundry: R60 per load, R10 per ironed item
+  - Painting: R45 per m2, R1,500 per room
+- **Production check (read-only):** every table, function and the private bucket from `add-service-marketplace.sql`, `add-service-requests-messaging.sql` and `add-message-sender-labels.sql` now exists, **except the three PART F views** (`service_provider_cards`, `service_provider_rate_cards`, `service_provider_profiles`). So `/piecejobs` lists no providers and provider pages 404 until PART F runs. It is lines 538-636 of `add-service-marketplace.sql`, followed by `NOTIFY pgrst, 'reload schema';`.
+- Note: an earlier probe reported these views as present. A `head: true` count request doesn't surface a missing relation, so read-only checks must select real rows.
+
 ## Files changed
 
 - `docs/project-details.md` (new)
@@ -431,3 +482,4 @@ Linda asked for profile pictures in the chats.
 - `supabase/add-message-sender-labels.sql` (new, not run), `supabase/schema.sql`, `components/messaging/MessagesInbox.tsx`, `app/candidate/messages/page.tsx`, `app/company/messages/page.tsx`
 - `components/ui/Avatar.tsx` (new), `components/messaging/MessagesInbox.tsx`, `components/services/ServiceChat.tsx`, `app/candidate/messages/page.tsx`, `app/company/messages/page.tsx`, `app/candidate/services/chat/[threadId]/page.tsx`, `app/candidate/services/inbox/page.tsx`, `app/candidate/services/hire/[id]/page.tsx`, `supabase/add-message-sender-labels.sql`, `supabase/add-service-requests-messaging.sql`, `supabase/schema.sql`
 - `components/messaging/ThreadJobContext.tsx` (new), `components/messaging/MessagesInbox.tsx`, `components/services/ServiceChat.tsx`, `app/candidate/messages/page.tsx`, `app/company/messages/page.tsx`
+- `app/(public)/piecejobs/*`, `app/candidate/piecejobs/*` (renamed from `services`), `next.config.ts`, `components/PortalUserMenu.tsx` (new), the three portal layouts and sidebars, `lib/i18n/en.ts`, `lib/i18n/zu.ts`, plus link/label updates across the Services files

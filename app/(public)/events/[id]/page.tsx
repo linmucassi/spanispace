@@ -191,7 +191,7 @@ export default function EventDetailPage() {
   const spotsLeft = event.capacity !== null ? event.capacity - registrationCount : null;
 
   return (
-    <div className="min-h-screen pt-24 pb-20 px-4">
+    <div className="min-h-screen pt-28 pb-20 px-4">
       <div className="max-w-3xl mx-auto">
         {/* Back link */}
         <Link

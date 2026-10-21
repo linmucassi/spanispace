@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import LanguageToggle from './LanguageToggle';
 import { useTranslation } from '../lib/i18n/context';
 import { createClient } from '../lib/supabase/client';
@@ -17,6 +17,7 @@ const Navbar: React.FC = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { t } = useTranslation();
   const router = useRouter();
+  const pathname = usePathname();
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -105,44 +106,50 @@ const Navbar: React.FC = () => {
   // The old Academy and Academic entries said the same thing three ways.
   const navItems = [
     { name: t('nav.jobs'), href: '/jobs' },
-    { name: t('nav.services'), href: '/services' },
+    { name: t('nav.services'), href: '/piecejobs' },
     { name: t('nav.training'), href: '/training' },
     { name: t('nav.university'), href: '/university' },
     { name: t('nav.events'), href: '/events' },
   ];
 
   return (
-    // Was .glass-card, an 80% white backdrop-blur panel. Glassmorphism is one of
-    // the trend tells that makes a generated template look like every other
-    // generated template, and it made the dark logo mark muddy on scroll. Solid
-    // white with a single hairline rule instead.
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-ink-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+    // A floating frosted pill (21 Oct 2026, the soft-UI redesign from
+    // docs/dashboard ui). It replaced a solid white bar with a hairline rule,
+    // which had in turn replaced a generic .glass-card; this one is opaque
+    // enough (white at 80%) that the dark logo mark stays crisp on scroll.
+    <nav className="fixed inset-x-0 top-0 z-50 px-3 pt-3 sm:px-4">
+      <div className="panel-glass mx-auto max-w-7xl rounded-full px-3 sm:px-4">
+        <div className="flex h-14 items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center h-full">
+          <Link href="/" className="flex h-full items-center pl-2">
             <img
               src="/assets/logo-wordmark.png"
               alt="Spanispace Logo"
-              className="h-7 w-auto md:h-8 transition-transform hover:scale-105"
+              className="h-7 w-auto"
             />
           </Link>
 
           {/* Desktop Nav */}
-          <div className="hidden md:flex items-center space-x-8">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="text-sm font-medium text-ink-600 hover:text-brand-500 transition-colors"
-              >
-                {item.name}
-              </Link>
-            ))}
+          <div className="hidden items-center gap-1 rounded-full bg-ink-100/60 p-1 md:flex">
+            {navItems.map((item) => {
+              const active = pathname === item.href || pathname.startsWith(item.href + '/');
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={active ? 'page' : undefined}
+                  className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+                    active ? 'bg-white text-ink-900 shadow-sm' : 'text-ink-500 hover:text-ink-900'
+                  }`}
+                >
+                  {item.name}
+                </Link>
+              );
+            })}
           </div>
 
           {/* Actions */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center gap-3">
             <LanguageToggle />
             {/* Auth-dependent actions */}
             {user ? (
@@ -164,26 +171,26 @@ const Navbar: React.FC = () => {
                 <div className="relative hidden md:block" ref={dropdownRef}>
                   <button
                     onClick={() => setDropdownOpen(!dropdownOpen)}
-                    className="w-9 h-9 rounded-full bg-brand-600 text-white flex items-center justify-center text-sm font-bold hover:bg-brand-700 transition-colors"
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-700 ring-2 ring-white transition-colors hover:bg-brand-100"
                     aria-label="User menu"
                   >
                     {getUserInitial()}
                   </button>
                   {dropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-ink-200 py-2 z-50">
+                    <div className="absolute right-0 z-50 mt-3 w-52 rounded-3xl border border-white bg-white p-2 shadow-xl">
                       <div className="px-4 py-2 border-b border-ink-100">
                         <p className="text-xs text-ink-500 truncate">{user.email}</p>
                       </div>
                       <Link
                         href={getDashboardHref()}
                         onClick={() => setDropdownOpen(false)}
-                        className="block px-4 py-2 text-sm text-ink-700 hover:bg-ink-50 transition-colors"
+                        className="block rounded-xl px-3 py-2 text-sm text-ink-700 transition-colors hover:bg-ink-50"
                       >
                         {getDashboardLabel()}
                       </Link>
                       <button
                         onClick={handleSignOut}
-                        className="block w-full text-left px-4 py-2 text-sm text-ink-700 hover:bg-ink-50 transition-colors"
+                        className="block w-full rounded-xl px-3 py-2 text-left text-sm text-ink-700 transition-colors hover:bg-ink-50"
                       >
                         Sign Out
                       </button>
@@ -201,7 +208,7 @@ const Navbar: React.FC = () => {
                 </Link>
                 <Link
                   href="/register"
-                  className="hidden md:inline-block bg-brand-600 text-white px-5 py-2 rounded-full text-sm font-bold shadow-lg shadow-brand-100 hover:bg-brand-700 transition-all hover:scale-105"
+                  className="hidden md:inline-block rounded-full bg-brand-600 px-5 py-2 text-sm font-semibold text-white shadow-md shadow-brand-600/25 transition-colors hover:bg-brand-700"
                 >
                   Get Started
                 </Link>
@@ -210,7 +217,7 @@ const Navbar: React.FC = () => {
 
             {/* Mobile hamburger */}
             <button
-              className="md:hidden flex flex-col justify-center items-center w-10 h-10 rounded-lg hover:bg-ink-100 transition-colors"
+              className="flex h-10 w-10 flex-col items-center justify-center rounded-full transition-colors hover:bg-ink-100 md:hidden"
               onClick={() => setMobileOpen(!mobileOpen)}
               aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
             >
@@ -230,8 +237,8 @@ const Navbar: React.FC = () => {
 
       {/* Mobile menu */}
       {mobileOpen && (
-        <div className="md:hidden border-t border-ink-200 bg-white/95 backdrop-blur-md">
-          <div className="px-4 py-4 space-y-1">
+        <div className="panel mx-auto mt-2 max-w-7xl md:hidden">
+          <div className="space-y-1 p-3">
             {navItems.map((item) => (
               <Link
                 key={item.href}

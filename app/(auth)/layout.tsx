@@ -8,7 +8,8 @@ export const metadata: Metadata = {
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    // Sky wash with the form on a frosted card (soft-UI redesign, 21 Oct 2026).
+    <div className="bg-sky-wash min-h-screen flex flex-col">
       <div className="pt-8 pb-4 flex justify-center">
         <Link href="/">
           <img
@@ -19,7 +20,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </Link>
       </div>
       <div className="flex-1 flex items-start justify-center px-4 pt-4 pb-12">
-        {children}
+        <div className="panel-glass flex w-full max-w-[34rem] justify-center px-6 py-10 sm:px-10">{children}</div>
       </div>
     </div>
   );

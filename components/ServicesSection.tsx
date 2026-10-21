@@ -6,7 +6,7 @@ import type { ServiceCategory } from '@/lib/services/publicData';
 import { ArrowRight, Droplets, Hammer, Leaf, PaintRoller, Shirt, SprayCan, Truck, Zap, ShieldCheck, type LucideIcon } from 'lucide-react';
 
 /**
- * Home page entry to Spanispace Services: the eight categories most people
+ * Home page entry to Spanispace PieceJobs: the eight categories most people
  * come for, a way into the full list, and the three steps. Categories come in
  * as props from a static list, so the home page stays statically cached and
  * renders even before the services migration has run.
@@ -42,7 +42,7 @@ export default function ServicesSection({ categories }: { categories: ServiceCat
             <p className="text-ink-500 mt-3 max-w-xl">{t('services.subtitle')}</p>
           </div>
           <div className="flex flex-col sm:flex-row gap-3 shrink-0">
-            <Link href="/services" className="px-5 py-3 bg-brand-600 text-white text-sm font-bold rounded-xl hover:bg-brand-700 transition-colors text-center">
+            <Link href="/piecejobs" className="px-5 py-3 bg-brand-600 text-white text-sm font-bold rounded-xl hover:bg-brand-700 transition-colors text-center">
               {t('services.browse')}
             </Link>
             <Link href="/register?as=services" className="px-5 py-3 border border-ink-200 text-ink-800 text-sm font-bold rounded-xl hover:border-brand-500 transition-colors text-center">
@@ -57,7 +57,7 @@ export default function ServicesSection({ categories }: { categories: ServiceCat
             return (
               <Link
                 key={category.slug}
-                href={`/services/${category.slug}`}
+                href={`/piecejobs/${category.slug}`}
                 className="group flex flex-col gap-3 rounded-2xl border border-ink-100 bg-ink-50/40 p-4 hover:border-brand-500 hover:bg-white transition-colors"
               >
                 <span className="h-10 w-10 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center">
@@ -68,7 +68,7 @@ export default function ServicesSection({ categories }: { categories: ServiceCat
             );
           })}
           <Link
-            href="/services"
+            href="/piecejobs"
             className="group flex flex-col justify-between gap-3 rounded-2xl border border-dashed border-ink-200 p-4 hover:border-brand-500 transition-colors"
           >
             <span className="h-10 w-10 rounded-xl bg-ink-100 text-ink-600 flex items-center justify-center">

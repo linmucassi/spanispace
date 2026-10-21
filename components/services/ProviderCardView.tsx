@@ -17,7 +17,7 @@ export default function ProviderCardView({ card }: { card: ProviderCard }) {
   const area = [card.suburb, card.city].filter(Boolean).join(', ') || card.province;
   return (
     <Link
-      href={`/services/provider/${card.id}`}
+      href={`/piecejobs/provider/${card.id}`}
       className="group flex flex-col h-full rounded-2xl border border-ink-100 bg-white p-5 hover:border-brand-500 transition-colors"
     >
       <div className="flex items-start gap-3">

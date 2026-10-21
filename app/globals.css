@@ -47,6 +47,33 @@
   --color-work-learn: #6d28d9;   /* violet 700, study linked */
   --color-work-remote: #0f766e;  /* teal 700, work from anywhere */
   --color-work-perm: #005ca5;    /* brand, the steady roles */
+
+  /* ---------------------------------------------------------------------
+     Soft UI layer (Linda, 21 Oct 2026, from docs/dashboard ui and
+     docs/infoghraphics ui). A cool light-grey canvas with floating white
+     panels, larger radii and long, faint shadows instead of hard borders.
+     Redefining the scale here restyles all 80 pages at once; the portal
+     shells, dashboards and home page are then redesigned on top of it.
+     --------------------------------------------------------------------- */
+  --color-canvas: #eef1f6;
+
+  /* Slate is used for most borders and fills across the app. Nudged a
+     touch lighter and cooler so 1px rules read as soft separations. */
+  --color-slate-100: #eef2f7;
+  --color-slate-200: #e3e8ef;
+  --color-slate-300: #cdd5e0;
+
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.375rem;
+  --radius-3xl: 1.75rem;
+
+  --shadow-sm: 0 1px 2px rgb(11 26 46 / 0.04), 0 6px 20px -8px rgb(11 26 46 / 0.08);
+  --shadow: 0 1px 3px rgb(11 26 46 / 0.05), 0 10px 28px -10px rgb(11 26 46 / 0.10);
+  --shadow-md: 0 2px 6px rgb(11 26 46 / 0.05), 0 16px 36px -12px rgb(11 26 46 / 0.14);
+  --shadow-lg: 0 4px 10px rgb(11 26 46 / 0.05), 0 24px 48px -16px rgb(11 26 46 / 0.18);
+  --shadow-xl: 0 8px 16px rgb(11 26 46 / 0.06), 0 32px 64px -20px rgb(11 26 46 / 0.22);
+  --shadow-soft: 0 1px 2px rgb(11 26 46 / 0.03), 0 12px 32px -12px rgb(11 26 46 / 0.12);
 }
 
 @layer base {
@@ -57,13 +84,63 @@
   }
 
   /* Headlines carry the personality, body text carries the legibility.
-     Archivo is wide and confident at large sizes, Inter is unbeaten at 13px
-     on a cheap phone screen, which is what most of this audience is holding. */
+     Plus Jakarta Sans (21 Oct 2026, replacing Archivo) is the rounded, tight
+     geometric face the reference dashboards use. Inter stays for body copy,
+     where it is unbeaten at 13px on a cheap phone screen. */
   h1, h2, h3, .font-display {
     font-family: var(--font-display), system-ui, sans-serif;
-    letter-spacing: -0.022em;
+    letter-spacing: -0.025em;
   }
 
+  /* Bare white cards with only a hairline border looked flat on the new
+     canvas. Any rounded white card with a border gets the soft shadow, so
+     pages that were never touched by hand still float. */
+  .bg-white.border.rounded-xl,
+  .bg-white.border.rounded-2xl {
+    box-shadow: var(--shadow-soft);
+  }
+}
+
+@layer components {
+  /* A floating white panel: the basic surface of the soft UI. */
+  .panel {
+    background: #fff;
+    border: 1px solid rgb(255 255 255 / 0.8);
+    border-radius: var(--radius-3xl);
+    box-shadow: var(--shadow-soft);
+  }
+
+  /* Frosted panel for surfaces that sit over a gradient (navbar, hero cards). */
+  .panel-glass {
+    background: rgb(255 255 255 / 0.72);
+    border: 1px solid rgb(255 255 255 / 0.9);
+    border-radius: var(--radius-3xl);
+    box-shadow: var(--shadow-soft);
+    backdrop-filter: blur(18px) saturate(1.4);
+    -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  }
+
+  /* Big stat numbers fade from ink to grey, like the "Earning $128k" card. */
+  .stat-number {
+    font-family: var(--font-display), system-ui, sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    background: linear-gradient(180deg, var(--color-ink-900) 30%, var(--color-ink-400));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* The sky wash behind the home hero and the auth pages. */
+  .bg-sky-wash {
+    background:
+      radial-gradient(60% 50% at 15% 10%, rgb(158 205 245 / 0.55), transparent 70%),
+      radial-gradient(50% 45% at 90% 20%, rgb(207 231 250 / 0.7), transparent 70%),
+      radial-gradient(70% 60% at 60% 100%, rgb(238 241 246 / 1), transparent 70%),
+      linear-gradient(180deg, #f3f7fc 0%, var(--color-canvas) 100%);
+  }
 }
 
 /* Deliberately outside every @layer.

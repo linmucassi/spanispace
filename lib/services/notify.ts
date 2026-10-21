@@ -18,8 +18,8 @@ import { sendEmail, serviceMessageEmail, serviceRequestReceivedEmail, serviceReq
 // Someone who read the thread this recently is probably looking at it.
 const ACTIVE_WINDOW_MS = 2 * 60 * 1000;
 
-export const chatPath = (threadId: string) => `/candidate/services/chat/${threadId}`;
-export const requestPath = (requestId: string) => `/candidate/services/hire/${requestId}`;
+export const chatPath = (threadId: string) => `/candidate/piecejobs/chat/${threadId}`;
+export const requestPath = (requestId: string) => `/candidate/piecejobs/hire/${requestId}`;
 
 async function contactOf(admin: Admin, userId: string): Promise<{ email: string | null; name: string }> {
   const [{ data: authUser }, { data: profile }] = await Promise.all([
