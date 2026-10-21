@@ -53,11 +53,18 @@ export default function CandidateOnboardingPage() {
         return;
       }
 
-      const { data } = await supabase
+      const { data, error: loadError } = await supabase
         .from('candidate_profiles')
         .select('full_name, phone')
         .eq('user_id', user.id)
         .maybeSingle();
+
+      // Surface a failed read instead of showing blank fields, which looks
+      // like "we lost your profile" when it's really a database error.
+      if (loadError) {
+        console.error('[onboarding] could not load profile:', loadError.message);
+        setError(`${t('onboarding.error')} (${loadError.message})`);
+      }
 
       // The Google name (or the email fallback) is pre-filled but editable --
       // this is the explicit "confirm/update your display name" step, not a

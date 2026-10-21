@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useConfirm } from '@/components/useConfirm';
 import { FileText, Trash2, ExternalLink, Upload } from 'lucide-react';
+import Select from '@/components/ui/Select';
 
 export type DocType =
   | 'cv'
@@ -285,18 +286,14 @@ export default function DocumentLibrary() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Type</label>
-              <select
+              <Select
+                label="Type"
+                labelClassName="block text-xs font-medium text-slate-600 mb-1"
+                triggerClassName="py-2 rounded-lg border-slate-300"
                 value={selectedType}
-                onChange={(e) => setSelectedType(e.target.value as DocType)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none"
-              >
-                {(Object.entries(DOC_LABELS) as [DocType, string][]).map(([val, label]) => (
-                  <option key={val} value={val}>
-                    {label}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) => setSelectedType(v as DocType)}
+                options={(Object.entries(DOC_LABELS) as [DocType, string][]).map(([value, label]) => ({ value, label }))}
+              />
             </div>
 
             <div>

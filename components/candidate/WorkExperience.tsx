@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/client';
 import PhoneInput from '@/components/PhoneInput';
 import { useConfirm } from '@/components/useConfirm';
 import { Briefcase, Trash2, Plus } from 'lucide-react';
+import Select, { selectChange } from '@/components/ui/Select';
 
 export interface WorkExperienceEntry {
   id: string;
@@ -250,19 +251,14 @@ export default function WorkExperience({
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">
-                Type of work
-              </label>
-              <select
-                name="work_type"
+              <Select
+                label="Type of work"
+                labelClassName="block text-xs font-medium text-slate-600 mb-1"
+                triggerClassName="py-2 rounded-lg border-slate-300"
                 value={form.work_type}
-                onChange={handleChange}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 bg-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"
-              >
-                {Object.entries(WORK_TYPE_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>{label}</option>
-                ))}
-              </select>
+                onChange={(v) => handleChange(selectChange('work_type', v))}
+                options={Object.entries(WORK_TYPE_LABELS).map(([value, label]) => ({ value, label }))}
+              />
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">

@@ -5,30 +5,46 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import type { DbMessage } from '@/types/database';
 import { Send } from 'lucide-react';
+import Avatar from '@/components/ui/Avatar';
+import ThreadJobContext from './ThreadJobContext';
 
 export type ThreadSummary = {
   id: string;
   otherPartyName: string;
+  /** Company logo (candidate view) or candidate avatar (company view). */
+  otherPartyAvatar?: string | null;
   jobTitle: string | null;
+  /** The job this conversation is about, and the two parties, for the pinned job card. */
+  jobId: string | null;
+  companyId: string;
+  candidateId: string;
   lastMessageAt: string;
   lastMessageBody: string | null;
   unreadCount: number;
 };
 
+type SenderLabel = { side: 'candidate' | 'company'; label: string; avatar: string | null };
+
 export default function MessagesInbox({
   currentUserId,
   threads,
   initialSelectedThreadId,
+  viewerSide,
 }: {
   currentUserId: string;
   threads: ThreadSummary[];
   initialSelectedThreadId?: string | null;
+  /** Which side of the conversation the signed-in person is on. */
+  viewerSide: 'candidate' | 'company';
 }) {
   const router = useRouter();
   const [selectedId, setSelectedId] = useState<string | null>(
     initialSelectedThreadId ?? threads[0]?.id ?? null
   );
   const [messages, setMessages] = useState<DbMessage[]>([]);
+  // Who sent each message, worded for this viewer (supabase/add-message-sender-labels.sql):
+  // "Spanispace Curated · Sipho" for a candidate, the member's name for colleagues.
+  const [labels, setLabels] = useState<Record<string, SenderLabel>>({});
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
@@ -48,13 +64,21 @@ export default function MessagesInbox({
         return;
       }
 
-      const { data } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('thread_id', selectedId)
-        .order('created_at', { ascending: true });
+      const [{ data }, { data: labelRows }] = await Promise.all([
+        supabase
+          .from('messages')
+          .select('*')
+          .eq('thread_id', selectedId)
+          .order('created_at', { ascending: true }),
+        supabase.rpc('message_sender_labels', { p_thread_id: selectedId }),
+      ]);
 
       setMessages((data as DbMessage[]) ?? []);
+      const map: Record<string, SenderLabel> = {};
+      for (const row of (labelRows as { sender_id: string; side: SenderLabel['side']; label: string; avatar_url: string | null }[] | null) ?? []) {
+        map[row.sender_id] = { side: row.side, label: row.label, avatar: row.avatar_url };
+      }
+      setLabels(map);
       setLoadingMessages(false);
 
       // Mark the other party's messages as read
@@ -128,9 +152,12 @@ export default function MessagesInbox({
             }`}
           >
             <div className="flex items-center justify-between gap-2">
-              <p className="text-sm font-bold text-slate-900 truncate">
-                {thread.otherPartyName}
-              </p>
+              <span className="flex items-center gap-2 min-w-0">
+                <Avatar key={thread.otherPartyAvatar ?? thread.id} src={thread.otherPartyAvatar} name={thread.otherPartyName} size="sm" />
+                <p className="text-sm font-bold text-slate-900 truncate">
+                  {thread.otherPartyName}
+                </p>
+              </span>
               {thread.unreadCount > 0 && (
                 <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-brand-600 text-white text-[10px] font-bold">
                   {thread.unreadCount}
@@ -151,12 +178,21 @@ export default function MessagesInbox({
       <div className="flex-1 flex flex-col min-w-0">
         {selectedThread ? (
           <>
-            <div className="px-6 py-4 border-b border-slate-100">
-              <p className="font-bold text-slate-900">{selectedThread.otherPartyName}</p>
-              {selectedThread.jobTitle && (
-                <p className="text-xs text-slate-500">Re: {selectedThread.jobTitle}</p>
-              )}
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
+              <Avatar key={selectedThread.otherPartyAvatar ?? selectedThread.id} src={selectedThread.otherPartyAvatar} name={selectedThread.otherPartyName} size="md" />
+              <div className="min-w-0">
+                <p className="font-bold text-slate-900 truncate">{selectedThread.otherPartyName}</p>
+              </div>
             </div>
+
+            <ThreadJobContext
+              key={selectedThread.id}
+              threadId={selectedThread.id}
+              jobId={selectedThread.jobId}
+              companyId={selectedThread.companyId}
+              candidateId={selectedThread.candidateId}
+              viewerSide={viewerSide}
+            />
 
             <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
               {loadingMessages ? (
@@ -168,18 +204,28 @@ export default function MessagesInbox({
                   No messages yet. Say hello!
                 </p>
               ) : (
-                messages.map((msg) => {
+                messages.map((msg, index) => {
                   const isMine = msg.sender_id === currentUserId;
+                  const sender = labels[msg.sender_id];
+                  // My side of the conversation sits on the right, including
+                  // colleagues' messages when I'm on the company team.
+                  const onMySide = isMine || sender?.side === viewerSide;
+                  // Name once at the start of each run of messages from the same person.
+                  const showName = !isMine && messages[index - 1]?.sender_id !== msg.sender_id;
+                  const name = sender?.label ?? (viewerSide === 'candidate' ? selectedThread.otherPartyName : 'Unknown sender');
                   return (
                     <div
                       key={msg.id}
-                      className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}
+                      className={`flex flex-col ${onMySide ? 'items-end' : 'items-start'}`}
                     >
+                      {showName && <p className="text-xs font-semibold text-slate-500 mb-1 px-1">{name}</p>}
                       <div
                         className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap ${
                           isMine
                             ? 'bg-brand-600 text-white rounded-br-sm'
-                            : 'bg-slate-100 text-slate-900 rounded-bl-sm'
+                            : onMySide
+                              ? 'bg-brand-50 text-slate-900 rounded-br-sm'
+                              : 'bg-slate-100 text-slate-900 rounded-bl-sm'
                         }`}
                       >
                         {msg.body}

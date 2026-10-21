@@ -1022,3 +1022,1030 @@ CREATE POLICY "Admin full access interviews" ON interviews FOR ALL USING (public
 CREATE INDEX IF NOT EXISTS idx_interviews_company ON interviews(company_id);
 CREATE INDEX IF NOT EXISTS idx_interviews_candidate ON interviews(candidate_id);
 CREATE INDEX IF NOT EXISTS idx_interviews_application ON interviews(application_id);
+
+-- =====================================================================================
+-- Spanispace Services S1: service providers, enrolment, verification.
+-- Mirrors supabase/add-service-marketplace.sql byte-for-byte -- see that file's
+-- header comments for the trust model (private bucket, column guard triggers,
+-- no public read on service_providers until S2's safe view).
+-- =====================================================================================
+-- Spanispace Services, step S1: service providers, enrolment, verification.
+-- Run this once in Supabase Dashboard > SQL Editor. Safe to re-run.
+--
+-- Spec: docs/project-details.md §7 (plan: docs/ROADMAP.md Phase 2b, S1).
+--
+-- Trust model, same shape as candidate verification
+-- (add-talent-sourcing-and-verification.sql):
+--   * A provider is a CAPABILITY on an existing candidate account, not a new
+--     users.role -- one service_providers row per user, created explicitly
+--     by POST /api/services/provider after signup. handle_new_user() is
+--     deliberately untouched (it caused a production outage on 22 Aug 2026).
+--   * Providers write their own enrolment, but every admin-owned column
+--     (verification outcome, police clearance dates, ratings) is protected by
+--     a BEFORE trigger, mirroring the users.role guard in
+--     add-roles-invites-and-calendar.sql. RLS alone can't restrict columns.
+--   * Verification documents (ID, selfie, SAPS police clearance, proof of
+--     address, trade certificates) live in a PRIVATE bucket,
+--     'provider-documents', NOT the public 'documents' bucket. Police
+--     clearance is POPIA s26 special personal information. Admins view files
+--     through short-lived signed URLs only.
+--   * There is NO public/anon read policy on service_providers yet. A row
+--     holds date_of_birth and review notes, and RLS is row-level, not
+--     column-level. S2 (public search) adds a safe-columns view instead.
+
+-- =====================================================================
+-- PART A: Categories and their pricing units
+-- =====================================================================
+
+CREATE TABLE IF NOT EXISTS service_categories (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  slug TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  -- Regulated trades: a provider's listing for this category only goes live
+  -- once an admin approves a trade certificate for it.
+  requires_qualification BOOLEAN NOT NULL DEFAULT FALSE,
+  qualification_hint TEXT,
+  sort_order INT NOT NULL DEFAULT 0,
+  active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS service_category_units (
+  category_id UUID REFERENCES service_categories(id) ON DELETE CASCADE NOT NULL,
+  unit TEXT NOT NULL CHECK (unit IN ('hour', 'day', 'job', 'm2', 'room', 'load', 'kg', 'item', 'visit', 'callout', 'point', 'metre')),
+  PRIMARY KEY (category_id, unit)
+);
+
+ALTER TABLE service_categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE service_category_units ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Anyone reads service categories" ON service_categories;
+CREATE POLICY "Anyone reads service categories" ON service_categories FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Admin full access service_categories" ON service_categories;
+CREATE POLICY "Admin full access service_categories" ON service_categories FOR ALL USING (public.is_admin());
+
+DROP POLICY IF EXISTS "Anyone reads service category units" ON service_category_units;
+CREATE POLICY "Anyone reads service category units" ON service_category_units FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Admin full access service_category_units" ON service_category_units;
+CREATE POLICY "Admin full access service_category_units" ON service_category_units FOR ALL USING (public.is_admin());
+
+-- All categories launch together (Linda, 20 Oct 2026).
+INSERT INTO service_categories (slug, name, requires_qualification, qualification_hint, sort_order) VALUES
+  ('cleaning',          'Cleaning',                    FALSE, NULL, 10),
+  ('laundry',           'Laundry & ironing',           FALSE, NULL, 20),
+  ('painting',          'Painting',                    FALSE, NULL, 30),
+  ('plumbing',          'Plumbing',                    TRUE,  'PIRB registration card, or a plumbing trade certificate', 40),
+  ('electrical',        'Electrical',                  TRUE,  'Wireman''s licence / Department of Employment and Labour electrical registration', 50),
+  ('gas',               'Gas installation & repair',   TRUE,  'SAQCC Gas registration card', 60),
+  ('solar',             'Solar & backup power',        TRUE,  'Wireman''s licence, or PV GreenCard certification', 70),
+  ('gardening',         'Gardening & landscaping',     FALSE, NULL, 80),
+  ('handyman',          'Handyman & small repairs',    FALSE, NULL, 90),
+  ('carpentry',         'Carpentry & furniture',       FALSE, NULL, 100),
+  ('tiling',            'Tiling',                      FALSE, NULL, 110),
+  ('building',          'Building, brickwork & paving', FALSE, NULL, 120),
+  ('roofing',           'Roofing & waterproofing',     FALSE, NULL, 130),
+  ('welding',           'Welding & burglar bars',      FALSE, NULL, 140),
+  ('appliance-repair',  'Appliance repair',            FALSE, NULL, 150),
+  ('moving',            'Moving & delivery help',      FALSE, NULL, 160),
+  ('pool',              'Pool cleaning',               FALSE, NULL, 170),
+  ('car-wash',          'Car wash & valet',            FALSE, NULL, 180),
+  ('window-cleaning',   'Window cleaning',             FALSE, NULL, 190),
+  ('pest-control',      'Pest control',                TRUE,  'Pest control operator registration (Act 36 of 1947)', 200),
+  ('childminding',      'Childminding & babysitting',  FALSE, NULL, 210),
+  ('elderly-care',      'Elderly & home care',         FALSE, NULL, 220),
+  ('cooking',           'Cooking & catering',          FALSE, NULL, 230),
+  ('sewing',            'Sewing & alterations',        FALSE, NULL, 240),
+  ('hair-beauty',       'Hair & beauty (home visits)', FALSE, NULL, 250),
+  ('tech-help',         'Phone, computer & TV help',   FALSE, NULL, 260),
+  ('dstv-install',      'DSTV & aerial installation',  FALSE, NULL, 270),
+  ('security',          'Security guarding',           TRUE,  'PSIRA registration certificate', 280),
+  ('tutoring',          'Tutoring & lessons',          FALSE, NULL, 290)
+ON CONFLICT (slug) DO NOTHING;
+
+INSERT INTO service_category_units (category_id, unit)
+SELECT c.id, u.unit
+FROM service_categories c
+JOIN (VALUES
+  ('cleaning', 'hour'), ('cleaning', 'room'), ('cleaning', 'day'), ('cleaning', 'job'),
+  ('laundry', 'load'), ('laundry', 'kg'), ('laundry', 'item'), ('laundry', 'hour'),
+  ('painting', 'm2'), ('painting', 'room'), ('painting', 'day'), ('painting', 'job'),
+  ('plumbing', 'callout'), ('plumbing', 'hour'), ('plumbing', 'job'),
+  ('electrical', 'callout'), ('electrical', 'hour'), ('electrical', 'point'), ('electrical', 'job'),
+  ('gas', 'callout'), ('gas', 'hour'), ('gas', 'job'),
+  ('solar', 'job'), ('solar', 'day'), ('solar', 'callout'),
+  ('gardening', 'hour'), ('gardening', 'visit'), ('gardening', 'm2'), ('gardening', 'day'),
+  ('handyman', 'hour'), ('handyman', 'callout'), ('handyman', 'job'),
+  ('carpentry', 'hour'), ('carpentry', 'item'), ('carpentry', 'job'),
+  ('tiling', 'm2'), ('tiling', 'day'), ('tiling', 'job'),
+  ('building', 'm2'), ('building', 'day'), ('building', 'job'), ('building', 'metre'),
+  ('roofing', 'm2'), ('roofing', 'day'), ('roofing', 'job'),
+  ('welding', 'metre'), ('welding', 'item'), ('welding', 'job'), ('welding', 'hour'),
+  ('appliance-repair', 'callout'), ('appliance-repair', 'item'), ('appliance-repair', 'hour'),
+  ('moving', 'hour'), ('moving', 'job'), ('moving', 'day'),
+  ('pool', 'visit'), ('pool', 'job'),
+  ('car-wash', 'item'), ('car-wash', 'job'),
+  ('window-cleaning', 'item'), ('window-cleaning', 'hour'), ('window-cleaning', 'job'),
+  ('pest-control', 'room'), ('pest-control', 'job'), ('pest-control', 'callout'),
+  ('childminding', 'hour'), ('childminding', 'day'),
+  ('elderly-care', 'hour'), ('elderly-care', 'day'),
+  ('cooking', 'hour'), ('cooking', 'day'), ('cooking', 'job'),
+  ('sewing', 'item'), ('sewing', 'hour'),
+  ('hair-beauty', 'item'), ('hair-beauty', 'visit'),
+  ('tech-help', 'hour'), ('tech-help', 'callout'), ('tech-help', 'job'),
+  ('dstv-install', 'job'), ('dstv-install', 'callout'),
+  ('security', 'hour'), ('security', 'day'),
+  ('tutoring', 'hour'), ('tutoring', 'visit')
+) AS u(slug, unit) ON u.slug = c.slug
+ON CONFLICT DO NOTHING;
+
+-- =====================================================================
+-- PART B: Service providers
+-- =====================================================================
+
+CREATE TABLE IF NOT EXISTS service_providers (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE UNIQUE NOT NULL,
+  candidate_profile_id UUID REFERENCES candidate_profiles(id) ON DELETE SET NULL,
+  headline TEXT CHECK (char_length(headline) <= 120),
+  bio TEXT CHECK (char_length(bio) <= 2000),
+  province TEXT,
+  city TEXT,
+  suburb TEXT,
+  travel_radius_km INT CHECK (travel_radius_km BETWEEN 0 AND 500),
+  -- { "mon": true, ..., "sun": false, "notes": "weekdays after 8am" }
+  availability JSONB NOT NULL DEFAULT '{}'::jsonb,
+  -- How the SERVICE PRICE is paid. The R10 Spanispace fee is always online.
+  -- 'online' only takes effect once payouts exist (S4).
+  payment_methods TEXT NOT NULL DEFAULT 'cash' CHECK (payment_methods IN ('cash', 'online', 'cash_or_online')),
+  -- Data minimisation: the SA ID number itself is never stored. The server
+  -- derives the date of birth from it (18+ check) and discards it; the admin
+  -- compares against the uploaded document.
+  id_kind TEXT CHECK (id_kind IN ('sa_id', 'passport')),
+  date_of_birth DATE,
+  -- draft -> pending (provider submits) -> verified | rejected (admin);
+  -- verified -> suspended (admin); rejected -> pending (provider resubmits).
+  verification_status TEXT NOT NULL DEFAULT 'draft'
+    CHECK (verification_status IN ('draft', 'pending', 'verified', 'rejected', 'suspended')),
+  verification_note TEXT,
+  submitted_at TIMESTAMPTZ,
+  verified_at TIMESTAMPTZ,
+  verified_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  -- Valid 12 months from issue (Linda, 20 Oct 2026). Set by the admin from
+  -- the reviewed certificate.
+  police_clearance_issued_at DATE,
+  police_clearance_expires_at DATE,
+  terms_version TEXT,
+  terms_accepted_at TIMESTAMPTZ,
+  popia_consent_at TIMESTAMPTZ,
+  listing_active BOOLEAN NOT NULL DEFAULT FALSE,
+  rating_avg NUMERIC(3, 2),
+  jobs_completed INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_service_providers_status ON service_providers(verification_status);
+
+CREATE TABLE IF NOT EXISTS provider_services (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  provider_id UUID REFERENCES service_providers(id) ON DELETE CASCADE NOT NULL,
+  category_id UUID REFERENCES service_categories(id) ON DELETE RESTRICT NOT NULL,
+  years_experience INT CHECK (years_experience BETWEEN 0 AND 60),
+  description TEXT CHECK (char_length(description) <= 1000),
+  -- NULL when the category needs no qualification. Otherwise pending until
+  -- an admin approves the matching trade certificate.
+  qualification_status TEXT CHECK (qualification_status IN ('pending', 'approved', 'rejected')),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (provider_id, category_id)
+);
+
+CREATE TABLE IF NOT EXISTS provider_rates (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  provider_service_id UUID REFERENCES provider_services(id) ON DELETE CASCADE NOT NULL,
+  label TEXT NOT NULL CHECK (char_length(label) BETWEEN 1 AND 80),
+  unit TEXT NOT NULL CHECK (unit IN ('hour', 'day', 'job', 'm2', 'room', 'load', 'kg', 'item', 'visit', 'callout', 'point', 'metre')),
+  price_cents INT NOT NULL CHECK (price_cents > 0 AND price_cents <= 100000000),
+  minimum_charge_cents INT CHECK (minimum_charge_cents IS NULL OR minimum_charge_cents > 0),
+  notes TEXT CHECK (char_length(notes) <= 200),
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_provider_services_provider ON provider_services(provider_id);
+CREATE INDEX IF NOT EXISTS idx_provider_rates_service ON provider_rates(provider_service_id);
+
+CREATE TABLE IF NOT EXISTS provider_documents (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  provider_id UUID REFERENCES service_providers(id) ON DELETE CASCADE NOT NULL,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+  doc_type TEXT NOT NULL CHECK (doc_type IN ('id_document', 'passport', 'work_permit', 'selfie', 'police_clearance', 'proof_of_address', 'trade_certificate')),
+  -- For trade certificates: which category it supports.
+  category_id UUID REFERENCES service_categories(id) ON DELETE SET NULL,
+  -- Object path inside the private 'provider-documents' bucket. Never a
+  -- public URL.
+  storage_path TEXT NOT NULL,
+  file_name TEXT NOT NULL,
+  file_size_kb INT,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'verified', 'rejected')),
+  review_note TEXT,
+  reviewed_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  reviewed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_provider_documents_provider ON provider_documents(provider_id);
+
+CREATE TABLE IF NOT EXISTS provider_strikes (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  provider_id UUID REFERENCES service_providers(id) ON DELETE CASCADE NOT NULL,
+  -- FK to service_bookings is added in the S4 migration, once that table exists.
+  booking_id UUID,
+  reason TEXT NOT NULL CHECK (reason IN ('provider_cancel', 'no_show', 'conduct', 'contact_violation', 'other')),
+  note TEXT,
+  created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  removed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_provider_strikes_provider ON provider_strikes(provider_id, created_at);
+
+-- =====================================================================
+-- PART C: Helpers + column guards
+-- =====================================================================
+
+-- True when the provider row belongs to the caller. SECURITY DEFINER so the
+-- child-table policies below don't re-enter service_providers' own RLS.
+CREATE OR REPLACE FUNCTION public.owns_service_provider(p_provider_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.service_providers
+    WHERE id = p_provider_id AND user_id = auth.uid()
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.owns_provider_service(p_provider_service_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.provider_services ps
+    JOIN public.service_providers sp ON sp.id = ps.provider_id
+    WHERE ps.id = p_provider_service_id AND sp.user_id = auth.uid()
+  );
+$$;
+
+-- Guards admin-owned columns on service_providers. auth.uid() IS NULL means
+-- the service role (scripts/cron), which is trusted, same convention as
+-- the users.role guard.
+CREATE OR REPLACE FUNCTION public.guard_service_provider()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  acting_admin BOOLEAN := auth.uid() IS NULL OR public.is_admin();
+BEGIN
+  NEW.updated_at := NOW();
+
+  IF NOT acting_admin THEN
+    IF TG_OP = 'INSERT' THEN
+      NEW.verification_status := 'draft';
+      NEW.verification_note := NULL;
+      NEW.submitted_at := NULL;
+      NEW.verified_at := NULL;
+      NEW.verified_by := NULL;
+      NEW.police_clearance_issued_at := NULL;
+      NEW.police_clearance_expires_at := NULL;
+      NEW.listing_active := FALSE;
+      NEW.rating_avg := NULL;
+      NEW.jobs_completed := 0;
+    ELSE
+      NEW.user_id := OLD.user_id;
+      NEW.verification_note := OLD.verification_note;
+      NEW.verified_at := OLD.verified_at;
+      NEW.verified_by := OLD.verified_by;
+      NEW.police_clearance_issued_at := OLD.police_clearance_issued_at;
+      NEW.police_clearance_expires_at := OLD.police_clearance_expires_at;
+      NEW.rating_avg := OLD.rating_avg;
+      NEW.jobs_completed := OLD.jobs_completed;
+
+      -- The only status change a provider may make is submitting for review.
+      IF NEW.verification_status IS DISTINCT FROM OLD.verification_status THEN
+        IF NEW.verification_status = 'pending' AND OLD.verification_status IN ('draft', 'rejected') THEN
+          IF NEW.terms_accepted_at IS NULL OR NEW.popia_consent_at IS NULL THEN
+            RAISE EXCEPTION 'You must accept the Service Provider Agreement and consent to verification before submitting.';
+          END IF;
+          IF NEW.date_of_birth IS NULL OR NEW.date_of_birth > (CURRENT_DATE - INTERVAL '18 years') THEN
+            RAISE EXCEPTION 'Service providers must be 18 or older.';
+          END IF;
+          NEW.submitted_at := NOW();
+        ELSE
+          NEW.verification_status := OLD.verification_status;
+        END IF;
+      END IF;
+    END IF;
+  ELSIF TG_OP = 'UPDATE' AND NEW.verification_status IS DISTINCT FROM OLD.verification_status THEN
+    IF NEW.verification_status = 'verified' THEN
+      NEW.verified_at := COALESCE(NEW.verified_at, NOW());
+      NEW.verified_by := COALESCE(NEW.verified_by, auth.uid());
+    END IF;
+  END IF;
+
+  -- Applies to everyone, admins included: granting the verified badge (or
+  -- changing its clearance dates) requires an in-date police clearance on
+  -- record. Only checked on that transition, so a provider whose clearance
+  -- has since lapsed can still edit their profile -- the listing check
+  -- below keeps them out of search.
+  IF NEW.verification_status = 'verified'
+     AND (TG_OP = 'INSERT'
+          OR OLD.verification_status IS DISTINCT FROM 'verified'
+          OR NEW.police_clearance_expires_at IS DISTINCT FROM OLD.police_clearance_expires_at)
+     AND (NEW.police_clearance_expires_at IS NULL OR NEW.police_clearance_expires_at < CURRENT_DATE) THEN
+    RAISE EXCEPTION 'Cannot verify: record an in-date police clearance first.';
+  END IF;
+
+  -- A listing can only be live while verified and in date.
+  IF NEW.listing_active AND (
+       NEW.verification_status <> 'verified'
+       OR NEW.police_clearance_expires_at IS NULL
+       OR NEW.police_clearance_expires_at < CURRENT_DATE
+     ) THEN
+    IF TG_OP = 'UPDATE' AND NOT OLD.listing_active AND NOT acting_admin THEN
+      RAISE EXCEPTION 'Your listing can be switched on once your verification is approved.';
+    END IF;
+    NEW.listing_active := FALSE;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_guard_service_provider ON service_providers;
+CREATE TRIGGER trg_guard_service_provider
+  BEFORE INSERT OR UPDATE ON service_providers
+  FOR EACH ROW EXECUTE FUNCTION public.guard_service_provider();
+
+-- Providers can't approve their own trade qualifications.
+CREATE OR REPLACE FUNCTION public.guard_provider_service()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  needs_qualification BOOLEAN;
+BEGIN
+  IF auth.uid() IS NULL OR public.is_admin() THEN
+    RETURN NEW;
+  END IF;
+
+  IF TG_OP = 'UPDATE' THEN
+    NEW.provider_id := OLD.provider_id;
+    NEW.category_id := OLD.category_id;
+    NEW.qualification_status := OLD.qualification_status;
+    RETURN NEW;
+  END IF;
+
+  SELECT requires_qualification INTO needs_qualification
+  FROM public.service_categories WHERE id = NEW.category_id;
+  NEW.qualification_status := CASE WHEN needs_qualification THEN 'pending' ELSE NULL END;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_guard_provider_service ON provider_services;
+CREATE TRIGGER trg_guard_provider_service
+  BEFORE INSERT OR UPDATE ON provider_services
+  FOR EACH ROW EXECUTE FUNCTION public.guard_provider_service();
+
+-- Rate units must be ones the category allows.
+CREATE OR REPLACE FUNCTION public.check_provider_rate_unit()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.provider_services ps
+    JOIN public.service_category_units u ON u.category_id = ps.category_id
+    WHERE ps.id = NEW.provider_service_id AND u.unit = NEW.unit
+  ) THEN
+    RAISE EXCEPTION 'Unit "%" is not available for this service category.', NEW.unit;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_check_provider_rate_unit ON provider_rates;
+CREATE TRIGGER trg_check_provider_rate_unit
+  BEFORE INSERT OR UPDATE ON provider_rates
+  FOR EACH ROW EXECUTE FUNCTION public.check_provider_rate_unit();
+
+-- Providers upload documents but never review them.
+CREATE OR REPLACE FUNCTION public.guard_provider_document()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF auth.uid() IS NULL OR public.is_admin() THEN
+    IF TG_OP = 'UPDATE' AND NEW.status IS DISTINCT FROM OLD.status THEN
+      NEW.reviewed_at := NOW();
+      NEW.reviewed_by := COALESCE(NEW.reviewed_by, auth.uid());
+    END IF;
+    RETURN NEW;
+  END IF;
+  NEW.user_id := auth.uid();
+  NEW.status := 'pending';
+  NEW.review_note := NULL;
+  NEW.reviewed_by := NULL;
+  NEW.reviewed_at := NULL;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_guard_provider_document ON provider_documents;
+CREATE TRIGGER trg_guard_provider_document
+  BEFORE INSERT OR UPDATE ON provider_documents
+  FOR EACH ROW EXECUTE FUNCTION public.guard_provider_document();
+
+-- =====================================================================
+-- PART D: RLS
+-- =====================================================================
+
+ALTER TABLE service_providers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE provider_services ENABLE ROW LEVEL SECURITY;
+ALTER TABLE provider_rates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE provider_documents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE provider_strikes ENABLE ROW LEVEL SECURITY;
+
+-- service_providers: own row + admin. No DELETE for providers (keeps the
+-- verification audit trail); no anon/public read until S2's safe view.
+DROP POLICY IF EXISTS "Providers read own row" ON service_providers;
+CREATE POLICY "Providers read own row" ON service_providers FOR SELECT USING (user_id = auth.uid());
+DROP POLICY IF EXISTS "Providers create own row" ON service_providers;
+CREATE POLICY "Providers create own row" ON service_providers FOR INSERT WITH CHECK (user_id = auth.uid());
+DROP POLICY IF EXISTS "Providers update own row" ON service_providers;
+CREATE POLICY "Providers update own row" ON service_providers FOR UPDATE USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+DROP POLICY IF EXISTS "Admin full access service_providers" ON service_providers;
+CREATE POLICY "Admin full access service_providers" ON service_providers FOR ALL USING (public.is_admin());
+
+DROP POLICY IF EXISTS "Providers manage own services" ON provider_services;
+CREATE POLICY "Providers manage own services" ON provider_services FOR ALL
+  USING (public.owns_service_provider(provider_id))
+  WITH CHECK (public.owns_service_provider(provider_id));
+DROP POLICY IF EXISTS "Admin full access provider_services" ON provider_services;
+CREATE POLICY "Admin full access provider_services" ON provider_services FOR ALL USING (public.is_admin());
+
+DROP POLICY IF EXISTS "Providers manage own rates" ON provider_rates;
+CREATE POLICY "Providers manage own rates" ON provider_rates FOR ALL
+  USING (public.owns_provider_service(provider_service_id))
+  WITH CHECK (public.owns_provider_service(provider_service_id));
+DROP POLICY IF EXISTS "Admin full access provider_rates" ON provider_rates;
+CREATE POLICY "Admin full access provider_rates" ON provider_rates FOR ALL USING (public.is_admin());
+
+-- Documents: providers read/upload their own and may withdraw ones not yet
+-- verified. No UPDATE for providers -- re-upload instead.
+DROP POLICY IF EXISTS "Providers read own documents" ON provider_documents;
+CREATE POLICY "Providers read own documents" ON provider_documents FOR SELECT USING (user_id = auth.uid());
+DROP POLICY IF EXISTS "Providers add own documents" ON provider_documents;
+CREATE POLICY "Providers add own documents" ON provider_documents FOR INSERT
+  WITH CHECK (user_id = auth.uid() AND public.owns_service_provider(provider_id));
+DROP POLICY IF EXISTS "Providers withdraw unverified documents" ON provider_documents;
+CREATE POLICY "Providers withdraw unverified documents" ON provider_documents FOR DELETE
+  USING (user_id = auth.uid() AND status <> 'verified');
+DROP POLICY IF EXISTS "Admin full access provider_documents" ON provider_documents;
+CREATE POLICY "Admin full access provider_documents" ON provider_documents FOR ALL USING (public.is_admin());
+
+DROP POLICY IF EXISTS "Providers read own strikes" ON provider_strikes;
+CREATE POLICY "Providers read own strikes" ON provider_strikes FOR SELECT USING (public.owns_service_provider(provider_id));
+DROP POLICY IF EXISTS "Admin full access provider_strikes" ON provider_strikes;
+CREATE POLICY "Admin full access provider_strikes" ON provider_strikes FOR ALL USING (public.is_admin());
+
+-- =====================================================================
+-- PART E: Private storage bucket for verification documents
+-- =====================================================================
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'provider-documents',
+  'provider-documents',
+  false,
+  10485760,   -- 10 MB
+  ARRAY['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/heic']
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- Objects are stored under <user_id>/..., so the first folder is the owner.
+DROP POLICY IF EXISTS "Providers upload own verification files" ON storage.objects;
+CREATE POLICY "Providers upload own verification files" ON storage.objects FOR INSERT
+  WITH CHECK (bucket_id = 'provider-documents' AND auth.uid()::text = (storage.foldername(name))[1]);
+DROP POLICY IF EXISTS "Providers read own verification files" ON storage.objects;
+CREATE POLICY "Providers read own verification files" ON storage.objects FOR SELECT
+  USING (bucket_id = 'provider-documents' AND auth.uid()::text = (storage.foldername(name))[1]);
+DROP POLICY IF EXISTS "Providers delete own verification files" ON storage.objects;
+CREATE POLICY "Providers delete own verification files" ON storage.objects FOR DELETE
+  USING (bucket_id = 'provider-documents' AND auth.uid()::text = (storage.foldername(name))[1]);
+DROP POLICY IF EXISTS "Admins read verification files" ON storage.objects;
+CREATE POLICY "Admins read verification files" ON storage.objects FOR SELECT
+  USING (bucket_id = 'provider-documents' AND public.is_admin());
+DROP POLICY IF EXISTS "Admins delete verification files" ON storage.objects;
+CREATE POLICY "Admins delete verification files" ON storage.objects FOR DELETE
+  USING (bucket_id = 'provider-documents' AND public.is_admin());
+
+-- =====================================================================
+-- PART F (S2): Public read through safe-columns views
+-- =====================================================================
+-- service_providers has no public RLS policy (it holds date_of_birth and
+-- review notes, and RLS can't hide columns). These views are the only
+-- public way in. They are owned by the migration role and do NOT use
+-- security_invoker, so they read past RLS by design -- which is exactly why
+-- each one selects an explicit, safe column list and filters to providers
+-- who are verified, listed, and inside their police clearance date.
+-- security_barrier stops a caller's WHERE clause being pushed below that
+-- filter.
+--
+-- Signed-out visitors see a summary only (Linda, 20 Oct 2026): the card view
+-- is granted to anon. The full rate card and bio are granted to
+-- authenticated users only.
+
+CREATE OR REPLACE VIEW public.service_provider_cards
+WITH (security_barrier = true) AS
+SELECT
+  sp.id,
+  CASE
+    WHEN position(' ' IN trim(cp.full_name)) > 0
+      THEN split_part(trim(cp.full_name), ' ', 1) || ' ' || upper(substring(trim(cp.full_name) FROM '(\S)\S*$')) || '.'
+    ELSE trim(cp.full_name)
+  END AS display_name,
+  cp.avatar_url,
+  sp.headline,
+  sp.province,
+  sp.city,
+  sp.suburb,
+  sp.travel_radius_km,
+  sp.payment_methods,
+  sp.verified_at,
+  sp.rating_avg,
+  sp.jobs_completed,
+  svc.category_slugs,
+  svc.category_names,
+  price.from_price_cents,
+  price.from_price_unit
+FROM public.service_providers sp
+JOIN public.candidate_profiles cp ON cp.user_id = sp.user_id
+JOIN LATERAL (
+  SELECT
+    array_agg(c.slug ORDER BY c.sort_order) AS category_slugs,
+    array_agg(c.name ORDER BY c.sort_order) AS category_names
+  FROM public.provider_services ps
+  JOIN public.service_categories c ON c.id = ps.category_id AND c.active
+  WHERE ps.provider_id = sp.id
+    AND (ps.qualification_status IS NULL OR ps.qualification_status = 'approved')
+) svc ON svc.category_slugs IS NOT NULL
+LEFT JOIN LATERAL (
+  SELECT r.price_cents AS from_price_cents, r.unit AS from_price_unit
+  FROM public.provider_services ps
+  JOIN public.provider_rates r ON r.provider_service_id = ps.id
+  WHERE ps.provider_id = sp.id
+    AND (ps.qualification_status IS NULL OR ps.qualification_status = 'approved')
+  ORDER BY r.price_cents
+  LIMIT 1
+) price ON true
+WHERE sp.verification_status = 'verified'
+  AND sp.listing_active
+  AND sp.police_clearance_expires_at >= CURRENT_DATE;
+
+CREATE OR REPLACE VIEW public.service_provider_rate_cards
+WITH (security_barrier = true) AS
+SELECT
+  ps.provider_id,
+  c.slug AS category_slug,
+  c.name AS category_name,
+  c.sort_order AS category_sort,
+  ps.years_experience,
+  ps.description,
+  r.label,
+  r.unit,
+  r.price_cents,
+  r.minimum_charge_cents,
+  r.notes,
+  r.sort_order
+FROM public.provider_services ps
+JOIN public.service_categories c ON c.id = ps.category_id AND c.active
+JOIN public.provider_rates r ON r.provider_service_id = ps.id
+JOIN public.service_providers sp ON sp.id = ps.provider_id
+WHERE sp.verification_status = 'verified'
+  AND sp.listing_active
+  AND sp.police_clearance_expires_at >= CURRENT_DATE
+  AND (ps.qualification_status IS NULL OR ps.qualification_status = 'approved');
+
+CREATE OR REPLACE VIEW public.service_provider_profiles
+WITH (security_barrier = true) AS
+SELECT sp.id, sp.bio, sp.availability
+FROM public.service_providers sp
+WHERE sp.verification_status = 'verified'
+  AND sp.listing_active
+  AND sp.police_clearance_expires_at >= CURRENT_DATE;
+
+REVOKE ALL ON public.service_provider_cards, public.service_provider_rate_cards, public.service_provider_profiles FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON public.service_provider_cards TO anon, authenticated;
+GRANT SELECT ON public.service_provider_rate_cards TO authenticated;
+GRANT SELECT ON public.service_provider_profiles TO authenticated;
+
+-- =====================================================================================
+-- Spanispace Services S3: service requests + guarded messaging.
+-- Mirrors supabase/add-service-requests-messaging.sql byte-for-byte -- see that file's
+-- header comments (no client write policies; all writes via app/api/services/*).
+-- =====================================================================================
+
+-- Spanispace Services, step S3: service requests + guarded messaging.
+-- Run this once in Supabase Dashboard > SQL Editor, AFTER
+-- add-service-marketplace.sql. Safe to re-run.
+--
+-- Spec: docs/project-details.md §7.4-§7.6 (plan: docs/ROADMAP.md Phase 2b, S3).
+--
+-- Trust model:
+--   * A service_request is the requester's need ("paint lounge + 2 bedrooms").
+--     One request can have a conversation (service_thread) with several
+--     providers, one thread per provider.
+--   * Clients can READ their own requests/threads/messages through RLS, but
+--     can't WRITE any of them. There are no INSERT/UPDATE policies at all.
+--     Every write goes through app/api/services/* with the service role,
+--     after the server has checked who the caller is and, for messages, run
+--     lib/services/contactGuard.ts. That route is the real enforcement of the
+--     "no contact details before payment" rule. A client-side check alone
+--     could be bypassed with a direct PostgREST insert.
+--   * contact_unlocked on a thread is false until a booking on it is paid
+--     (S4). Only the server may set it.
+--   * Kept separate from the company<->candidate message_threads/messages
+--     tables, whose RLS is untouched.
+
+CREATE TABLE IF NOT EXISTS service_requests (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  requester_user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+  -- Company hiring (S5) sets this. NULL for individual requesters.
+  company_id UUID REFERENCES company_profiles(id) ON DELETE CASCADE,
+  category_id UUID REFERENCES service_categories(id) ON DELETE RESTRICT NOT NULL,
+  description TEXT NOT NULL CHECK (char_length(description) BETWEEN 10 AND 2000),
+  province TEXT,
+  city TEXT,
+  -- Suburb only. The full address is shared after payment (S4), never here.
+  suburb TEXT,
+  preferred_start DATE,
+  preferred_end DATE,
+  timing_notes TEXT CHECK (char_length(timing_notes) <= 200),
+  status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'booked', 'completed', 'cancelled')),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  CHECK (preferred_end IS NULL OR preferred_start IS NULL OR preferred_end >= preferred_start)
+);
+
+CREATE INDEX IF NOT EXISTS idx_service_requests_requester ON service_requests(requester_user_id, status);
+
+CREATE TABLE IF NOT EXISTS service_threads (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  request_id UUID REFERENCES service_requests(id) ON DELETE CASCADE NOT NULL,
+  provider_id UUID REFERENCES service_providers(id) ON DELETE CASCADE NOT NULL,
+  -- Denormalised from the request so RLS checks are a single-row lookup.
+  requester_user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+  status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'declined', 'closed', 'booked')),
+  closed_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  closed_reason TEXT,
+  -- Flipped to true only by the payment webhook (S4).
+  contact_unlocked BOOLEAN NOT NULL DEFAULT FALSE,
+  last_message_at TIMESTAMPTZ DEFAULT NOW(),
+  requester_last_read_at TIMESTAMPTZ,
+  provider_last_read_at TIMESTAMPTZ,
+  -- Email throttle for new-message notifications (lib/services/notify.ts):
+  -- one email per unread batch, not one per message.
+  requester_last_emailed_at TIMESTAMPTZ,
+  provider_last_emailed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (request_id, provider_id)
+);
+
+-- For a database where an earlier version of this file already ran.
+ALTER TABLE service_threads
+  ADD COLUMN IF NOT EXISTS requester_last_emailed_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS provider_last_emailed_at TIMESTAMPTZ;
+
+CREATE INDEX IF NOT EXISTS idx_service_threads_provider ON service_threads(provider_id, last_message_at DESC);
+CREATE INDEX IF NOT EXISTS idx_service_threads_requester ON service_threads(requester_user_id, last_message_at DESC);
+
+CREATE TABLE IF NOT EXISTS service_messages (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  thread_id UUID REFERENCES service_threads(id) ON DELETE CASCADE NOT NULL,
+  -- NULL for system messages.
+  sender_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  -- 'offer' arrives with S4.
+  kind TEXT NOT NULL DEFAULT 'text' CHECK (kind IN ('text', 'system', 'offer')),
+  body TEXT NOT NULL CHECK (char_length(body) BETWEEN 1 AND 2000),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_service_messages_thread ON service_messages(thread_id, created_at);
+
+-- Blocked send attempts. The blocked text is kept for admin review (it's
+-- the evidence when an account is suspended for circumvention). It never
+-- reaches the other party. Admin-only.
+CREATE TABLE IF NOT EXISTS contact_violations (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+  thread_id UUID REFERENCES service_threads(id) ON DELETE CASCADE,
+  reasons TEXT[] NOT NULL,
+  body TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_contact_violations_user ON contact_violations(user_id, created_at);
+
+-- ---------------------------------------------------------------------
+-- Helpers (SECURITY DEFINER so policies don't recurse through each
+-- other's RLS -- the lesson of fix-candidate-profile-visibility-recursion.sql)
+-- ---------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION public.is_service_thread_party(p_thread_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.service_threads t
+    JOIN public.service_providers sp ON sp.id = t.provider_id
+    WHERE t.id = p_thread_id
+      AND (t.requester_user_id = auth.uid() OR sp.user_id = auth.uid())
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.is_provider_on_request(p_request_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.service_threads t
+    JOIN public.service_providers sp ON sp.id = t.provider_id
+    WHERE t.request_id = p_request_id AND sp.user_id = auth.uid()
+  );
+$$;
+
+-- ---------------------------------------------------------------------
+-- RLS: read-only for parties, everything for admins, no client writes.
+-- ---------------------------------------------------------------------
+
+ALTER TABLE service_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE service_threads ENABLE ROW LEVEL SECURITY;
+ALTER TABLE service_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE contact_violations ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Parties read service requests" ON service_requests;
+CREATE POLICY "Parties read service requests" ON service_requests FOR SELECT
+  USING (requester_user_id = auth.uid() OR public.is_provider_on_request(id));
+DROP POLICY IF EXISTS "Admin full access service_requests" ON service_requests;
+CREATE POLICY "Admin full access service_requests" ON service_requests FOR ALL USING (public.is_admin());
+
+DROP POLICY IF EXISTS "Parties read service threads" ON service_threads;
+CREATE POLICY "Parties read service threads" ON service_threads FOR SELECT
+  USING (public.is_service_thread_party(id));
+DROP POLICY IF EXISTS "Admin full access service_threads" ON service_threads;
+CREATE POLICY "Admin full access service_threads" ON service_threads FOR ALL USING (public.is_admin());
+
+DROP POLICY IF EXISTS "Parties read service messages" ON service_messages;
+CREATE POLICY "Parties read service messages" ON service_messages FOR SELECT
+  USING (public.is_service_thread_party(thread_id));
+DROP POLICY IF EXISTS "Admin full access service_messages" ON service_messages;
+CREATE POLICY "Admin full access service_messages" ON service_messages FOR ALL USING (public.is_admin());
+
+DROP POLICY IF EXISTS "Admin full access contact_violations" ON contact_violations;
+CREATE POLICY "Admin full access contact_violations" ON contact_violations FOR ALL USING (public.is_admin());
+
+-- Providers need to see the requester's first name in their inbox. They
+-- can't read candidate_profiles for someone who hasn't applied to them, so
+-- expose just the display name, and only to the other party in a thread.
+CREATE OR REPLACE FUNCTION public.service_thread_requester_name(p_thread_id UUID)
+RETURNS TEXT
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT CASE
+    WHEN NOT public.is_service_thread_party(p_thread_id) THEN NULL
+    ELSE COALESCE(
+      (SELECT split_part(trim(cp.full_name), ' ', 1)
+       FROM public.service_threads t
+       JOIN public.candidate_profiles cp ON cp.user_id = t.requester_user_id
+       WHERE t.id = p_thread_id),
+      'Customer')
+  END;
+$$;
+
+REVOKE ALL ON FUNCTION public.service_thread_requester_name(UUID) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.service_thread_requester_name(UUID) TO authenticated;
+
+-- The requester's profile picture, for the provider's side of the chat
+-- (same rule as the name above: only for the other party in the thread).
+CREATE OR REPLACE FUNCTION public.service_thread_requester_avatar(p_thread_id UUID)
+RETURNS TEXT
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT CASE
+    WHEN NOT public.is_service_thread_party(p_thread_id) THEN NULL
+    ELSE (SELECT cp.avatar_url
+          FROM public.service_threads t
+          JOIN public.candidate_profiles cp ON cp.user_id = t.requester_user_id
+          WHERE t.id = p_thread_id)
+  END;
+$$;
+
+REVOKE ALL ON FUNCTION public.service_thread_requester_avatar(UUID) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.service_thread_requester_avatar(UUID) TO authenticated;
+
+-- =====================================================================================
+-- Company <-> candidate messaging: sender labels + team access.
+-- Mirrors supabase/add-message-sender-labels.sql byte-for-byte -- see that file's header.
+-- =====================================================================================
+
+-- Company <-> candidate messaging: who sent what, and team access.
+-- Run once in Supabase Dashboard > SQL Editor. Safe to re-run.
+--
+-- Problems this fixes (Linda, 20 Oct 2026):
+--   1. Candidates saw "Company" instead of the company's name. They have no
+--      RLS read on company_profiles, so the thread's company join came back
+--      null and the page fell back to "Company". Companies had the same
+--      problem with candidate names for anyone who hadn't applied to them.
+--   2. Company team members (company_members) had no access to their
+--      company's threads at all. is_thread_party() only recognised the
+--      company OWNER's login, so team members saw an empty inbox.
+--   3. Nothing said which team member wrote a message.
+--
+-- Rules:
+--   * The owner login (company_profiles.user_id) speaks as the company:
+--     "Spanispace Curated".
+--   * A team member speaks as the company plus their first name to the
+--     candidate ("Spanispace Curated · Sipho"), and by full name to their
+--     own colleagues, so the team can see who said what.
+--   * The candidate is shown by name to the company.
+--   * Names only. These functions never return emails, phone numbers or ids
+--     the caller couldn't already see, and only for threads the caller is in.
+
+-- ---------------------------------------------------------------------
+-- 1. Team access. Every member can read their company's threads; viewers
+--    are read-only, everyone else can send.
+-- ---------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.is_thread_party(p_company_id UUID, p_candidate_id UUID)
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.company_profiles cp WHERE cp.id = p_company_id AND cp.user_id = auth.uid()
+  ) OR public.company_is_member(p_company_id)
+  OR EXISTS (
+    SELECT 1 FROM public.candidate_profiles cd WHERE cd.id = p_candidate_id AND cd.user_id = auth.uid()
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.can_send_in_thread(p_thread_id UUID)
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.message_threads mt
+    WHERE mt.id = p_thread_id
+      AND (
+        EXISTS (SELECT 1 FROM public.company_profiles cp WHERE cp.id = mt.company_id AND cp.user_id = auth.uid())
+        OR public.company_can_operate(mt.company_id)
+        OR EXISTS (SELECT 1 FROM public.candidate_profiles cd WHERE cd.id = mt.candidate_id AND cd.user_id = auth.uid())
+      )
+  );
+$$;
+
+DROP POLICY IF EXISTS "Participants send messages" ON messages;
+CREATE POLICY "Participants send messages" ON messages FOR INSERT WITH CHECK (
+  sender_id = auth.uid() AND public.can_send_in_thread(thread_id)
+);
+
+-- ---------------------------------------------------------------------
+-- 2. Thread titles: company name for the candidate, candidate name for
+--    the company. Only rows for threads the caller is part of.
+-- ---------------------------------------------------------------------
+-- Return columns changed (pictures added, 20 Oct 2026), and CREATE OR
+-- REPLACE can't change them, so drop first. Nothing else depends on these.
+DROP FUNCTION IF EXISTS public.message_thread_names(UUID[]);
+DROP FUNCTION IF EXISTS public.message_sender_labels(UUID);
+
+CREATE OR REPLACE FUNCTION public.message_thread_names(p_thread_ids UUID[])
+RETURNS TABLE (thread_id UUID, company_name TEXT, company_logo_url TEXT, candidate_name TEXT, candidate_avatar_url TEXT)
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+  SELECT mt.id, cp.company_name, cp.logo_url, cd.full_name, cd.avatar_url
+  FROM public.message_threads mt
+  JOIN public.company_profiles cp ON cp.id = mt.company_id
+  JOIN public.candidate_profiles cd ON cd.id = mt.candidate_id
+  WHERE mt.id = ANY (p_thread_ids)
+    AND public.is_thread_participant(mt.id);
+$$;
+
+-- ---------------------------------------------------------------------
+-- 3. Per-sender labels for one thread, worded for whoever is asking.
+--    side = which side of the conversation the sender is on.
+--    avatar_url = the picture to show: the company logo whenever the
+--    candidate is looking at the company side, the person's own avatar
+--    otherwise.
+-- ---------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.message_sender_labels(p_thread_id UUID)
+RETURNS TABLE (sender_id UUID, side TEXT, label TEXT, avatar_url TEXT)
+LANGUAGE plpgsql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+DECLARE
+  v_company_id UUID;
+  v_company_name TEXT;
+  v_owner_id UUID;
+  v_candidate_user UUID;
+  v_candidate_name TEXT;
+  v_candidate_avatar TEXT;
+  v_company_logo TEXT;
+  v_viewer_is_candidate BOOLEAN;
+BEGIN
+  IF NOT public.is_thread_participant(p_thread_id) THEN
+    RETURN;
+  END IF;
+
+  SELECT mt.company_id, cp.company_name, cp.logo_url, cp.user_id, cd.user_id, cd.full_name, cd.avatar_url
+  INTO v_company_id, v_company_name, v_company_logo, v_owner_id, v_candidate_user, v_candidate_name, v_candidate_avatar
+  FROM public.message_threads mt
+  JOIN public.company_profiles cp ON cp.id = mt.company_id
+  JOIN public.candidate_profiles cd ON cd.id = mt.candidate_id
+  WHERE mt.id = p_thread_id;
+
+  v_viewer_is_candidate := (auth.uid() = v_candidate_user);
+
+  RETURN QUERY
+  SELECT
+    s.sender_id,
+    CASE WHEN s.sender_id = v_candidate_user THEN 'candidate' ELSE 'company' END,
+    CASE
+      WHEN s.sender_id = v_candidate_user THEN COALESCE(NULLIF(trim(v_candidate_name), ''), 'Candidate')
+      WHEN s.sender_id = v_owner_id THEN v_company_name
+      WHEN cm.user_id IS NOT NULL THEN
+        CASE
+          WHEN v_viewer_is_candidate THEN
+            v_company_name || COALESCE(' · ' || NULLIF(split_part(trim(mp.full_name), ' ', 1), ''), '')
+          ELSE COALESCE(NULLIF(trim(mp.full_name), ''), split_part(u.email, '@', 1), 'Team member')
+        END
+      -- Someone who has since left the team.
+      WHEN v_viewer_is_candidate THEN v_company_name
+      ELSE 'Former team member'
+    END,
+    CASE
+      WHEN s.sender_id = v_candidate_user THEN v_candidate_avatar
+      WHEN s.sender_id = v_owner_id OR v_viewer_is_candidate THEN v_company_logo
+      ELSE mp.avatar_url
+    END
+  FROM (SELECT DISTINCT m.sender_id FROM public.messages m WHERE m.thread_id = p_thread_id) s
+  LEFT JOIN public.company_members cm ON cm.company_id = v_company_id AND cm.user_id = s.sender_id
+  LEFT JOIN public.candidate_profiles mp ON mp.user_id = s.sender_id
+  LEFT JOIN public.users u ON u.id = s.sender_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.message_thread_names(UUID[]) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.message_sender_labels(UUID) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.message_thread_names(UUID[]) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.message_sender_labels(UUID) TO authenticated;

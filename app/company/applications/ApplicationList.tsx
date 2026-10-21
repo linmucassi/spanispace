@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { MessageSquare, CalendarPlus } from 'lucide-react';
+import Select from '@/components/ui/Select';
 
 interface Application {
   id: string;
@@ -399,16 +400,14 @@ export default function ApplicationList({
                           />
                         </div>
                         <div className="grid grid-cols-2 gap-2">
-                          <select
+                          <Select
+                            label="Interview length"
+                            hideLabel
+                            triggerClassName="py-2 rounded-lg border-slate-300"
                             value={interviewForm.duration}
-                            onChange={(e) => setInterviewForm({ ...interviewForm, duration: e.target.value })}
-                            className="rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white"
-                          >
-                            <option value="15">15 min</option>
-                            <option value="30">30 min</option>
-                            <option value="45">45 min</option>
-                            <option value="60">60 min</option>
-                          </select>
+                            onChange={(v) => setInterviewForm({ ...interviewForm, duration: v })}
+                            options={['15', '30', '45', '60'].map((m) => ({ value: m, label: `${m} min` }))}
+                          />
                           <input
                             type="text"
                             placeholder="Location or video link"

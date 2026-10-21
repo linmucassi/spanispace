@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { normalizeUrl } from '@/lib/normalizeUrl';
+import Select, { selectChange } from '@/components/ui/Select';
 
 export default function AdminNewLateUni() {
   const router = useRouter();
@@ -38,7 +39,7 @@ export default function AdminNewLateUni() {
         <div><label className="block text-sm font-medium text-slate-700 mb-1">Institution *</label><input name="institution" value={form.institution} onChange={handleChange} required placeholder="e.g. University of Cape Town" className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 outline-none" /></div>
         <div><label className="block text-sm font-medium text-slate-700 mb-1">Programs</label><input name="programs" value={form.programs} onChange={handleChange} placeholder="e.g. BSc Computer Science, BCom" className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 outline-none" /></div>
         <div className="grid grid-cols-2 gap-4">
-          <div><label className="block text-sm font-medium text-slate-700 mb-1">Application Type</label><select name="application_type" value={form.application_type} onChange={handleChange} className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm bg-white focus:border-brand-500 outline-none"><option>Late Application</option><option>Standard</option><option>Learnership</option></select></div>
+          <Select label="Application Type" labelClassName="block text-sm font-medium text-slate-700 mb-1" triggerClassName="px-4 py-3 border-slate-200" value={form.application_type} onChange={(v) => handleChange(selectChange('application_type', v))} options={['Late Application', 'Standard', 'Learnership'].map((v) => ({ value: v, label: v }))} />
           <div><label className="block text-sm font-medium text-slate-700 mb-1">Closing Date</label><input name="closing_date" type="date" value={form.closing_date} onChange={handleChange} className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 outline-none" /></div>
         </div>
         <div><label className="block text-sm font-medium text-slate-700 mb-1">Notes</label><textarea name="notes" value={form.notes} onChange={handleChange} rows={2} className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm focus:border-brand-500 outline-none resize-none" /></div>

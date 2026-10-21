@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Search, MapPin, CheckCircle, X, MessageSquare, Send } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import Select from '@/components/ui/Select';
 
 interface Candidate {
   id: string;
@@ -389,16 +390,14 @@ export default function CandidateSearch({
                     </button>
                   ) : (
                     <div className="space-y-2">
-                      <label className="block text-xs font-bold text-slate-400 uppercase">Invite to apply for</label>
-                      <select
+                      <Select
+                        label="Invite to apply for"
+                        labelClassName="block text-xs font-bold text-slate-400 uppercase mb-1"
+                        triggerClassName="py-2 rounded-lg border-slate-300"
                         value={inviteJobId}
-                        onChange={(e) => setInviteJobId(e.target.value)}
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 outline-none"
-                      >
-                        {companyJobs.map((job) => (
-                          <option key={job.id} value={job.id}>{job.title}</option>
-                        ))}
-                      </select>
+                        onChange={setInviteJobId}
+                        options={companyJobs.map((job) => ({ value: job.id, label: job.title }))}
+                      />
                       <textarea
                         value={inviteMessage}
                         onChange={(e) => setInviteMessage(e.target.value)}

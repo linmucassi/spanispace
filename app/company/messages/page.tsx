@@ -34,6 +34,11 @@ export default async function CompanyMessages({ searchParams }: Props) {
 
     if (existing) {
       selectedThreadId = existing.id;
+      // Opened from a specific application/job: make that the job the
+      // conversation is about, so the pinned job card matches.
+      if (jobId) {
+        await supabase.from('message_threads').update({ job_id: jobId }).eq('id', existing.id);
+      }
     } else {
       const { data: created } = await supabase
         .from('message_threads')
@@ -46,7 +51,7 @@ export default async function CompanyMessages({ searchParams }: Props) {
 
   const { data: threadRows } = await supabase
     .from('message_threads')
-    .select('id, last_message_at, candidate:candidate_profiles(full_name), job:jobs(title)')
+    .select('id, last_message_at, job_id, company_id, candidate_id, candidate:candidate_profiles(full_name), job:jobs(title)')
     .eq('company_id', company.id)
     .order('last_message_at', { ascending: false });
 
@@ -54,9 +59,13 @@ export default async function CompanyMessages({ searchParams }: Props) {
 
   const lastMessageByThread: Record<string, { body: string; created_at: string }> = {};
   const unreadByThread: Record<string, number> = {};
+  // Companies can only read profiles of applicants / opted-in candidates
+  // (RLS), so a thread with anyone else had no name. Names only, my threads only.
+  const candidateNameByThread: Record<string, string> = {};
+  const avatarByThread: Record<string, string | null> = {};
 
   if (threadIds.length > 0) {
-    const [messagesRes, unreadRes] = await Promise.all([
+    const [messagesRes, unreadRes, namesRes] = await Promise.all([
       supabase
         .from('messages')
         .select('thread_id, body, created_at')
@@ -68,7 +77,12 @@ export default async function CompanyMessages({ searchParams }: Props) {
         .in('thread_id', threadIds)
         .neq('sender_id', user.id)
         .is('read_at', null),
+      supabase.rpc('message_thread_names', { p_thread_ids: threadIds }),
     ]);
+    for (const row of (namesRes.data as { thread_id: string; candidate_name: string | null; candidate_avatar_url: string | null }[] | null) ?? []) {
+      if (row.candidate_name) candidateNameByThread[row.thread_id] = row.candidate_name;
+      avatarByThread[row.thread_id] = row.candidate_avatar_url;
+    }
 
     for (const row of messagesRes.data ?? []) {
       if (!lastMessageByThread[row.thread_id]) {
@@ -85,8 +99,12 @@ export default async function CompanyMessages({ searchParams }: Props) {
     const job = Array.isArray(t.job) ? t.job[0] : t.job;
     return {
       id: t.id,
-      otherPartyName: candidate?.full_name ?? 'Candidate',
+      otherPartyName: candidateNameByThread[t.id] ?? candidate?.full_name ?? 'Candidate',
+      otherPartyAvatar: avatarByThread[t.id] ?? null,
       jobTitle: job?.title ?? null,
+      jobId: t.job_id ?? null,
+      companyId: t.company_id,
+      candidateId: t.candidate_id,
       lastMessageAt: t.last_message_at,
       lastMessageBody: lastMessageByThread[t.id]?.body ?? null,
       unreadCount: unreadByThread[t.id] || 0,
@@ -101,6 +119,7 @@ export default async function CompanyMessages({ searchParams }: Props) {
       </div>
 
       <MessagesInbox
+        viewerSide="company"
         currentUserId={user.id}
         threads={threads}
         initialSelectedThreadId={selectedThreadId}

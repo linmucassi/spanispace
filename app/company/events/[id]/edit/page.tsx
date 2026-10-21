@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { resolveCompanyMembership } from '@/lib/company/resolveCompanyMembership';
+import Select, { selectChange } from '@/components/ui/Select';
 
 const EVENT_TYPES = [
   'webinar',
@@ -251,30 +252,24 @@ export default function CompanyEditEvent() {
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Event Type</label>
-            <select
-              name="event_type"
+            <Select
+              label="Event Type"
+              labelClassName="block text-sm font-medium text-slate-700 mb-1"
+              triggerClassName="px-4 py-3 border-slate-200"
               value={form.event_type}
-              onChange={handleChange}
-              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm bg-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
-            >
-              {EVENT_TYPES.map((t) => (
-                <option key={t} value={t}>{t.replace('_', ' ')}</option>
-              ))}
-            </select>
+              onChange={(v) => handleChange(selectChange('event_type', v))}
+              options={EVENT_TYPES.map((t) => ({ value: t, label: t.replace('_', ' ') }))}
+            />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Format</label>
-            <select
-              name="format"
+            <Select
+              label="Format"
+              labelClassName="block text-sm font-medium text-slate-700 mb-1"
+              triggerClassName="px-4 py-3 border-slate-200"
               value={form.format}
-              onChange={handleChange}
-              className="block w-full rounded-xl border border-slate-200 px-4 py-3 text-sm bg-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
-            >
-              {FORMATS.map((f) => (
-                <option key={f} value={f}>{f.replace('_', ' ')}</option>
-              ))}
-            </select>
+              onChange={(v) => handleChange(selectChange('format', v))}
+              options={FORMATS.map((f) => ({ value: f, label: f.replace('_', ' ') }))}
+            />
           </div>
         </div>
 

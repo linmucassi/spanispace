@@ -76,6 +76,7 @@ export default async function CandidateDashboard() {
     pendingInvitesRes,
     activeEnrollmentsRes,
     academyRes,
+    serviceProviderRes,
   ] = await Promise.all([
     // The CV lives in candidate_documents (multi-document library), not
     // candidate_profiles.cv_url -- that column predates the library and
@@ -108,7 +109,15 @@ export default async function CandidateDashboard() {
     // keyed on the auth user directly rather than the candidate profile --
     // see supabase/add-academy-progress.sql.
     supabase.from('academy_lesson_progress').select('course_slug, lesson_number').eq('user_id', user.id),
+    // Signed up via the "I offer services" tab: nudge them back to the
+    // enrolment wizard until they've started it (email-confirmation signups
+    // land here, not on the wizard). See app/(auth)/register/page.tsx.
+    user.user_metadata?.signup_intent === 'services'
+      ? supabase.from('service_providers').select('id').eq('user_id', user.id).maybeSingle()
+      : noRows,
   ]);
+
+  const showServicesNudge = user.user_metadata?.signup_intent === 'services' && !serviceProviderRes.error && !serviceProviderRes.data;
 
   const hasCv = (cvCountRes.count ?? 0) > 0;
   const totalApplications = totalApplicationsRes.count ?? 0;
@@ -164,6 +173,18 @@ export default async function CandidateDashboard() {
 
   return (
     <div className="space-y-8">
+      {showServicesNudge && (
+        <div className="rounded-2xl border border-brand-100 bg-brand-50 px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <p className="font-semibold text-brand-900">Finish setting up your services</p>
+            <p className="text-sm text-brand-700">Add your rate card and upload your verification documents to start receiving bookings.</p>
+          </div>
+          <Link href="/candidate/services/enrol" className="shrink-0 rounded-xl bg-brand-600 px-4 py-2 text-sm font-bold text-white hover:bg-brand-700 text-center">
+            Continue
+          </Link>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-4">
