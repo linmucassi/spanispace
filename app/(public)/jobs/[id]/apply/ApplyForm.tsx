@@ -330,7 +330,7 @@ export default function ApplyForm({ jobId, jobRole, jobCompany, jobSource, apply
   }
 
   return (
-    <div className="min-h-screen pt-24 pb-20 px-4 bg-gradient-to-b from-brand-50/50 to-white">
+    <div className="min-h-screen pt-28 pb-20 px-4 bg-gradient-to-b from-brand-50/50 to-white">
       <div className="max-w-lg mx-auto">
         <Link
           href={`/jobs/${jobId}`}

@@ -56,7 +56,7 @@ export default function LoginPage() {
   return (
     <div className="max-w-sm w-full">
       <div className="text-center mb-8">
-        <h1 className="text-2xl font-bold text-slate-900">{t('auth.loginTitle')}</h1>
+        <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">{t('auth.loginTitle')}</h1>
         <p className="text-slate-500 text-sm mt-1">{t('auth.loginSubtitle')}</p>
       </div>
 
@@ -70,22 +70,24 @@ export default function LoginPage() {
 
       <form onSubmit={handleLogin} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
+          <label htmlFor="login-email" className="block text-sm font-medium text-slate-700 mb-1">
             {t('auth.email')}
           </label>
           <input
+            id="login-email"
             type="email"
+            autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="block w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
+            className="block w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none"
             placeholder="you@example.com"
           />
         </div>
 
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="block text-sm font-medium text-slate-700">
+            <label htmlFor="login-password" className="block text-sm font-medium text-slate-700">
               {t('auth.password')}
             </label>
             <Link
@@ -96,11 +98,13 @@ export default function LoginPage() {
             </Link>
           </div>
           <input
+            id="login-password"
             type="password"
+            autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="block w-full rounded-xl border border-slate-300 px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none"
+            className="block w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none"
           />
         </div>
 
@@ -113,7 +117,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-brand-600 text-white py-3 rounded-xl font-bold hover:bg-brand-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+          className="w-full bg-brand-600 text-white py-3 rounded-full font-semibold shadow-md shadow-brand-600/25 hover:bg-brand-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {loading && <Loader2 className="w-4 h-4 animate-spin" />}
           {loading ? t('auth.signingIn') : t('auth.signIn')}

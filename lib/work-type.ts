@@ -35,3 +35,12 @@ export const WORK_KIND_EDGE: Record<WorkKind, string> = {
   remote: 'border-l-teal-500',
   perm: 'border-l-brand-500',
 };
+
+/** The company-initial tile on a job card (soft-UI redesign, 21 Oct 2026).
+ *  It carries the kind colour now that cards dropped the thick left edge. */
+export const WORK_KIND_TILE: Record<WorkKind, string> = {
+  piece: 'bg-amber-50 text-amber-700',
+  learn: 'bg-violet-50 text-violet-700',
+  remote: 'bg-teal-50 text-teal-700',
+  perm: 'bg-brand-50 text-brand-700',
+};

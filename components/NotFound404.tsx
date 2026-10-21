@@ -180,7 +180,7 @@ export default function NotFound404({ displayFont }: { displayFont: string }) {
   };
 
   return (
-    <div className={`${styles.page} ${displayFont} relative flex min-h-screen flex-col justify-between overflow-x-hidden text-slate-100 selection:bg-[#a855f7] selection:text-white`}>
+    <div className={`theme-static ${styles.page} ${displayFont} relative flex min-h-screen flex-col justify-between overflow-x-hidden text-slate-100 selection:bg-[#a855f7] selection:text-white`}>
       <canvas ref={starCanvasRef} className="pointer-events-none fixed inset-0 z-0" aria-hidden />
 
       {/* Satellite that trails the cursor (desktop only) */}
@@ -294,7 +294,7 @@ export default function NotFound404({ displayFont }: { displayFont: string }) {
         <p>&copy; {new Date().getFullYear()} Spanispace</p>
         <nav className="mt-4 flex items-center justify-center gap-6 sm:mt-0" aria-label="Popular pages">
           <Link href="/jobs" className="transition-colors hover:text-[#06b6d4]">Jobs</Link>
-          <Link href="/services" className="transition-colors hover:text-[#06b6d4]">Services</Link>
+          <Link href="/piecejobs" className="transition-colors hover:text-[#06b6d4]">PieceJobs</Link>
           <Link href="/training" className="transition-colors hover:text-[#06b6d4]">Training</Link>
           <Link href="/events" className="transition-colors hover:text-[#06b6d4]">Events</Link>
         </nav>

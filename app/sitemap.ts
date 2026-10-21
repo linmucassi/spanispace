@@ -54,9 +54,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
   }));
 
   const serviceRoutes: MetadataRoute.Sitemap = [
-    { url: `${BASE_URL}/services`, lastModified: now, changeFrequency: 'daily' as const, priority: 0.8 },
+    { url: `${BASE_URL}/piecejobs`, lastModified: now, changeFrequency: 'daily' as const, priority: 0.8 },
     ...FALLBACK_CATEGORIES.map((c) => ({
-      url: `${BASE_URL}/services/${c.slug}`,
+      url: `${BASE_URL}/piecejobs/${c.slug}`,
       lastModified: now,
       changeFrequency: 'daily' as const,
       priority: 0.6,

@@ -66,6 +66,17 @@ const nextConfig: NextConfig = {
     return [
       { source: '/academy', destination: '/training', permanent: true },
       { source: '/academic', destination: '/university', permanent: true },
+      // "Services" was renamed "PieceJobs" (20 Oct 2026). Old links, including
+      // ones in notification emails already sent, keep working. The specific
+      // /services/requests paths (moved into the portal earlier the same day)
+      // come before the catch-alls.
+      { source: '/services/requests', destination: '/candidate/piecejobs/hire', permanent: true },
+      { source: '/services/requests/:id/chat/:threadId', destination: '/candidate/piecejobs/chat/:threadId', permanent: true },
+      { source: '/services/requests/:id', destination: '/candidate/piecejobs/hire/:id', permanent: true },
+      { source: '/services', destination: '/piecejobs', permanent: true },
+      { source: '/services/:path*', destination: '/piecejobs/:path*', permanent: true },
+      { source: '/candidate/services', destination: '/candidate/piecejobs', permanent: true },
+      { source: '/candidate/services/:path*', destination: '/candidate/piecejobs/:path*', permanent: true },
     ];
   },
 };
