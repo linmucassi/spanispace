@@ -73,7 +73,7 @@ const TrainingSection: React.FC<{
   const Heading = preview ? 'h2' : 'h1';
 
   return (
-    <div className="bg-ink-900 text-white">
+    <div className="theme-static bg-ink-900 text-white">
       <div className="max-w-6xl mx-auto px-4 py-16 md:py-20">
         <Heading className="text-4xl md:text-5xl font-bold tracking-tight">
           {t('training.title')}

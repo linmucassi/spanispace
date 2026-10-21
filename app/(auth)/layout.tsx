@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import ThemeToggle from '@/components/ThemeToggle';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -9,13 +10,14 @@ export const metadata: Metadata = {
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     // Sky wash with the form on a frosted card (soft-UI redesign, 21 Oct 2026).
-    <div className="bg-sky-wash min-h-screen flex flex-col">
+    <div className="bg-sky-wash relative min-h-screen flex flex-col">
+      <ThemeToggle className="absolute right-4 top-4" />
       <div className="pt-8 pb-4 flex justify-center">
         <Link href="/">
           <img
             src="/assets/logo-wordmark.png"
             alt="Spanispace"
-            className="h-10 w-auto md:h-12"
+            className="logo-mark h-10 w-auto md:h-12"
           />
         </Link>
       </div>

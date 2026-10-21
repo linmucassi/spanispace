@@ -140,7 +140,7 @@ export default async function Home() {
           categories={POPULAR_SLUGS.map((slug) => FALLBACK_CATEGORIES.find((c) => c.slug === slug)!).filter(Boolean)}
         />
       </div>
-      <div id="training" className="px-3 sm:px-4">
+      <div id="training" className="mt-12 mb-4 scroll-mt-24 px-3 sm:px-4 md:mt-16">
         <div className="mx-auto max-w-7xl overflow-hidden rounded-[2rem]">
           <TrainingSection courseMeta={courseMeta} preview />
         </div>

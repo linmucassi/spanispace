@@ -22,7 +22,7 @@ export default function TrainingPage() {
 
   return (
     // Dark behind the floating navbar too, so no white strip shows above the section.
-    <div className="bg-ink-900 pt-16">
+    <div className="theme-static bg-ink-900 pt-16">
       <TrainingSection courseMeta={courseMeta} guides={GUIDES} />
     </div>
   );

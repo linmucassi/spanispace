@@ -16,6 +16,7 @@ import Link from 'next/link';
 import { ArrowRight, ArrowUpRight, Hammer, MapPin } from 'lucide-react';
 import { useTranslation } from '../lib/i18n/context';
 import { MeterList } from '@/components/ui/Panel';
+import SpaceCanvas from './SpaceCanvas';
 import type { Tone } from '@/components/ui/RingGauge';
 
 export type HeroJob = { id: string; role: string; company: string; location: string; type: string };
@@ -38,13 +39,16 @@ const Hero: React.FC<{
   ];
 
   return (
-    <section className="bg-sky-wash relative overflow-hidden">
-      <div className="mx-auto grid max-w-7xl items-center gap-12 px-4 pb-20 pt-32 sm:px-6 lg:grid-cols-[1.1fr_1fr] lg:px-8 lg:pb-28 lg:pt-40">
+    // Space art on top, dark in both themes (theme-static keeps the light
+    // palette inside, so the white glass cards read the same either way).
+    <section className="theme-static space-backdrop relative overflow-hidden rounded-b-[2.5rem]">
+      <SpaceCanvas />
+      <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-4 pb-32 pt-32 sm:px-6 lg:grid-cols-[1.1fr_1fr] lg:px-8 lg:pb-28 lg:pt-40">
         {/* Pitch */}
         <div>
           <Link
             href="/candidate/cv-audit"
-            className="inline-flex items-center gap-2 rounded-full border border-white bg-white/70 py-1 pl-1 pr-3 text-xs font-semibold text-ink-600 shadow-sm backdrop-blur"
+            className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 py-1 pl-1 pr-3 text-xs font-semibold text-ink-100 backdrop-blur"
           >
             <span className="rounded-full bg-brand-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">New</span>
             {/* The string starts "New: ..." ("Okusha: ..." in isiZulu); the chip already says it. */}
@@ -52,25 +56,25 @@ const Hero: React.FC<{
             <ArrowRight className="h-3.5 w-3.5" aria-hidden />
           </Link>
 
-          <h1 className="mt-6 text-5xl font-extrabold leading-[1.05] tracking-tight text-ink-900 md:text-6xl xl:text-[4.25rem]">
+          <h1 className="mt-6 text-5xl font-extrabold leading-[1.05] tracking-tight text-white md:text-6xl xl:text-[4.25rem]">
             {t('hero.titleLine1')}{' '}
-            <span className="bg-gradient-to-r from-brand-600 via-brand-400 to-brand-300 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-brand-300 via-sky-300 to-violet-300 bg-clip-text text-transparent">
               {t('hero.titleLine2')}
             </span>
           </h1>
 
-          <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink-500">{t('hero.subtitle')}</p>
+          <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink-300">{t('hero.subtitle')}</p>
 
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
             <Link
               href="/jobs"
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-600 px-7 py-3.5 font-semibold text-white shadow-lg shadow-brand-600/25 transition-colors hover:bg-brand-700"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-500 px-7 py-3.5 font-semibold text-white shadow-lg shadow-brand-500/40 transition-colors hover:bg-brand-400"
             >
               {t('hero.browseJobs')} <ArrowUpRight className="h-4 w-4" aria-hidden />
             </Link>
             <Link
               href="/training"
-              className="inline-flex items-center justify-center rounded-full border border-white bg-white/80 px-7 py-3.5 font-semibold text-ink-800 shadow-sm backdrop-blur transition-colors hover:bg-white"
+              className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/10 px-7 py-3.5 font-semibold text-white backdrop-blur transition-colors hover:bg-white/20"
             >
               {t('hero.joinBootcamp')}
             </Link>
@@ -80,8 +84,8 @@ const Hero: React.FC<{
             {stats.map(({ value, label }) => (
               <div key={label}>
                 <dt className="sr-only">{label}</dt>
-                <dd className="stat-number text-4xl">{value}</dd>
-                <dd className="mt-1 text-sm text-ink-400">{label}</dd>
+                <dd className="stat-number-light text-4xl">{value}</dd>
+                <dd className="mt-1 text-sm text-ink-300">{label}</dd>
               </div>
             ))}
           </dl>
@@ -89,7 +93,7 @@ const Hero: React.FC<{
 
         {/* Live collage */}
         <div className="relative mx-auto w-full max-w-lg lg:max-w-none">
-          <div className="panel-glass p-6">
+          <div className="panel-glass bg-white/95 p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="flex items-center gap-2 text-sm font-medium text-ink-500">
@@ -139,7 +143,7 @@ const Hero: React.FC<{
 
           <Link
             href="/piecejobs"
-            className="panel-glass absolute -top-5 right-4 hidden items-center gap-3 rounded-2xl px-4 py-3 transition-shadow hover:shadow-md sm:flex"
+            className="panel-glass bg-white/95 absolute -top-5 right-4 hidden items-center gap-3 rounded-2xl px-4 py-3 transition-shadow hover:shadow-md sm:flex"
           >
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-50 text-amber-600">
               <Hammer className="h-4 w-4" aria-hidden />

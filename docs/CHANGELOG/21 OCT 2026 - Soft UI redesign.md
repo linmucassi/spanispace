@@ -89,6 +89,53 @@ Linda collected references in `docs/dashboard ui` (13 images: soft light dashboa
 
 A read-only check found the public views (`service_provider_cards` and the other two) are live, and `/piecejobs` now lists the test provider "Test P.". Every PieceJobs migration has now run in production.
 
+## Space hero, account links, Title Case headings, light and dark themes
+
+Linda's follow-ups after reviewing the redesign:
+
+1. **Space art back on the home hero, newer:** `components/SpaceCanvas.tsx` is a 2D canvas, so there's no Three.js:
+   - three parallax layers of twinkling stars that drift and follow the pointer slightly
+   - a planet with a brand-blue rim light and atmosphere, a dashed orbit and a moving satellite
+   - occasional shooting stars
+   - Behind it, `.space-backdrop` gives navy with violet and blue nebulae.
+   - Device pixel ratio is capped at 2, the planet is pre-rendered per resize, the loop pauses off screen or in a hidden tab, and it draws one still frame under `prefers-reduced-motion`.
+   - The hero text is white and the live cards are near-solid white. The hero has rounded bottom corners, and everything below is unchanged.
+2. **Public navbar:** "Dashboard" and "Post a job" are no longer in the bar or the phone menu. They live in the profile dropdown (Dashboard, Post a job for company/admin, Sign out), which now shows on phones too.
+3. **Title Case headings:** `h1`-`h4` get `text-transform: capitalize` site-wide (`app/globals.css`), so "Hire trusted local help" shows as "Hire Trusted Local Help". This includes translated and database text. CSS capitalises every word, small words too ("Bridging The Gap Between Skills And Career Success"), matching Linda's example. Add `normal-case` to opt a heading out.
+4. **Light and dark themes:**
+   - **How it works:** a `dark` class on `<html>`. `lib/theme.ts` holds the storage key and a pre-paint script, injected in `app/layout.tsx` (no flash; `suppressHydrationWarning` on `<html>`). With no saved choice it follows the device setting, live.
+   - **Switches** (`components/ThemeToggle.tsx`, `useSyncExternalStore`): a sun/moon button in the public navbar and on the auth pages, and a Light | Dark switch in each portal sidebar's account panel. They stay in sync.
+   - **The palette** is re-pointed under `.dark` rather than adding `dark:` classes to 80 pages:
+     - white, ink, slate and gray are inverted, so `bg-white` becomes the dark panel `#121c2e` and the canvas `#0a111d`
+     - brand is re-tuned
+     - each accent palette's 50-200 become dark washes (`color-mix`) and 700-900 light text
+     - `text-white` stays white
+     - dark fills with white text (`bg-slate-900` buttons) invert to light chips
+     - brand-700/800 fills (button hovers) stay deep blue
+   - `.panel`, `.panel-glass`, the sky wash and the ring-gauge track use variables, and the logo mark (`.logo-mark`) turns white.
+   - **Sections that are dark by design** keep the light palette via `.theme-static`: the space hero, the CV audit banner, the training blocks, guide headers, the footer, admin login and the 404 page.
+   - The browser `theme-color` has light and dark values.
+5. **Checked:** with Playwright on a production build, in both themes:
+   - home (top and scrolled), jobs, PieceJobs, training and login
+   - the company dashboard signed in
+   - the signed-in navbar dropdown
+   - at 390px, the home page, candidate dashboard and drawer
+   - No page errors and no horizontal scroll. `tsc`, `next build` and ESLint on the new files are clean.
+
+## Inspiration images removed, new planet horizon
+
+- **Images removed:** Linda pushed the reference images by mistake, in her commit `6f00d2a` on `lin/dev`: 19 WhatsApp images in `docs/dashboard ui` and `docs/infoghraphics ui`. At her choice they were deleted in a new commit, `ff98092` "Remove UI inspiration images committed by mistake", pushed to `lin/dev`, with no history rewrite. They are also deleted locally. **They are still visible in `6f00d2a`'s history on GitHub.** Removing them from history would mean rewriting that commit and force-pushing.
+- **The planet looked bad, so it's gone.** Linda didn't like it (`SpaceCanvas`): a small striped sphere on the right with a dashed orbit and a satellite.
+  - **Replaced by a "planet-rise" horizon:** a planet much wider than the screen, so only a flat, glowing arc of its edge shows in the hero's bottom padding.
+  - **The arc:** a navy body lit along the top edge, three stacked glow strokes fading out to the sides, a soft atmosphere haze, and a small sun breaking over the edge at the centre.
+  - The orbit and satellite are removed.
+  - The hero's phone bottom padding went from `pb-20` to `pb-32`, so the arc isn't hidden behind the CV Audit banner.
+  - Checked at 1366, 1920 and 390px, with no page errors.
+
+## Home spacing: PieceJobs section and training panel
+
+Linda: "Learn Something That Pays" sat too close to "Hire Trusted Local Help". The home training panel now has `mt-12` (`md:mt-16`) above it and `mb-4` below. The PieceJobs section (`components/ServicesSection.tsx`) also dropped its full-width white background, which left a hard white-to-grey edge; it now sits on the page canvas like the other sections.
+
 ## Files changed
 - `app/globals.css`, `app/layout.tsx`
 - `components/ui/RingGauge.tsx`, `components/ui/StatCard.tsx`, `components/ui/Panel.tsx` (new)
@@ -100,3 +147,6 @@ A read-only check found the public views (`service_provider_cards` and the other
 - `app/(auth)/layout.tsx`, `app/(auth)/login/page.tsx`
 - `app/(public)/training/page.tsx`, `app/(public)/events/page.tsx`, `app/(public)/events/[id]/page.tsx`, `app/(public)/jobs/[id]/JobDetailView.tsx`, `app/(public)/jobs/[id]/apply/ApplyForm.tsx`, `app/(public)/post-job/page.tsx`, `app/(public)/piecejobs/provider/[id]/page.tsx`, `app/(public)/piecejobs/provider-agreement/page.tsx`, `app/(public)/privacy/page.tsx`, `app/(public)/terms/page.tsx`, `components/services/ServicesBrowser.tsx`
 - `lib/i18n/en.ts`, `lib/i18n/zu.ts`
+- Follow-ups: `components/SpaceCanvas.tsx`, `components/ThemeToggle.tsx`, `lib/theme.ts` (new); `components/Hero.tsx`, `components/Navbar.tsx`, `components/CVAuditBanner.tsx`, `components/Footer.tsx`, `components/TrainingSection.tsx`, `components/GuideShell.tsx`, `components/NotFound404.tsx`, `components/portal/PortalSidebar.tsx`, `components/ui/RingGauge.tsx`, `app/globals.css`, `app/layout.tsx`, `app/(auth)/layout.tsx`, `app/admin/login/page.tsx`, `app/(public)/training/page.tsx`, `app/(public)/training/[course]/page.tsx`, `app/(public)/training/[course]/[lesson]/page.tsx`
+- Planet: `components/SpaceCanvas.tsx`, `components/Hero.tsx`; removed `docs/dashboard ui/*`, `docs/infoghraphics ui/*`
+- Spacing: `app/(public)/page.tsx`, `components/ServicesSection.tsx`

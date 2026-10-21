@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import LanguageToggle from './LanguageToggle';
+import ThemeToggle from './ThemeToggle';
 import { useTranslation } from '../lib/i18n/context';
 import { createClient } from '../lib/supabase/client';
 
@@ -118,14 +119,14 @@ const Navbar: React.FC = () => {
     // which had in turn replaced a generic .glass-card; this one is opaque
     // enough (white at 80%) that the dark logo mark stays crisp on scroll.
     <nav className="fixed inset-x-0 top-0 z-50 px-3 pt-3 sm:px-4">
-      <div className="panel-glass mx-auto max-w-7xl rounded-full px-3 sm:px-4">
+      <div className="panel-glass bg-white/85 mx-auto max-w-7xl rounded-full px-3 sm:px-4">
         <div className="flex h-14 items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex h-full items-center pl-2">
             <img
               src="/assets/logo-wordmark.png"
               alt="Spanispace Logo"
-              className="h-7 w-auto"
+              className="logo-mark h-7 w-auto"
             />
           </Link>
 
@@ -151,53 +152,51 @@ const Navbar: React.FC = () => {
           {/* Actions */}
           <div className="flex items-center gap-3">
             <LanguageToggle />
+            <ThemeToggle />
             {/* Auth-dependent actions */}
             {user ? (
-              <>
-                {(userRole === 'company' || userRole === 'admin') && (
-                  <Link
-                    href="/post-job"
-                    className="hidden md:inline-block text-sm font-semibold text-ink-700 hover:text-brand-600 transition-colors"
-                  >
-                    {t('nav.postJob')}
-                  </Link>
-                )}
-                <Link
-                  href={getDashboardHref()}
-                  className="hidden md:inline-block text-sm font-semibold text-ink-700 hover:text-brand-600 transition-colors"
+              // Dashboard and Post a job live in the profile dropdown only, on
+              // every screen size, so the public bar stays about the site
+              // (Linda, 21 Oct 2026).
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-700 ring-2 ring-white transition-colors hover:bg-brand-100"
+                  aria-label="User menu"
+                  aria-expanded={dropdownOpen}
                 >
-                  {getDashboardLabel()}
-                </Link>
-                <div className="relative hidden md:block" ref={dropdownRef}>
-                  <button
-                    onClick={() => setDropdownOpen(!dropdownOpen)}
-                    className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-700 ring-2 ring-white transition-colors hover:bg-brand-100"
-                    aria-label="User menu"
-                  >
-                    {getUserInitial()}
-                  </button>
-                  {dropdownOpen && (
-                    <div className="absolute right-0 z-50 mt-3 w-52 rounded-3xl border border-white bg-white p-2 shadow-xl">
-                      <div className="px-4 py-2 border-b border-ink-100">
-                        <p className="text-xs text-ink-500 truncate">{user.email}</p>
-                      </div>
+                  {getUserInitial()}
+                </button>
+                {dropdownOpen && (
+                  <div className="absolute right-0 z-50 mt-3 w-56 rounded-3xl border border-white bg-white p-2 shadow-xl">
+                    <div className="px-3 py-2 border-b border-ink-100 mb-1">
+                      <p className="text-xs text-ink-500 truncate">{user.email}</p>
+                    </div>
+                    <Link
+                      href={getDashboardHref()}
+                      onClick={() => setDropdownOpen(false)}
+                      className="block rounded-xl px-3 py-2 text-sm text-ink-700 transition-colors hover:bg-ink-50"
+                    >
+                      {getDashboardLabel()}
+                    </Link>
+                    {(userRole === 'company' || userRole === 'admin') && (
                       <Link
-                        href={getDashboardHref()}
+                        href="/post-job"
                         onClick={() => setDropdownOpen(false)}
                         className="block rounded-xl px-3 py-2 text-sm text-ink-700 transition-colors hover:bg-ink-50"
                       >
-                        {getDashboardLabel()}
+                        {t('nav.postJob')}
                       </Link>
-                      <button
+                    )}
+                    <button
                         onClick={handleSignOut}
                         className="block w-full rounded-xl px-3 py-2 text-left text-sm text-ink-700 transition-colors hover:bg-ink-50"
                       >
-                        Sign Out
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </>
+                      Sign Out
+                    </button>
+                  </div>
+                )}
+              </div>
             ) : (
               <>
                 <Link
@@ -249,35 +248,9 @@ const Navbar: React.FC = () => {
                 {item.name}
               </Link>
             ))}
-            <div className="pt-3 mt-3 border-t border-ink-100 flex flex-col gap-2">
-              {user && (userRole === 'company' || userRole === 'admin') && (
-                <Link
-                  href="/post-job"
-                  onClick={() => setMobileOpen(false)}
-                  className="text-sm font-semibold text-ink-700 hover:text-brand-600 py-2 px-4"
-                >
-                  {t('nav.postJob')}
-                </Link>
-              )}
-
-              {user ? (
-                <>
-                  <Link
-                    href={getDashboardHref()}
-                    onClick={() => setMobileOpen(false)}
-                    className="text-sm font-semibold text-ink-700 hover:text-brand-600 py-2 px-4"
-                  >
-                    {getDashboardLabel()}
-                  </Link>
-                  <button
-                    onClick={handleSignOut}
-                    className="text-sm font-semibold text-ink-700 hover:text-brand-600 py-2 px-4 text-left"
-                  >
-                    Sign Out
-                  </button>
-                </>
-              ) : (
-                <>
+            {/* Signed in: account links are in the profile dropdown, not here. */}
+            {!user && (
+              <div className="pt-3 mt-3 border-t border-ink-100 flex flex-col gap-2">
                   <Link
                     href="/login"
                     onClick={() => setMobileOpen(false)}
@@ -292,9 +265,8 @@ const Navbar: React.FC = () => {
                   >
                     Get Started
                   </Link>
-                </>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       )}

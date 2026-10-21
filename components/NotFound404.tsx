@@ -180,7 +180,7 @@ export default function NotFound404({ displayFont }: { displayFont: string }) {
   };
 
   return (
-    <div className={`${styles.page} ${displayFont} relative flex min-h-screen flex-col justify-between overflow-x-hidden text-slate-100 selection:bg-[#a855f7] selection:text-white`}>
+    <div className={`theme-static ${styles.page} ${displayFont} relative flex min-h-screen flex-col justify-between overflow-x-hidden text-slate-100 selection:bg-[#a855f7] selection:text-white`}>
       <canvas ref={starCanvasRef} className="pointer-events-none fixed inset-0 z-0" aria-hidden />
 
       {/* Satellite that trails the cursor (desktop only) */}

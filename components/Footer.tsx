@@ -69,7 +69,7 @@ const Footer: React.FC = () => {
   return (
     // A floating dark panel inset from the page edges (soft-UI redesign, 21 Oct 2026).
     <footer className="px-3 pb-24 pt-4 sm:px-4 md:pb-4">
-      <div className="mx-auto max-w-7xl rounded-[2rem] bg-ink-900 px-6 py-12 text-ink-400 sm:px-10">
+      <div className="theme-static mx-auto max-w-7xl rounded-[2rem] bg-ink-900 px-6 py-12 text-ink-400 sm:px-10">
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
         <div className="col-span-1 md:col-span-1">
           <div className="mb-6">

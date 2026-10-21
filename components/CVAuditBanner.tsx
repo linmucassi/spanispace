@@ -11,7 +11,7 @@ import Link from 'next/link';
 export default function CVAuditBanner() {
   return (
     <div className="px-4">
-      <div className="relative mx-auto -mt-8 flex max-w-7xl flex-col items-center justify-between gap-4 overflow-hidden rounded-3xl bg-gradient-to-r from-brand-700 to-brand-500 px-6 py-5 shadow-lg shadow-brand-600/20 sm:flex-row">
+      <div className="theme-static relative mx-auto -mt-8 flex max-w-7xl flex-col items-center justify-between gap-4 overflow-hidden rounded-3xl bg-gradient-to-r from-brand-700 to-brand-500 px-6 py-5 shadow-lg shadow-brand-600/20 sm:flex-row">
         <div className="flex items-center gap-3">
           <span className="flex-shrink-0 h-10 w-10 rounded-full bg-white/15 flex items-center justify-center">
             <svg viewBox="0 0 20 20" className="h-4 w-4 fill-white" aria-hidden>

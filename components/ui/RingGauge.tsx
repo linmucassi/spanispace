@@ -40,7 +40,7 @@ export default function RingGauge({
   return (
     <div className={`relative shrink-0 ${className}`} style={{ width: size, height: size }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90" aria-hidden>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#e8edf3" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" style={{ stroke: "var(--color-ink-100)" }} strokeWidth={stroke} />
         {ratio > 0 && (
           <circle
             cx={size / 2}

@@ -76,11 +76,255 @@
   --shadow-soft: 0 1px 2px rgb(11 26 46 / 0.03), 0 12px 32px -12px rgb(11 26 46 / 0.12);
 }
 
+/* =====================================================================
+   Light and dark themes (Linda, 21 Oct 2026).
+
+   The app styles with literal palette classes (bg-white, text-ink-900,
+   border-slate-200, bg-amber-50 ...) across 80 pages, so dark mode works by
+   re-pointing the palette rather than adding dark: variants everywhere:
+   - the neutrals (white, ink, slate, gray) are inverted, so "white" is the
+     dark panel surface and ink-900 text becomes near-white;
+   - brand is re-tuned so tints stay dark and text shades stay light, while
+     the button fill keeps enough contrast for white text;
+   - every accent palette's 50-200 tints become dark washes of that hue, and
+     700-900 text shades become light ones.
+   `text-white` is pinned to real white, since it sits on coloured fills.
+
+   Sections that are dark by design (the space hero, the dark training
+   block, the footer) carry `.theme-static`, which restores the light
+   palette inside them so they look the same in both themes.
+
+   The theme is a `dark` class on <html>, set before paint by the inline
+   script in app/layout.tsx (system preference unless the person chose).
+   ===================================================================== */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --panel-border: rgb(255 255 255 / 0.8);
+  --glass-bg: rgb(255 255 255 / 0.72);
+  --glass-border: rgb(255 255 255 / 0.9);
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+  --panel-border: rgb(255 255 255 / 0.06);
+  --glass-bg: rgb(17 27 44 / 0.72);
+  --glass-border: rgb(255 255 255 / 0.08);
+
+  --color-white: #121c2e;
+  --color-canvas: #0a111d;
+
+  --color-ink-50: #0b1422;
+  --color-ink-100: #172234;
+  --color-ink-200: #223047;
+  --color-ink-300: #3a4b66;
+  --color-ink-400: #7385a0;
+  --color-ink-500: #97a6bc;
+  --color-ink-600: #b5c1d2;
+  --color-ink-700: #cdd6e3;
+  --color-ink-800: #e2e8f0;
+  --color-ink-900: #f1f5f9;
+  --color-ink-950: #f8fafc;
+
+  --color-slate-50: #0e1727;
+  --color-slate-100: #172234;
+  --color-slate-200: #223047;
+  --color-slate-300: #3a4b66;
+  --color-slate-400: #7385a0;
+  --color-slate-500: #97a6bc;
+  --color-slate-600: #b5c1d2;
+  --color-slate-700: #cdd6e3;
+  --color-slate-800: #e2e8f0;
+  --color-slate-900: #f1f5f9;
+  --color-slate-950: #f8fafc;
+
+  --color-gray-50: #0e1727;
+  --color-gray-100: #172234;
+  --color-gray-200: #223047;
+  --color-gray-300: #3a4b66;
+  --color-gray-400: #7385a0;
+  --color-gray-500: #97a6bc;
+  --color-gray-600: #b5c1d2;
+  --color-gray-700: #cdd6e3;
+  --color-gray-800: #e2e8f0;
+  --color-gray-900: #f1f5f9;
+
+  --color-brand-50: #0d2440;
+  --color-brand-100: #11304f;
+  --color-brand-200: #17446e;
+  --color-brand-300: #3b8fd9;
+  --color-brand-400: #5aabec;
+  --color-brand-500: #2b8fe0;
+  --color-brand-600: #1677c9;
+  --color-brand-700: #9ecdf5;
+  --color-brand-800: #cfe7fa;
+  --color-brand-900: #eaf4fd;
+  --color-brand-950: #f5faff;
+}
+
+/* Accent palettes: dark washes for tints, light shades for text. Built from
+   each palette's own 400/500, which are left untouched. */
+.dark {
+  --tint-base: #121c2e;
+}
+.dark {
+  --color-amber-50: color-mix(in oklab, var(--color-amber-500) 12%, var(--tint-base));
+  --color-amber-100: color-mix(in oklab, var(--color-amber-500) 20%, var(--tint-base));
+  --color-amber-200: color-mix(in oklab, var(--color-amber-500) 32%, var(--tint-base));
+  --color-amber-700: color-mix(in oklab, var(--color-amber-400) 85%, white);
+  --color-amber-800: color-mix(in oklab, var(--color-amber-400) 70%, white);
+  --color-amber-900: color-mix(in oklab, var(--color-amber-400) 55%, white);
+
+  --color-emerald-50: color-mix(in oklab, var(--color-emerald-500) 12%, var(--tint-base));
+  --color-emerald-100: color-mix(in oklab, var(--color-emerald-500) 20%, var(--tint-base));
+  --color-emerald-200: color-mix(in oklab, var(--color-emerald-500) 32%, var(--tint-base));
+  --color-emerald-700: color-mix(in oklab, var(--color-emerald-400) 85%, white);
+  --color-emerald-800: color-mix(in oklab, var(--color-emerald-400) 70%, white);
+  --color-emerald-900: color-mix(in oklab, var(--color-emerald-400) 55%, white);
+
+  --color-green-50: color-mix(in oklab, var(--color-green-500) 12%, var(--tint-base));
+  --color-green-100: color-mix(in oklab, var(--color-green-500) 20%, var(--tint-base));
+  --color-green-200: color-mix(in oklab, var(--color-green-500) 32%, var(--tint-base));
+  --color-green-700: color-mix(in oklab, var(--color-green-400) 85%, white);
+  --color-green-800: color-mix(in oklab, var(--color-green-400) 70%, white);
+  --color-green-900: color-mix(in oklab, var(--color-green-400) 55%, white);
+
+  --color-red-50: color-mix(in oklab, var(--color-red-500) 12%, var(--tint-base));
+  --color-red-100: color-mix(in oklab, var(--color-red-500) 20%, var(--tint-base));
+  --color-red-200: color-mix(in oklab, var(--color-red-500) 32%, var(--tint-base));
+  --color-red-700: color-mix(in oklab, var(--color-red-400) 85%, white);
+  --color-red-800: color-mix(in oklab, var(--color-red-400) 70%, white);
+  --color-red-900: color-mix(in oklab, var(--color-red-400) 55%, white);
+
+  --color-rose-50: color-mix(in oklab, var(--color-rose-500) 12%, var(--tint-base));
+  --color-rose-100: color-mix(in oklab, var(--color-rose-500) 20%, var(--tint-base));
+  --color-rose-200: color-mix(in oklab, var(--color-rose-500) 32%, var(--tint-base));
+  --color-rose-700: color-mix(in oklab, var(--color-rose-400) 85%, white);
+  --color-rose-800: color-mix(in oklab, var(--color-rose-400) 70%, white);
+  --color-rose-900: color-mix(in oklab, var(--color-rose-400) 55%, white);
+
+  --color-violet-50: color-mix(in oklab, var(--color-violet-500) 12%, var(--tint-base));
+  --color-violet-100: color-mix(in oklab, var(--color-violet-500) 20%, var(--tint-base));
+  --color-violet-200: color-mix(in oklab, var(--color-violet-500) 32%, var(--tint-base));
+  --color-violet-700: color-mix(in oklab, var(--color-violet-400) 85%, white);
+  --color-violet-800: color-mix(in oklab, var(--color-violet-400) 70%, white);
+  --color-violet-900: color-mix(in oklab, var(--color-violet-400) 55%, white);
+
+  --color-purple-50: color-mix(in oklab, var(--color-purple-500) 12%, var(--tint-base));
+  --color-purple-100: color-mix(in oklab, var(--color-purple-500) 20%, var(--tint-base));
+  --color-purple-200: color-mix(in oklab, var(--color-purple-500) 32%, var(--tint-base));
+  --color-purple-700: color-mix(in oklab, var(--color-purple-400) 85%, white);
+  --color-purple-800: color-mix(in oklab, var(--color-purple-400) 70%, white);
+  --color-purple-900: color-mix(in oklab, var(--color-purple-400) 55%, white);
+
+  --color-blue-50: color-mix(in oklab, var(--color-blue-500) 12%, var(--tint-base));
+  --color-blue-100: color-mix(in oklab, var(--color-blue-500) 20%, var(--tint-base));
+  --color-blue-200: color-mix(in oklab, var(--color-blue-500) 32%, var(--tint-base));
+  --color-blue-700: color-mix(in oklab, var(--color-blue-400) 85%, white);
+  --color-blue-800: color-mix(in oklab, var(--color-blue-400) 70%, white);
+  --color-blue-900: color-mix(in oklab, var(--color-blue-400) 55%, white);
+
+  --color-sky-50: color-mix(in oklab, var(--color-sky-500) 12%, var(--tint-base));
+  --color-sky-100: color-mix(in oklab, var(--color-sky-500) 20%, var(--tint-base));
+  --color-sky-200: color-mix(in oklab, var(--color-sky-500) 32%, var(--tint-base));
+  --color-sky-700: color-mix(in oklab, var(--color-sky-400) 85%, white);
+  --color-sky-800: color-mix(in oklab, var(--color-sky-400) 70%, white);
+
+  --color-teal-50: color-mix(in oklab, var(--color-teal-500) 12%, var(--tint-base));
+  --color-teal-100: color-mix(in oklab, var(--color-teal-500) 20%, var(--tint-base));
+  --color-teal-200: color-mix(in oklab, var(--color-teal-500) 32%, var(--tint-base));
+  --color-teal-700: color-mix(in oklab, var(--color-teal-400) 85%, white);
+  --color-teal-800: color-mix(in oklab, var(--color-teal-400) 70%, white);
+
+  --color-orange-50: color-mix(in oklab, var(--color-orange-500) 12%, var(--tint-base));
+  --color-orange-100: color-mix(in oklab, var(--color-orange-500) 20%, var(--tint-base));
+  --color-orange-200: color-mix(in oklab, var(--color-orange-500) 32%, var(--tint-base));
+  --color-orange-700: color-mix(in oklab, var(--color-orange-400) 85%, white);
+  --color-orange-800: color-mix(in oklab, var(--color-orange-400) 70%, white);
+
+  --color-yellow-50: color-mix(in oklab, var(--color-yellow-500) 12%, var(--tint-base));
+  --color-yellow-100: color-mix(in oklab, var(--color-yellow-500) 20%, var(--tint-base));
+  --color-yellow-200: color-mix(in oklab, var(--color-yellow-500) 32%, var(--tint-base));
+  --color-yellow-700: color-mix(in oklab, var(--color-yellow-400) 85%, white);
+  --color-yellow-800: color-mix(in oklab, var(--color-yellow-400) 70%, white);
+
+  --color-pink-50: color-mix(in oklab, var(--color-pink-500) 12%, var(--tint-base));
+  --color-pink-100: color-mix(in oklab, var(--color-pink-500) 20%, var(--tint-base));
+  --color-pink-700: color-mix(in oklab, var(--color-pink-400) 85%, white);
+}
+
+/* Dark-by-design sections keep the light palette inside them. */
+.dark .theme-static {
+  color-scheme: light;
+  --panel-border: rgb(255 255 255 / 0.8);
+  --glass-bg: rgb(255 255 255 / 0.72);
+  --glass-border: rgb(255 255 255 / 0.9);
+  --color-white: #fff;
+  --color-ink-50: #f5f7fa;
+  --color-ink-100: #e8edf3;
+  --color-ink-200: #cfd8e4;
+  --color-ink-300: #a3b2c6;
+  --color-ink-400: #6f83a0;
+  --color-ink-500: #4a5f7d;
+  --color-ink-600: #33465f;
+  --color-ink-700: #21334a;
+  --color-ink-800: #142338;
+  --color-ink-900: #0b1a2e;
+  --color-ink-950: #061120;
+  --color-slate-50: oklch(98.4% 0.003 247.858);
+  --color-slate-100: #eef2f7;
+  --color-slate-200: #e3e8ef;
+  --color-slate-300: #cdd5e0;
+  --color-slate-400: oklch(70.4% 0.04 256.788);
+  --color-slate-500: oklch(55.4% 0.046 257.417);
+  --color-slate-600: oklch(44.6% 0.043 257.281);
+  --color-slate-700: oklch(37.2% 0.044 257.287);
+  --color-slate-800: oklch(27.9% 0.041 260.031);
+  --color-slate-900: oklch(20.8% 0.042 265.755);
+  --color-brand-50: #eaf4fd;
+  --color-brand-100: #cfe7fa;
+  --color-brand-200: #9ecdf5;
+  --color-brand-300: #5aabec;
+  --color-brand-400: #1d88dd;
+  --color-brand-500: #0070c8;
+  --color-brand-600: #005ca5;
+  --color-brand-700: #004a86;
+  --color-brand-800: #003a6b;
+  --color-brand-900: #002a4d;
+}
+
+@layer utilities {
+  /* text-white sits on coloured fills, so it stays white in dark mode. */
+  .dark .text-white { color: #fff; }
+  /* Dark fills (bg-slate-900 buttons, numbered steps) invert to light chips
+     in dark mode, so their white text becomes dark. Not inside sections
+     that keep the light palette. */
+  .dark :is(.bg-slate-900, .bg-slate-800, .bg-ink-900, .bg-ink-800).text-white:not(.theme-static, .theme-static *) {
+    color: var(--color-ink-50);
+  }
+  /* In dark mode brand-700+ are light text shades, but buttons also use them
+     as fills (mostly the hover state of a brand-600 button). Fills stay a
+     deep blue so white text keeps its contrast. */
+  .dark :is(.bg-brand-700, .hover\:bg-brand-700:hover, .bg-brand-800, .hover\:bg-brand-800:hover):not(.theme-static, .theme-static *) {
+    background-color: #12609f;
+  }
+  /* The dark logo mark turns white on dark surfaces. */
+  .dark .logo-mark:not(.theme-static *) { filter: brightness(0) invert(1); }
+}
+
 @layer base {
   body {
     color: var(--color-ink-900);
     background: var(--color-ink-50);
     scroll-behavior: smooth;
+  }
+
+  /* Headings are Title Case across the site (Linda, 21 Oct 2026). Done in
+     CSS so every heading, including translated and database text, follows
+     without rewriting hundreds of strings. Add `normal-case` to opt out. */
+  h1, h2, h3, h4 {
+    text-transform: capitalize;
   }
 
   /* Headlines carry the personality, body text carries the legibility.
@@ -104,16 +348,16 @@
 @layer components {
   /* A floating white panel: the basic surface of the soft UI. */
   .panel {
-    background: #fff;
-    border: 1px solid rgb(255 255 255 / 0.8);
+    background: var(--color-white);
+    border: 1px solid var(--panel-border);
     border-radius: var(--radius-3xl);
     box-shadow: var(--shadow-soft);
   }
 
   /* Frosted panel for surfaces that sit over a gradient (navbar, hero cards). */
   .panel-glass {
-    background: rgb(255 255 255 / 0.72);
-    border: 1px solid rgb(255 255 255 / 0.9);
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
     border-radius: var(--radius-3xl);
     box-shadow: var(--shadow-soft);
     backdrop-filter: blur(18px) saturate(1.4);
@@ -133,13 +377,42 @@
     color: transparent;
   }
 
-  /* The sky wash behind the home hero and the auth pages. */
+  /* Big numbers on a dark surface: white fading to blue-grey. */
+  .stat-number-light {
+    font-family: var(--font-display), system-ui, sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    background: linear-gradient(180deg, #ffffff 30%, #a3b2c6);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Deep space behind the home hero: navy with violet and blue nebulae.
+     The stars, planet and shooting stars are drawn by SpaceCanvas on top. */
+  .space-backdrop {
+    background:
+      radial-gradient(45% 40% at 18% 22%, rgb(124 58 237 / 0.22), transparent 70%),
+      radial-gradient(40% 35% at 70% 15%, rgb(0 112 200 / 0.25), transparent 70%),
+      radial-gradient(60% 50% at 85% 95%, rgb(29 136 221 / 0.18), transparent 70%),
+      linear-gradient(180deg, #050914 0%, #08132a 60%, #0b1a36 100%);
+  }
+
+  /* The sky wash behind the auth pages. */
   .bg-sky-wash {
     background:
       radial-gradient(60% 50% at 15% 10%, rgb(158 205 245 / 0.55), transparent 70%),
       radial-gradient(50% 45% at 90% 20%, rgb(207 231 250 / 0.7), transparent 70%),
       radial-gradient(70% 60% at 60% 100%, rgb(238 241 246 / 1), transparent 70%),
       linear-gradient(180deg, #f3f7fc 0%, var(--color-canvas) 100%);
+  }
+  .dark .bg-sky-wash {
+    background:
+      radial-gradient(60% 50% at 15% 10%, rgb(0 112 200 / 0.22), transparent 70%),
+      radial-gradient(50% 45% at 90% 20%, rgb(29 136 221 / 0.14), transparent 70%),
+      linear-gradient(180deg, #0c1626 0%, var(--color-canvas) 100%);
   }
 }
 

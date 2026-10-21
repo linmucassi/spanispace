@@ -19,6 +19,7 @@ import { ArrowLeft, ChevronDown, LogOut, Menu, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import Avatar from '@/components/ui/Avatar';
 import PortalUserMenu from '@/components/PortalUserMenu';
+import ThemeToggle from '@/components/ThemeToggle';
 import { usePortalIdentity, type Portal } from '@/lib/portal/usePortalIdentity';
 
 export type NavLink = {
@@ -133,7 +134,7 @@ export default function PortalSidebar({
       {/* Phone top bar */}
       <div className="fixed inset-x-0 top-0 z-40 flex h-14 items-center justify-between border-b border-white/80 bg-white/80 px-4 backdrop-blur-xl md:hidden">
         <Link href={homeHref} className="flex items-center gap-2">
-          <img src="/assets/logo-wordmark.png" alt="Spanispace" className="h-7 w-auto" />
+          <img src="/assets/logo-wordmark.png" alt="Spanispace" className="logo-mark h-7 w-auto" />
         </Link>
         <div className="flex items-center gap-1">
           <PortalUserMenu portal={portal} />
@@ -154,7 +155,7 @@ export default function PortalSidebar({
         <div className="panel flex min-h-0 flex-1 flex-col">
           <div className="flex items-center justify-between px-5 pb-3 pt-5">
             <Link href={homeHref} className="flex items-center gap-2">
-              <img src="/assets/logo-wordmark.png" alt="Spanispace" className="h-8 w-auto" />
+              <img src="/assets/logo-wordmark.png" alt="Spanispace" className="logo-mark h-8 w-auto" />
               <span className="mt-1 rounded-full bg-ink-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-ink-400">{label}</span>
             </Link>
             <button onClick={() => setMobileOpen(false)} aria-label="Close menu" className="rounded-lg p-1.5 text-ink-500 hover:bg-ink-100 md:hidden">
@@ -191,6 +192,7 @@ export default function PortalSidebar({
               </div>
             </div>
           )}
+          <ThemeToggle variant="segmented" className="mt-2" />
           <div className="mt-1 grid grid-cols-2 gap-1">
             <Link href="/" className="flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold text-ink-500 hover:bg-ink-50 hover:text-ink-900">
               <ArrowLeft className="h-3.5 w-3.5" aria-hidden /> Site

@@ -2,6 +2,7 @@ import './globals.css';
 import type { Metadata, Viewport } from 'next';
 import { Inter, Plus_Jakarta_Sans } from 'next/font/google';
 import Providers from './providers';
+import { THEME_SCRIPT } from '@/lib/theme';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-body', display: 'swap' });
 
@@ -17,7 +18,10 @@ const display = Plus_Jakarta_Sans({
 });
 
 export const viewport: Viewport = {
-  themeColor: '#eef1f6',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#eef1f6' },
+    { media: '(prefers-color-scheme: dark)', color: '#0a111d' },
+  ],
   width: 'device-width',
   initialScale: 1,
 };
@@ -105,7 +109,12 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="scroll-pt-20">
+    // suppressHydrationWarning: THEME_SCRIPT adds the `dark` class to <html>
+    // before React hydrates, so the class can differ from the server render.
+    <html lang="en" className="scroll-pt-20" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body className={`${inter.variable} ${display.variable} ${inter.className}`}>
         <Providers>{children}</Providers>
       </body>
