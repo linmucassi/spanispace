@@ -193,8 +193,8 @@ export default async function ProviderPage({ params }: { params: Params }) {
               <p className="text-xs text-ink-500">Contact details stay private until a booking is confirmed. Agreeing a price and booking (R10 booking fee) open soon. For now, you can chat and compare quotes.</p>
             </div>
             <p className="text-xs text-ink-400">
-              Providers are independent and not Spanispace employees. Spanispace checks identity and police clearance at
-              enrolment but does not guarantee the quality of a service. <Link href="/piecejobs/provider-agreement" className="underline">Learn more</Link>.
+              Providers are independent, not Spanispace employees. We check every provider&apos;s ID and police clearance
+              before they go live. <Link href="/piecejobs/provider-agreement" className="underline">Learn more</Link>.
             </p>
           </aside>
         </div>
