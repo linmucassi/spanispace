@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { refreshPublicPages } from '@/lib/publicCache';
 import { normalizeUrl } from '@/lib/normalizeUrl';
 import Select, { selectChange } from '@/components/ui/Select';
 
@@ -28,6 +29,7 @@ export default function AdminNewLateUni() {
 
     setSaving(false);
     if (dbError) { setError(dbError.message); return; }
+    refreshPublicPages();
     router.push('/admin/late-uni');
   };
 

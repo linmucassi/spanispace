@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { refreshPublicPages } from '@/lib/publicCache';
 import { normalizeUrl } from '@/lib/normalizeUrl';
 
 // Learnerships are `jobs` rows with job_type = 'Learnership' -- the
@@ -78,6 +79,7 @@ export default function AdminNewLearnership() {
 
     setSaving(false);
     if (dbError) { setError(dbError.message); return; }
+    refreshPublicPages();
     router.push('/admin/learnerships');
   };
 
