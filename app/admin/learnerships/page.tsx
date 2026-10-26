@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { refreshPublicPages } from '@/lib/publicCache';
 import type { DbJob } from '@/types/database';
 import { useConfirm } from '@/components/useConfirm';
 
@@ -31,6 +32,7 @@ export default function AdminLearnerships() {
     const supabase = createClient();
     if (!supabase) return;
     await supabase.from('jobs').update({ vetted_status }).eq('id', id);
+    refreshPublicPages();
     load();
   };
 
@@ -39,6 +41,7 @@ export default function AdminLearnerships() {
     const supabase = createClient();
     if (!supabase) return;
     await supabase.from('jobs').delete().eq('id', id);
+    refreshPublicPages();
     load();
   };
 

@@ -6,6 +6,13 @@ type Props = {
   children: React.ReactNode;
 };
 
+// No job is built ahead of time. Returning an empty list makes each job page
+// render on its first visit and then cache for the pages' `revalidate`,
+// instead of rendering on every request.
+export async function generateStaticParams() {
+  return [];
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const job = await fetchPublicJob(id);

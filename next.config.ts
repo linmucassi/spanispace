@@ -49,6 +49,10 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Longest a cached public page can be served stale while it refreshes, two
+  // hours. Next's default is a year, so a quiet job page could show an expired
+  // job with a live Apply button to the first visitor after a long gap.
+  expireTime: 7200,
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
   },

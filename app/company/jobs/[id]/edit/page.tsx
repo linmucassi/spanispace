@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { refreshPublicPages } from '@/lib/publicCache';
 import { normalizeUrl } from '@/lib/normalizeUrl';
 import { resolveCompanyMembership } from '@/lib/company/resolveCompanyMembership';
 import Select, { selectChange } from '@/components/ui/Select';
@@ -179,6 +180,7 @@ export default function CompanyEditJob() {
       return;
     }
 
+    refreshPublicPages();
     setSuccess(true);
     setTimeout(() => router.push('/company/jobs'), 1500);
   };
