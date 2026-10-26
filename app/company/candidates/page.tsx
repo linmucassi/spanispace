@@ -82,6 +82,7 @@ export default async function CompanyCandidates() {
       </div>
 
       <CandidateSearch
+        companyId={company.id}
         initialCandidates={candidatesWithCv as any[]}
         applicantCandidateIds={Array.from(applicantCandidateIds)}
         companyJobs={companyJobs ?? []}

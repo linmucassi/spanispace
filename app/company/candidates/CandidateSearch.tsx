@@ -49,11 +49,13 @@ function ScoreBadge({ score }: { score: number | null }) {
 }
 
 export default function CandidateSearch({
+  companyId,
   initialCandidates,
   applicantCandidateIds = [],
   companyJobs = [],
   existingInvites = [],
 }: {
+  companyId: string;
   initialCandidates: Candidate[];
   applicantCandidateIds?: string[];
   companyJobs?: CompanyJob[];
@@ -84,7 +86,10 @@ export default function CandidateSearch({
       setSendingInvite(false);
       return;
     }
+    // company_id is NOT NULL and the RLS check runs company_can_operate() on
+    // it, so leaving it out fails as a row-level security violation.
     const { error } = await supabase.from('job_invites').insert({
+      company_id: companyId,
       job_id: inviteJobId,
       candidate_id: selectedCandidate.id,
       message: inviteMessage.trim() || null,
