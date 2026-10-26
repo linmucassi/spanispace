@@ -119,9 +119,8 @@ export default async function ServicesBrowser({
         </div>
 
         <p className="text-xs text-ink-400 mt-12 max-w-3xl">
-          Spanispace is a marketplace that connects you with independent service providers. Providers are not Spanispace
-          employees. We check identity and police clearance at enrolment, but we don&apos;t guarantee the quality of a service.
-          See the <Link href="/piecejobs/provider-agreement" className="underline">Service Provider Agreement</Link>.
+          Providers are independent, not Spanispace employees. We check every provider&apos;s ID and police clearance
+          before they go live. See the <Link href="/piecejobs/provider-agreement" className="underline">Service Provider Agreement</Link>.
         </p>
       </div>
     </div>
