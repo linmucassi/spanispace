@@ -1,4 +1,4 @@
-import { createServerSupabase } from '@/lib/supabase/server'
+import { createAnonSupabase } from '@/lib/supabase/anon'
 import { ACADEMIC_UPDATES } from '@/data/constants'
 import type { UniversityUpdate } from '@/types'
 
@@ -50,7 +50,7 @@ function mapDbUniApp(row: DbUniApp): UniversityUpdate {
 }
 
 export async function fetchPublicUniApps(): Promise<UniversityUpdate[]> {
-  const supabase = await createServerSupabase()
+  const supabase = createAnonSupabase()
   if (!supabase) return ACADEMIC_UPDATES
 
   const { data, error } = await supabase

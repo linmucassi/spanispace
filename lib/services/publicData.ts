@@ -4,19 +4,12 @@
 // yet, so the home page and /services still render (category tiles from the
 // fallback list, "providers coming soon" instead of an error).
 
-import { createClient } from '@supabase/supabase-js';
 import { createServerSupabase } from '@/lib/supabase/server';
+import { createAnonSupabase as anonClient } from '@/lib/supabase/anon';
 import type { PaymentMethods, PricingUnit } from '@/lib/services/config';
 
-// Cookie-free anon client for the public reads, so pages using them stay
-// cacheable (createServerSupabase() reads cookies, which forces dynamic
-// rendering). Only the signed-in details below need the user's session.
-function anonClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) return null;
-  return createClient(url, key, { auth: { persistSession: false } });
-}
+// Public reads use the cookie-free anon client so pages using them stay
+// cacheable. Only the signed-in details below need the user's session.
 
 export type ServiceCategory = { slug: string; name: string; requires_qualification: boolean };
 
