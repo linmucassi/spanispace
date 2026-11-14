@@ -27,6 +27,10 @@ import {
 } from '../lib/email'
 
 const BATCH_SIZE = 200
+// Pending rows older than this are never sent. Every producer either fires on
+// a real event (message, status change) or reruns daily/weekly, so a row this
+// old is either stale news or will be produced again fresh.
+const MAX_AGE_MS = 3 * 24 * 60 * 60 * 1000
 
 type NotificationRow = {
   id: string
@@ -64,6 +68,24 @@ async function main() {
   }
 
   const supabase = getSupabaseAdmin()
+
+  // Retire anything too old to be useful before sending. Without this, the
+  // first run after Resend is configured would mail out the whole backlog,
+  // months-old "you have a new message" emails included (319 rows were
+  // waiting on 14 Nov 2026). The table only allows pending/sent/failed, so
+  // stale rows become failed with a reason that says why.
+  const cutoff = new Date(Date.now() - MAX_AGE_MS).toISOString()
+  const { count: expired, error: expireError } = await supabase
+    .from('email_notifications')
+    .update({ status: 'failed', error: 'expired: not sent within 3 days' }, { count: 'exact' })
+    .eq('status', 'pending')
+    .lt('created_at', cutoff)
+  if (expireError) {
+    console.error('[notification-sender] Failed to expire stale notifications:', expireError.message)
+    process.exit(1)
+  }
+  if (expired) console.log(`[notification-sender] expired ${expired} stale`)
+
   const { data: rows, error } = await supabase
     .from('email_notifications')
     .select('id, recipient_email, type, payload')

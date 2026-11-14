@@ -79,6 +79,9 @@ export function useGoogleSignIn({ onSignedIn, onError }: UseGoogleSignInOptions)
           // onSignedIn navigates away, and no body because the route reads
           // the recipient from the verified session, not from the client.
           void fetch('/api/auth/welcome', { method: 'POST', keepalive: true }).catch(() => {});
+          // "New sign-in" email (issue #28). The route skips brand-new
+          // accounts, so a Google signup gets the welcome mail only.
+          void fetch('/api/auth/sign-in-alert', { method: 'POST', keepalive: true }).catch(() => {});
 
           try {
             await onSignedInRef.current(data.user.id);

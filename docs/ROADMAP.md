@@ -185,6 +185,13 @@ Full pre-launch audit of the live site, 9 Aug 2026. Branch `fix/ship-check-launc
   >
   > **Information Officer:** by default the head of the company (Linda or Percy). Register free on the Information Regulator eServices portal, using the company's registered name and number. Then add the name to section 14 of `app/(public)/privacy/page.tsx`; the same company details also cover compliance checklist #16.
 
+**Issues #2, #26–#29 — triaged 14 Nov 2026** (details in `docs/CHANGELOG/14 NOV 2026 - Test admin, job approvals, GitHub issues.md`):
+- [ ] **#29 — company can't invite a candidate.** Two causes, both needed. (a) The insert never sent `company_id`: fixed by open PR #30, verified against production with the test accounts. (b) Companies created after the 22 Aug membership backfill have no `company_members` owner row, so `company_can_operate()` is false for them: **run `supabase/fix-company-owner-membership.sql`** (adds a trigger + backfill). Test Company, the only affected company, was backfilled by hand on 14 Nov.
+- [ ] **#26 / #27 — application confirmation and new-message emails.** Already coded (`/api/applications` sends the confirmation, `trg_notify_new_message` queues message emails). Nothing sends because `RESEND_API_KEY` isn't set in Netlify or as a GitHub Actions secret. Same fix as Issue #9. The outbox sender now drops rows older than 3 days so the 319-row backlog won't go out on the first run.
+- [ ] **#28 — "new sign-in" email.** Built 14 Nov: `app/api/auth/sign-in-alert/route.ts`, called after password, admin and Google sign-in. Skips accounts under 10 minutes old and repeats within 2 minutes. Also waits on Resend.
+- [ ] **#2 — favicon.** The real cause was `app/favicon.ico`, the default Next.js icon, which Next.js outputs ahead of the metadata icons. Deleted 14 Nov. Live once deployed.
+- Known gap (not an issue yet): `notify_new_message()` picks the recipient by comparing the sender with the company **owner**, so a message from a non-owner team member emails the owner instead of the candidate.
+
 **Issue #1 — SA/informal jobs buried at the end of the pager:**
 - [x] **Sorting fix, code-complete since 18 Jul 2026 (predates this update).** `lib/publicJobs.ts` sorts South African jobs before international ones, and `JobBoard.tsx`'s stable sort preserves that order — SA jobs are already page-1 material, not something newly fixed here, just newly confirmed and documented.
 - [ ] **Volume, migration-gated.** The other half of issue #1 — "we haven't posted any jobs [for] a normal South African person... looking for a waitering job" — is addressed by PR #3's 12 seeded informal-work listings, but only once `supabase/add-informal-jobs.sql` (row 11 in Outstanding Migrations) actually runs against production.

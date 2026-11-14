@@ -49,6 +49,10 @@ export default function LoginPage() {
       return;
     }
 
+    // "New sign-in" email (issue #28). Fire and forget, keepalive so it
+    // survives the redirect; the route reads the recipient from the session.
+    void fetch('/api/auth/sign-in-alert', { method: 'POST', keepalive: true }).catch(() => {});
+
     await redirectToDashboard(supabase, router, data.user.id, t('auth.roleCheckFailed'), setError);
     setLoading(false);
   };
