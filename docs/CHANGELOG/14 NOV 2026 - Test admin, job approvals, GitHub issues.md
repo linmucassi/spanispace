@@ -50,3 +50,5 @@ All 9 open issues were read and triaged. #8, #9 and #11 need dashboard or DNS ac
 - #9 and #11: unchanged, waiting on Resend setup and DNS/POPIA registration.
 
 `tsc --noEmit` passes. Not yet run in a browser.
+
+Committed as 04b2a01 and opened PR #33 (`lin/dev` → `staging`). Status comments posted on #26–#29. Closed #2 and #8.
