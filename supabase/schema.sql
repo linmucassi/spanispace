@@ -819,6 +819,29 @@ SELECT id, user_id, 'owner' FROM company_profiles
 WHERE user_id IS NOT NULL
 ON CONFLICT (user_id) DO NOTHING;
 
+-- New companies get their owner row at creation (fix-company-owner-membership.sql,
+-- 14 Nov 2026). Without it company_can_operate() is false for them (issue #29).
+CREATE OR REPLACE FUNCTION public.add_company_owner_membership()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NEW.user_id IS NOT NULL THEN
+    INSERT INTO public.company_members (company_id, user_id, role)
+    VALUES (NEW.id, NEW.user_id, 'owner')
+    ON CONFLICT (user_id) DO NOTHING;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+REVOKE EXECUTE ON FUNCTION public.add_company_owner_membership() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS trg_add_company_owner_membership ON public.company_profiles;
+CREATE TRIGGER trg_add_company_owner_membership
+  AFTER INSERT ON public.company_profiles
+  FOR EACH ROW EXECUTE FUNCTION public.add_company_owner_membership();
+
 CREATE OR REPLACE FUNCTION public.company_member_role(p_company_id UUID)
 RETURNS TEXT
 LANGUAGE sql

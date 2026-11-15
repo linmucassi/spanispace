@@ -39,7 +39,6 @@ const zu = {
     statPieceJobs: 'Izinsizakalo zama-PieceJobs',
     liveNow: 'Kuvulekile manje',
     latestJobs: 'Imisebenzi emisha eqinisekisiwe',
-    pieceJobsHint: 'Qasha usizo lwendawo oluthembekile',
   },
   jobs: {
     title: 'Amathuba Omsebenzi Aqinisekisiwe',

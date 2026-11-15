@@ -350,6 +350,77 @@ export function welcomeEmail({
   return { subject, html, text };
 }
 
+type SignInAlertInput = {
+  firstName: string;
+  when: string;
+  method: 'password' | 'google';
+  device: string | null;
+  location: string | null;
+};
+
+// Sent after every sign-in (issue #28) so the account holder can spot a
+// sign-in that wasn't them. See app/api/auth/sign-in-alert/route.ts for when
+// it is sent and when it is skipped.
+export function signInAlertEmail({
+  firstName,
+  when,
+  method,
+  device,
+  location,
+}: SignInAlertInput): { subject: string; html: string; text: string } {
+  const name = firstNameOf(firstName);
+  const resetHref = 'https://spanispace.com/forgot-password';
+  const methodLabel = method === 'google' ? 'Google' : 'Email and password';
+
+  const details: [string, string][] = [
+    ['When', when],
+    ['Signed in with', methodLabel],
+    ...(device ? ([['Device', device]] as [string, string][]) : []),
+    ...(location ? ([['Approximate location', location]] as [string, string][]) : []),
+  ];
+
+  const subject = 'New sign-in to your Spanispace account';
+
+  const notYou =
+    method === 'google'
+      ? 'If this wasn\'t you, secure your Google account straight away, then reply to this email so we can help.'
+      : 'If this wasn\'t you, reset your password straight away, then reply to this email so we can help.';
+
+  const text = [
+    `Hi ${name},`,
+    '',
+    'Your Spanispace account was just signed in to.',
+    '',
+    ...details.map(([label, value]) => `${label}: ${value}`),
+    '',
+    'If this was you, there is nothing to do.',
+    notYou,
+    '',
+    ...(method === 'password' ? [resetHref, ''] : []),
+    'The Spanispace team',
+  ].join('\n');
+
+  const rows = details
+    .map(
+      ([label, value]) =>
+        `<tr><td style="padding:4px 16px 4px 0;color:#64748b;font-size:14px;white-space:nowrap;">${escapeHtml(label)}</td><td style="padding:4px 0;font-size:14px;">${escapeHtml(value)}</td></tr>`
+    )
+    .join('');
+
+  const body = `<p style="margin:0 0 16px;font-size:16px;">Hi ${escapeHtml(name)},</p>
+     <p style="margin:0 0 16px;font-size:16px;line-height:1.6;">Your Spanispace account was just signed in to.</p>
+     <table role="presentation" style="margin:0 0 16px;border-collapse:collapse;">${rows}</table>
+     <p style="margin:0 0 8px;font-size:16px;line-height:1.6;">If this was you, there's nothing to do.</p>
+     <p style="margin:0 0 24px;font-size:16px;line-height:1.6;">${escapeHtml(notYou)}</p>`;
+
+  const html =
+    method === 'password'
+      ? wrapEmail(body, resetHref, 'Reset my password')
+      : wrapEmail(body, 'https://myaccount.google.com/security', 'Check my Google account');
+
+  return { subject, html, text };
+}
+
 // ---------------------------------------------------------------------------
 // Spanispace Services (lib/services/notify.ts decides when these are sent).
 // Every user-supplied value is escaped, and nothing here ever includes a

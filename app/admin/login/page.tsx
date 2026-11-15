@@ -48,6 +48,9 @@ export default function AdminLogin() {
       return;
     }
 
+    // "New sign-in" email (issue #28), sent once the admin check has passed.
+    void fetch('/api/auth/sign-in-alert', { method: 'POST', keepalive: true }).catch(() => {});
+
     router.push('/admin/dashboard');
   };
 
