@@ -88,6 +88,7 @@ The pre-registration "join the waitlist" flow no longer makes sense now that rea
 > - `supabase/add-service-marketplace.sql` (20 Oct 2026): **✅ run in full.** PART F (the three public views) was missing on 20 Oct and was confirmed live on 21 Oct, so `/piecejobs` now lists verified providers.
 > - `supabase/add-message-sender-labels.sql` (20 Oct 2026): **✅ run** (`message_thread_names` and `message_sender_labels` exist, checked 20 Oct). Company ↔ candidate messages show the company name and the team member's name, and team members can read their company's threads.
 > - `supabase/fix-orphaned-users.sql` (20 Oct 2026, **review before running**, part by part): a read-only audit found 7 `public.users` rows with no sign-in account. Deleting a login didn't remove its app rows, so the `users.id → auth.users` foreign key is likely missing in production. The script moves Linda's CV and 5 work experiences from her dead 11 Aug account to her live one, deletes the 7 orphans (4 diagnostic test accounts, plus duplicates for Linda, Percy and a company address), and restores the foreign key. It has a guard that aborts if the orphan count isn't 7.
+> - `supabase/allow-service-role-vetting.sql` (15 Nov 2026): **not yet run.** Lets the daily scraper (service role) approve scraped jobs. Without it, `lock_vetted_status()` silently reverts those approvals. New scraped inserts go live either way. See `docs/CHANGELOG/15 NOV 2026 - Candidate sorting, hero cleanup, scraper company verification.md`.
 > - `supabase/add-service-requests-messaging.sql` (20 Oct 2026): **✅ run** (requests, threads, messages, contact violations and the thread helper functions exist, checked 20 Oct). See [Phase 2b S1](#phase-2b--spanispace-piecejobs-marketplace-renamed-from-services-20-oct-2026).
 
 `supabase/` now has 21+ files and this roadmap could no longer tell you from the repo alone which have actually been run against the live project (`rssuacaedvihhpcakuvm`) — that state lives only in Supabase, not in git. Treat every migration below as **unverified** until someone runs the audit query from issue #8 (see [PR #10: Pre-Launch Audit](#pr-10-pre-launch-audit-open-unmerged)) and confirms against the dashboard.
@@ -725,6 +726,7 @@ Full spec: [project-details.md §7](project-details.md#7-new-feature-spanispace-
 
 ### Data Operations
 - Daily scraper (GitHub Actions) auto-refreshes jobs and events — monitor its run logs, not just manual curation
+- **15 Nov 2026:** scraped jobs skip admin review. Each company is checked by guessing its website (`lib/scrapers/company-verifier.ts`). Verified companies' jobs go live, and unverified companies' scraped jobs are deleted every run. Dry run: 417 kept, 180 deleted out of 597. Follow-ups: "Employer on Adzuna" placeholder jobs will all be dropped, and generic names (Stone, Wood) can false-match. Run `allow-service-role-vetting.sql`. Use `npx tsx scripts/dry-run-company-verify.ts` to preview.
 - Weekly manual update of learnerships and late university application deadlines (not yet automated)
 - Monthly audit of expired jobs — archive or remove
 - Monitor SETA sites (INSETA, MerSETA, ETDP SETA) for new learnerships

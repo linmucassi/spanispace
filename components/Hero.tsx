@@ -13,7 +13,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ArrowRight, ArrowUpRight, Hammer, MapPin } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, MapPin } from 'lucide-react';
 import { useTranslation } from '../lib/i18n/context';
 import { MeterList } from '@/components/ui/Panel';
 import SpaceCanvas from './SpaceCanvas';
@@ -140,19 +140,6 @@ const Hero: React.FC<{
               </ul>
             </div>
           )}
-
-          <Link
-            href="/piecejobs"
-            className="panel-glass bg-white/95 absolute -top-5 right-4 hidden items-center gap-3 rounded-2xl px-4 py-3 transition-shadow hover:shadow-md sm:flex"
-          >
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-amber-50 text-amber-600">
-              <Hammer className="h-4 w-4" aria-hidden />
-            </span>
-            <span>
-              <span className="block text-sm font-bold text-ink-900">PieceJobs</span>
-              <span className="block text-xs text-ink-400">{t('hero.pieceJobsHint')}</span>
-            </span>
-          </Link>
         </div>
       </div>
     </section>

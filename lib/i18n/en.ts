@@ -39,7 +39,6 @@ const en = {
     statPieceJobs: 'PieceJobs services',
     liveNow: 'Live right now',
     latestJobs: 'Latest verified jobs',
-    pieceJobsHint: 'Hire trusted local help',
   },
   jobs: {
     title: 'Vetted Job Opportunities',
