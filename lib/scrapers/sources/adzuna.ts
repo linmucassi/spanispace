@@ -10,6 +10,7 @@
 // international remote tech roles ordinary South Africans could not relate to.
 
 import type { ScrapedJob, JobType } from '../types'
+import { ADZUNA_NO_NAME } from '../company-verifier'
 
 interface AdzunaJob {
   id: string
@@ -196,7 +197,7 @@ export async function fetchAdzunaJobs(): Promise<ScrapedJob[]> {
             salary_range: buildSalaryRange(j.salary_min, j.salary_max),
             apply_link: stableApplyLink(j.redirect_url),
             expiry_date: daysFromNow(30),
-            poster_name: j.company?.display_name || 'Employer on Adzuna',
+            poster_name: j.company?.display_name || ADZUNA_NO_NAME,
             source: 'adzuna',
           })
         }

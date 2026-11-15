@@ -12,15 +12,16 @@
 //
 // This is a heuristic. It will miss real companies whose domain doesn't match
 // their name (e.g. "Shoprite Checkers" -> shoprite.co.za works, but
-// "Pick n Pay" -> pnp.co.za won't), and placeholder names like
-// "Employer on Adzuna" are always unverifiable.
+// "Pick n Pay" -> pnp.co.za won't), and placeholder names like "Unknown
+// Company" are always unverifiable. Exception: Adzuna's no-name listings are
+// kept, see ADZUNA_NO_NAME.
 
 const FETCH_TIMEOUT_MS = 5000
 const CONCURRENCY = 10
 const TLDS = ['.com', '.co.za', '.io', '.co', '.ai', '.ca', '.co.uk', '.com.au'] as const
 
 // Names that are placeholders, not companies. Never verifiable.
-const PLACEHOLDER = /^(unknown( company)?|employer on adzuna|confidential|private (advertiser|employer|company)|anonymous|n\/?a|recruiter|company)$/i
+const PLACEHOLDER = /^(unknown( company)?|confidential|private (advertiser|employer|company)|anonymous|n\/?a|recruiter|company)$/i
 
 // Legal / filler words that are never part of a domain.
 const NOISE_WORDS = new Set([
@@ -29,6 +30,12 @@ const NOISE_WORDS = new Set([
 ])
 
 const PARKED = /domain (name )?(is )?for sale|buy this domain|this domain (may be|is) for sale|parked (free|domain)|sedoparking|hugedomains|dan\.com|afternic|godaddy\.com\/domainsearch|domain has expired/i
+
+// Adzuna is the main South African source, and many of its listings hide the
+// employer (sources/adzuna.ts names them "Employer on Adzuna"). Linda decided
+// on 15 Nov 2026 to keep these rather than delete them, or most SA jobs
+// would disappear (issue #1). They count as verified, with no website.
+export const ADZUNA_NO_NAME = 'Employer on Adzuna'
 
 export type CompanyVerdict = { verified: boolean; website: string | null }
 
@@ -114,6 +121,7 @@ function pageMentionsCompany(html: string, name: string): boolean {
 }
 
 async function verifyUncached(name: string): Promise<CompanyVerdict> {
+  if (name.trim() === ADZUNA_NO_NAME) return { verified: true, website: null }
   if (!name.trim() || PLACEHOLDER.test(name.trim())) return { verified: false, website: null }
   const words = nameWords(name)
   for (const { domain, exact } of candidateDomains(name)) {

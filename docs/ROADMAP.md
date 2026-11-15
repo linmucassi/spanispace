@@ -726,7 +726,7 @@ Full spec: [project-details.md §7](project-details.md#7-new-feature-spanispace-
 
 ### Data Operations
 - Daily scraper (GitHub Actions) auto-refreshes jobs and events — monitor its run logs, not just manual curation
-- **15 Nov 2026:** scraped jobs skip admin review. Each company is checked by guessing its website (`lib/scrapers/company-verifier.ts`). Verified companies' jobs go live, and unverified companies' scraped jobs are deleted every run. Dry run: 417 kept, 180 deleted out of 597. Follow-ups: "Employer on Adzuna" placeholder jobs will all be dropped, and generic names (Stone, Wood) can false-match. Run `allow-service-role-vetting.sql`. Use `npx tsx scripts/dry-run-company-verify.ts` to preview.
+- **15 Nov 2026:** scraped jobs skip admin review. Each company is checked by guessing its website (`lib/scrapers/company-verifier.ts`). Verified companies' jobs go live, and unverified companies' scraped jobs are deleted every run. Dry run: 417 kept, 180 deleted out of 597. Adzuna jobs with no employer name ("Employer on Adzuna") are exempt and kept live. Follow-ups: generic names (Stone, Wood) can false-match. Run `allow-service-role-vetting.sql`. Use `npx tsx scripts/dry-run-company-verify.ts` to preview.
 - Weekly manual update of learnerships and late university application deadlines (not yet automated)
 - Monthly audit of expired jobs — archive or remove
 - Monitor SETA sites (INSETA, MerSETA, ETDP SETA) for new learnerships

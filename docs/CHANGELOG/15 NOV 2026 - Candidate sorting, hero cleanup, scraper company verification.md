@@ -28,7 +28,7 @@ Four requests from Linda, all built today.
 - Correctly kept, for example: Lemon.io, TELUS Digital, Toptal, FedEx, Four Seasons, H&M, Cotton On, Wipro, SLB.
 - Deleted, for example: placeholders (`y`, `scvsdv`) and companies whose domain doesn't match their name (The Home Depot Canada, Hilton, Radisson Hotel Group, Canada Post, Walmart Canada, Royal Caribbean).
 - Known false positives, where a generic name matched an unrelated site: `Stone` → stone.com, `Wood` → wood.com, `Hovis Ltd` → hovis.ai.
-- **Every Adzuna job posted as "Employer on Adzuna" will be dropped**, since a placeholder name can't be verified. That matters once the Adzuna keys are added, because Adzuna is the main South African source.
+- ~~Every Adzuna job posted as "Employer on Adzuna" will be dropped~~. **Changed the same day (Linda's decision):** Adzuna listings with no employer name are kept and go live, or most South African jobs would disappear (issue #1). `ADZUNA_NO_NAME` in `company-verifier.ts` (also used by `sources/adzuna.ts`) counts as verified with no website. Adzuna jobs that *do* name a company still go through the website check.
 
 **DB catch:** `lock_vetted_status()` silently keeps the old `vetted_status` on UPDATE unless `is_admin()`, and the service role has no `auth.uid()`. So the reconcile approvals would be quietly reverted. Inserts aren't affected (the trigger is `BEFORE UPDATE` only).
 - New `supabase/allow-service-role-vetting.sql` adds a `service_role` pass. **Needs running in the SQL Editor.** The same change is mirrored in `fix-security-hardening.sql`, so re-running that file won't undo it.
@@ -45,6 +45,7 @@ Four requests from Linda, all built today.
 - `lib/scrapers/company-verifier.ts` (new)
 - `lib/scrapers/db-writer.ts`
 - `lib/scrapers/orchestrator.ts`
+- `lib/scrapers/sources/adzuna.ts`
 - `scripts/dry-run-company-verify.ts` (new)
 - `.github/workflows/daily-scraper.yml`
 - `supabase/allow-service-role-vetting.sql` (new)
