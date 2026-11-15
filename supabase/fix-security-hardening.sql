@@ -179,7 +179,11 @@ CREATE POLICY "Companies insert own events" ON events FOR INSERT WITH CHECK (
 CREATE OR REPLACE FUNCTION public.lock_vetted_status()
 RETURNS TRIGGER AS $$
 BEGIN
-  IF NOT public.is_admin() AND NEW.vetted_status IS DISTINCT FROM OLD.vetted_status THEN
+  -- service_role pass added 15 Nov 2026 (allow-service-role-vetting.sql) so
+  -- re-running this file doesn't undo it.
+  IF NOT public.is_admin()
+     AND coalesce(auth.role(), '') <> 'service_role'
+     AND NEW.vetted_status IS DISTINCT FROM OLD.vetted_status THEN
     NEW.vetted_status := OLD.vetted_status;
   END IF;
   RETURN NEW;

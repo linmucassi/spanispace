@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Search, MapPin, CheckCircle, X, MessageSquare, Send } from 'lucide-react';
+import { Search, MapPin, CheckCircle, X, MessageSquare, Send, ArrowUpDown } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import Select from '@/components/ui/Select';
 
@@ -20,7 +20,19 @@ interface Candidate {
   cv_url: string | null;
   verified: boolean;
   profile_score: number | null;
+  created_at?: string | null;
+  updated_at?: string | null;
 }
+
+type SortKey = 'score' | 'newest' | 'name' | 'verified' | 'applicants';
+
+const SORT_OPTIONS: { value: SortKey; label: string }[] = [
+  { value: 'score', label: 'Best profile' },
+  { value: 'newest', label: 'Newest' },
+  { value: 'name', label: 'Name A-Z' },
+  { value: 'verified', label: 'Verified first' },
+  { value: 'applicants', label: 'Applicants first' },
+];
 
 interface CompanyJob {
   id: string;
@@ -61,6 +73,7 @@ export default function CandidateSearch({
 }) {
   const [searchSkills, setSearchSkills] = useState('');
   const [searchLocation, setSearchLocation] = useState('');
+  const [sortBy, setSortBy] = useState<SortKey>('score');
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [invites, setInvites] = useState(existingInvites);
   const [showInvite, setShowInvite] = useState(false);
@@ -115,6 +128,21 @@ export default function CandidateSearch({
     return skillMatch && locationMatch;
   });
 
+  // Sorting is client-side: the page already loads every candidate this
+  // company may see (RLS decides that), so re-ordering needs no new query.
+  // Ties always fall back to profile score, then name, so the order is stable.
+  const byScore = (a: Candidate, b: Candidate) => (b.profile_score ?? -1) - (a.profile_score ?? -1);
+  const byName = (a: Candidate, b: Candidate) => a.full_name.localeCompare(b.full_name, 'en-ZA', { sensitivity: 'base' });
+  const joined = (c: Candidate) => Date.parse(c.created_at ?? '') || 0;
+  const sorted = [...filtered].sort((a, b) => {
+    let primary = 0;
+    if (sortBy === 'newest') primary = joined(b) - joined(a);
+    else if (sortBy === 'name') primary = byName(a, b);
+    else if (sortBy === 'verified') primary = Number(b.verified) - Number(a.verified);
+    else if (sortBy === 'applicants') primary = Number(applicantSet.has(b.id)) - Number(applicantSet.has(a.id));
+    return primary || byScore(a, b) || byName(a, b);
+  });
+
   return (
     <>
       {/* Search Filters */}
@@ -141,10 +169,33 @@ export default function CandidateSearch({
         </div>
       </div>
 
-      {/* Results Count */}
-      <p className="text-sm text-slate-500 mb-4">
-        {filtered.length} candidate{filtered.length !== 1 ? 's' : ''} found
-      </p>
+      {/* Sort + results count */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+        <p className="text-sm text-slate-500">
+          {filtered.length} candidate{filtered.length !== 1 ? 's' : ''} found
+        </p>
+        <div role="group" aria-label="Sort candidates" className="flex flex-wrap items-center gap-1.5">
+          <span className="flex items-center gap-1 text-xs font-bold uppercase text-slate-400 mr-1">
+            <ArrowUpDown className="w-3.5 h-3.5" aria-hidden />
+            Sort by
+          </span>
+          {SORT_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setSortBy(opt.value)}
+              aria-pressed={sortBy === opt.value}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${
+                sortBy === opt.value
+                  ? 'bg-brand-600 border-brand-600 text-white'
+                  : 'bg-white border-slate-200 text-slate-600 hover:border-brand-300 hover:text-brand-700'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* Candidate Cards */}
       {filtered.length === 0 ? (
@@ -161,7 +212,7 @@ export default function CandidateSearch({
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((candidate) => (
+          {sorted.map((candidate) => (
             <div
               key={candidate.id}
               onClick={() => {

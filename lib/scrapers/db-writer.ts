@@ -6,6 +6,7 @@
 import { getSupabaseAdmin } from '../supabase/admin'
 import { repairEncoding } from '../textQuality'
 import type { ScrapedJob, ScrapedEvent } from './types'
+import { verifyCompanies, normalizeCompanyName } from './company-verifier'
 
 // Every free-text field on a scraped job -- not just title/poster_name.
 // Found live 23 Aug 2026 that the corruption this repairs (multi-byte UTF-8
@@ -92,7 +93,7 @@ async function updateJobWithFallback(
   return 'update retries exhausted'
 }
 
-export async function writeJobs(jobs: ScrapedJob[]): Promise<{ inserted: number; refreshed: number; errors: string[] }> {
+export async function writeJobs(jobs: ScrapedJob[]): Promise<{ inserted: number; refreshed: number; unverified: number; errors: string[] }> {
   const supabase = getSupabaseAdmin()
   const errors: string[] = []
   let inserted = 0
@@ -102,7 +103,14 @@ export async function writeJobs(jobs: ScrapedJob[]): Promise<{ inserted: number;
   // else -- dedup/existing-row healing below should never work off text
   // that's still garbled. Foreign-script jobs (genuinely irrelevant for SA
   // audiences, not corrupted) are dropped here same as before.
-  const cleanJobs = jobs.map(repairAndCheckJob).filter((r) => !r.isForeignScript).map((r) => r.job)
+  const repairedJobs = jobs.map(repairAndCheckJob).filter((r) => !r.isForeignScript).map((r) => r.job)
+
+  // Only jobs from companies whose website we could find are kept (see
+  // company-verifier.ts). Existing rows from unverifiable companies are
+  // removed by reconcileScrapedJobs() at the end of the run.
+  const verdicts = await verifyCompanies(repairedJobs.map((j) => j.poster_name))
+  const cleanJobs = repairedJobs.filter((j) => verdicts.get(normalizeCompanyName(j.poster_name))?.verified)
+  const unverified = repairedJobs.length - cleanJobs.length
   const nowIso = new Date().toISOString()
 
   // 1) Bulk dedupe: find which apply_links already exist. Also fetch the
@@ -173,10 +181,11 @@ export async function writeJobs(jobs: ScrapedJob[]): Promise<{ inserted: number;
   //    schema fallbacks apply chunk-wide: drop duration if the column is
   //    missing, downgrade new job_type values if the CHECK is old, drop
   //    origin/apply_mode if supabase/add-application-journeys.sql hasn't run
-  //    yet on this database. company_id stays NULL and vetted_status stays
-  //    'pending' regardless -- scraped jobs are never auto-owned by a shared
-  //    company account and always go through the normal admin review queue,
-  //    see supabase/add-application-journeys.sql for why.
+  //    yet on this database. company_id stays NULL -- scraped jobs are never
+  //    auto-owned by a shared company account (see
+  //    supabase/add-application-journeys.sql). vetted_status is 'verified':
+  //    since 15 Nov 2026 the company-website check above replaces the admin
+  //    review queue, so scraped jobs go live straight away.
   const buildRow = (job: ScrapedJob, opts: { withDuration: boolean; withOrigin: boolean; downgrade: boolean }) => ({
     company_id: null,
     title: job.title,
@@ -188,7 +197,7 @@ export async function writeJobs(jobs: ScrapedJob[]): Promise<{ inserted: number;
     salary_range: job.salary_range || null,
     apply_link: job.apply_link,
     expiry_date: job.expiry_date,
-    vetted_status: 'pending',
+    vetted_status: 'verified',
     poster_name: job.poster_name,
     status: 'active',
     ...(opts.withOrigin ? { origin: 'scraped', apply_mode: 'redirect' } : {}),
@@ -230,7 +239,66 @@ export async function writeJobs(jobs: ScrapedJob[]): Promise<{ inserted: number;
     else errors.push(`[jobs] bulk insert of ${group.length} rows failed: ${lastMessage}`)
   }
 
-  return { inserted, refreshed, errors }
+  return { inserted, refreshed, unverified, errors }
+}
+
+// Applies the company-website policy to every scraped job already in the
+// database, not just the ones seen this run:
+//   - company verified + job pending  -> verified (goes live)
+//   - company can't be verified       -> job deleted
+// Rows an admin rejected are left alone. Admin-curated and company-posted
+// jobs are never touched (origin = 'scraped' only).
+export async function reconcileScrapedJobs(): Promise<{ approved: number; deleted: number; errors: string[] }> {
+  const supabase = getSupabaseAdmin()
+  const errors: string[] = []
+  const rows: { id: string; poster_name: string | null; vetted_status: string }[] = []
+
+  const PAGE = 1000
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase
+      .from('jobs')
+      .select('id, poster_name, vetted_status')
+      .eq('origin', 'scraped')
+      .in('vetted_status', ['pending', 'verified'])
+      .order('id')
+      .range(from, from + PAGE - 1)
+    if (error) {
+      errors.push(`[reconcile] select failed: ${error.message}`)
+      return { approved: 0, deleted: 0, errors }
+    }
+    rows.push(...((data ?? []) as typeof rows))
+    if (!data || data.length < PAGE) break
+  }
+
+  const verdicts = await verifyCompanies(rows.map((r) => r.poster_name))
+  const toApprove: string[] = []
+  const toDelete: string[] = []
+  for (const row of rows) {
+    const ok = verdicts.get(normalizeCompanyName(row.poster_name))?.verified
+    if (!ok) toDelete.push(row.id)
+    else if (row.vetted_status === 'pending') toApprove.push(row.id)
+  }
+
+  let approved = 0
+  let deleted = 0
+  for (const ids of chunk(toApprove, UPDATE_CHUNK)) {
+    const { data, error } = await supabase.from('jobs').update({ vetted_status: 'verified' }).in('id', ids).select('vetted_status')
+    if (error) {
+      errors.push(`[reconcile] approve failed: ${error.message}`)
+      continue
+    }
+    // lock_vetted_status() silently reverts the change instead of raising
+    // until supabase/allow-service-role-vetting.sql has run.
+    const stuck = (data ?? []).filter((r) => r.vetted_status !== 'verified').length
+    approved += ids.length - stuck
+    if (stuck) errors.push(`[reconcile] ${stuck} approvals reverted by lock_vetted_status -- run supabase/allow-service-role-vetting.sql`)
+  }
+  for (const ids of chunk(toDelete, UPDATE_CHUNK)) {
+    const { error } = await supabase.from('jobs').delete().in('id', ids)
+    if (error) errors.push(`[reconcile] delete failed: ${error.message}`)
+    else deleted += ids.length
+  }
+  return { approved, deleted, errors }
 }
 
 function daysAhead(days: number): string {

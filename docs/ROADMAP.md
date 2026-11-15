@@ -88,6 +88,7 @@ The pre-registration "join the waitlist" flow no longer makes sense now that rea
 > - `supabase/add-service-marketplace.sql` (20 Oct 2026): **✅ run in full.** PART F (the three public views) was missing on 20 Oct and was confirmed live on 21 Oct, so `/piecejobs` now lists verified providers.
 > - `supabase/add-message-sender-labels.sql` (20 Oct 2026): **✅ run** (`message_thread_names` and `message_sender_labels` exist, checked 20 Oct). Company ↔ candidate messages show the company name and the team member's name, and team members can read their company's threads.
 > - `supabase/fix-orphaned-users.sql` (20 Oct 2026, **review before running**, part by part): a read-only audit found 7 `public.users` rows with no sign-in account. Deleting a login didn't remove its app rows, so the `users.id → auth.users` foreign key is likely missing in production. The script moves Linda's CV and 5 work experiences from her dead 11 Aug account to her live one, deletes the 7 orphans (4 diagnostic test accounts, plus duplicates for Linda, Percy and a company address), and restores the foreign key. It has a guard that aborts if the orphan count isn't 7.
+> - `supabase/allow-service-role-vetting.sql` (15 Nov 2026): **not yet run.** Lets the daily scraper (service role) approve scraped jobs. Without it, `lock_vetted_status()` silently reverts those approvals. New scraped inserts go live either way. See `docs/CHANGELOG/15 NOV 2026 - Candidate sorting, hero cleanup, scraper company verification.md`.
 > - `supabase/add-service-requests-messaging.sql` (20 Oct 2026): **✅ run** (requests, threads, messages, contact violations and the thread helper functions exist, checked 20 Oct). See [Phase 2b S1](#phase-2b--spanispace-piecejobs-marketplace-renamed-from-services-20-oct-2026).
 
 `supabase/` now has 21+ files and this roadmap could no longer tell you from the repo alone which have actually been run against the live project (`rssuacaedvihhpcakuvm`) — that state lives only in Supabase, not in git. Treat every migration below as **unverified** until someone runs the audit query from issue #8 (see [PR #10: Pre-Launch Audit](#pr-10-pre-launch-audit-open-unmerged)) and confirms against the dashboard.
@@ -174,6 +175,8 @@ Full pre-launch audit of the live site, 9 Aug 2026. Branch `fix/ship-check-launc
   > 4. **Linda:** Supabase → Authentication → Emails → SMTP Settings: host `smtp.resend.com`, port `465`, username `resend`, password = the Resend API key, sender `info@spanispace.com`. Also check Rate Limits and URL Configuration (above).
   > 5. Test: sign up with a non-team address and confirm the email arrives.
   >
+  > **Confirmed 12 Nov 2026: Zoho is not an option on the current plan.** Zoho Mail → Settings → Mail Accounts shows "IMAP: This feature is not available for your account" and "SMTP / Forwards: available exclusively with the paid plans". The account is on Zoho's free plan, so there is no SMTP relay to point Supabase at. Resend (steps above) is the path. Zoho would only work again after upgrading to a paid Zoho Mail plan, or by using ZeptoMail, which is a separate product.
+  >
   > **Also found 15 Oct:** `SUPABASE_SERVICE_ROLE_KEY` was stored in Netlify **without "Contains secret values" ticked**, so it was readable in plain text by anyone on the Netlify team. Linda is marking it secret (the agent was blocked from doing it).
 - [ ] **Issue #11 — POPIA Information Officer + DMARC.** Name and register a POPIA Information Officer with the Information Regulator (free) — PR #10's privacy-policy text is written to reference one but a name still needs to be filled in and registered. Add a DNS TXT record: name `_dmarc`, value `v=DMARC1; p=quarantine; rua=mailto:privacy@spanispace.com`.
   > **Update 15 Oct 2026, DNS state checked live:** DNS is hosted on **Netlify DNS** (nameservers `dns1–4.p05.nsone.net`), so records are added at Netlify → Domains → spanispace.com. Present: Zoho MX, `v=spf1 include:zoho.com ~all`, Zoho verification TXT. **Missing:** `_dmarc`, all Resend records, and a Zoho DKIM key. Plan:
@@ -182,6 +185,13 @@ Full pre-launch audit of the live site, 9 Aug 2026. Branch `fix/ship-check-launc
   > - Add DMARC **starting at `p=none`**, not `p=quarantine`: `v=DMARC1; p=none; rua=mailto:privacy@spanispace.com`. Move to `p=quarantine` after 2–4 weeks of reports show Zoho and Resend both passing.
   >
   > **Information Officer:** by default the head of the company (Linda or Percy). Register free on the Information Regulator eServices portal, using the company's registered name and number. Then add the name to section 14 of `app/(public)/privacy/page.tsx`; the same company details also cover compliance checklist #16.
+
+**Issues #2, #26–#29 — triaged 14 Nov 2026** (details in `docs/CHANGELOG/14 NOV 2026 - Test admin, job approvals, GitHub issues.md`):
+- [ ] **#29 — company can't invite a candidate.** Two causes, both needed. (a) The insert never sent `company_id`: fixed by open PR #30, verified against production with the test accounts. (b) Companies created after the 22 Aug membership backfill have no `company_members` owner row, so `company_can_operate()` is false for them: **run `supabase/fix-company-owner-membership.sql`** (adds a trigger + backfill). Test Company, the only affected company, was backfilled by hand on 14 Nov.
+- [ ] **#26 / #27 — application confirmation and new-message emails.** Already coded (`/api/applications` sends the confirmation, `trg_notify_new_message` queues message emails). Nothing sends because `RESEND_API_KEY` isn't set in Netlify or as a GitHub Actions secret. Same fix as Issue #9. The outbox sender now drops rows older than 3 days so the 319-row backlog won't go out on the first run.
+- [ ] **#28 — "new sign-in" email.** Built 14 Nov: `app/api/auth/sign-in-alert/route.ts`, called after password, admin and Google sign-in. Skips accounts under 10 minutes old and repeats within 2 minutes. Also waits on Resend.
+- [ ] **#2 — favicon.** The real cause was `app/favicon.ico`, the default Next.js icon, which Next.js outputs ahead of the metadata icons. Deleted 14 Nov. Live once deployed.
+- Known gap (not an issue yet): `notify_new_message()` picks the recipient by comparing the sender with the company **owner**, so a message from a non-owner team member emails the owner instead of the candidate.
 
 **Issue #1 — SA/informal jobs buried at the end of the pager:**
 - [x] **Sorting fix, code-complete since 18 Jul 2026 (predates this update).** `lib/publicJobs.ts` sorts South African jobs before international ones, and `JobBoard.tsx`'s stable sort preserves that order — SA jobs are already page-1 material, not something newly fixed here, just newly confirmed and documented.
@@ -716,6 +726,7 @@ Full spec: [project-details.md §7](project-details.md#7-new-feature-spanispace-
 
 ### Data Operations
 - Daily scraper (GitHub Actions) auto-refreshes jobs and events — monitor its run logs, not just manual curation
+- **15 Nov 2026:** scraped jobs skip admin review. Each company is checked by guessing its website (`lib/scrapers/company-verifier.ts`). Verified companies' jobs go live, and unverified companies' scraped jobs are deleted every run. Dry run: 417 kept, 180 deleted out of 597. Adzuna jobs with no employer name ("Employer on Adzuna") are exempt and kept live. Follow-ups: generic names (Stone, Wood) can false-match. Run `allow-service-role-vetting.sql`. Use `npx tsx scripts/dry-run-company-verify.ts` to preview.
 - Weekly manual update of learnerships and late university application deadlines (not yet automated)
 - Monthly audit of expired jobs — archive or remove
 - Monitor SETA sites (INSETA, MerSETA, ETDP SETA) for new learnerships

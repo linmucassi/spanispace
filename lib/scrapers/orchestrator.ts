@@ -5,7 +5,7 @@ import { fetchRemoteOKJobs } from './sources/remoteok'
 import { fetchRemotiveJobs } from './sources/remotive'
 import { fetchAdzunaJobs } from './sources/adzuna'
 import { fetchEventbriteEvents } from './sources/eventbrite'
-import { writeJobs, writeEvents, cleanupExpired } from './db-writer'
+import { writeJobs, writeEvents, cleanupExpired, reconcileScrapedJobs } from './db-writer'
 import type { ScraperRunResult } from './types'
 
 export async function runScraper(): Promise<ScraperRunResult[]> {
@@ -42,8 +42,8 @@ export async function runScraper(): Promise<ScraperRunResult[]> {
     const jobs = result.value
     console.log(`[${name}] Fetched ${jobs.length} jobs`)
 
-    const { inserted, refreshed, errors } = await writeJobs(jobs)
-    console.log(`[${name}] Inserted ${inserted}, refreshed ${refreshed}, errors ${errors.length}`)
+    const { inserted, refreshed, unverified, errors } = await writeJobs(jobs)
+    console.log(`[${name}] Inserted ${inserted}, refreshed ${refreshed}, dropped ${unverified} (company not verified), errors ${errors.length}`)
 
     results.push({
       source: name,
@@ -75,6 +75,11 @@ export async function runScraper(): Promise<ScraperRunResult[]> {
       errors,
     })
   }
+
+  // --- Company-website policy over every scraped job in the DB ---
+  const reconcile = await reconcileScrapedJobs()
+  console.log(`[reconcile] Approved ${reconcile.approved}, deleted ${reconcile.deleted} (company not verified), errors ${reconcile.errors.length}`)
+  reconcile.errors.forEach((e) => console.error(`  ✗ ${e}`))
 
   // --- Cleanup expired records ---
   const { jobsDeleted, eventsDeleted } = await cleanupExpired()
