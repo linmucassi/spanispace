@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { refreshPublicPages } from '@/lib/publicCache';
 import type { DbLateUniApp } from '@/types/database';
 import { useConfirm } from '@/components/useConfirm';
 
@@ -26,6 +27,7 @@ export default function AdminLateUni() {
     const supabase = createClient();
     if (!supabase) return;
     await supabase.from('late_uni_apps').delete().eq('id', id);
+    refreshPublicPages();
     load();
   };
 

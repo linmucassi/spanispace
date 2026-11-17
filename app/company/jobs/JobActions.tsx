@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { refreshPublicPages } from '@/lib/publicCache';
 import Link from 'next/link';
 
 export default function JobActions({
@@ -36,6 +37,7 @@ export default function JobActions({
       setError('Failed to update status.');
       return;
     }
+    refreshPublicPages();
     router.refresh();
   };
 

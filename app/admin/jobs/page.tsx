@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { refreshPublicPages } from '@/lib/publicCache';
 import type { DbJob } from '@/types/database';
 import { isExpiringSoon } from '@/lib/listingFreshness';
 import { useConfirm } from '@/components/useConfirm';
@@ -55,6 +56,7 @@ export default function AdminJobs() {
     const supabase = createClient();
     if (!supabase) return;
     await supabase.from('jobs').update({ vetted_status }).eq('id', id);
+    refreshPublicPages();
     loadJobs();
   };
 
@@ -69,6 +71,7 @@ export default function AdminJobs() {
     if (!supabase) return;
     setApproving(true);
     await supabase.from('jobs').update({ vetted_status: 'verified' }).in('id', Array.from(selected));
+    refreshPublicPages();
     setApproving(false);
     setSelected(new Set());
     loadJobs();
@@ -79,6 +82,7 @@ export default function AdminJobs() {
     const supabase = createClient();
     if (!supabase) return;
     await supabase.from('jobs').delete().eq('id', id);
+    refreshPublicPages();
     loadJobs();
   };
 
@@ -112,6 +116,7 @@ export default function AdminJobs() {
         .update({ expiry_date: newExpiry.toISOString().split('T')[0] })
         .eq('id', job.id);
     }
+    refreshPublicPages();
     setExtending(false);
     setSelected(new Set());
     loadJobs();

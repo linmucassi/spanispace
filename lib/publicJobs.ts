@@ -1,4 +1,5 @@
-import { createServerSupabase } from '@/lib/supabase/server';
+import { unstable_cache } from 'next/cache';
+import { createAnonSupabase } from '@/lib/supabase/anon';
 import { JOBS as STATIC_JOBS } from '@/data/constants';
 import { isSouthAfricanJob } from '@/lib/jobLocation';
 import { isMojibake } from '@/lib/textQuality';
@@ -67,50 +68,69 @@ function mapDbJob(row: DbJob): Job {
   };
 }
 
-export async function fetchPublicJobs(): Promise<Job[]> {
-  const supabase = await createServerSupabase();
-  if (!supabase) return STATIC_JOBS;
+// Shared across requests for five minutes. /jobs reads searchParams, so that
+// page still renders per request, but the query behind it runs once per five
+// minutes instead of once per visit. A Supabase error throws rather than
+// returning the static list, because unstable_cache doesn't store a throw, so
+// one failed read isn't served to everyone for the next five minutes. The tag
+// lets app/api/public-cache drop it the moment an admin or company changes a
+// job. Returns null when Supabase isn't configured.
+const loadDbJobs = unstable_cache(
+  async (): Promise<Job[] | null> => {
+    const supabase = createAnonSupabase();
+    if (!supabase) return null;
 
-  const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toISOString().split('T')[0];
 
-  // select('*') keeps this resilient to columns added by later migrations
-  // (e.g. `duration` from add-informal-jobs.sql). Paged with .range()
-  // because PostgREST silently caps a single response at 1000 rows and the
-  // widened scraper fills the table well past that.
-  const PAGE = 1000;
-  const rows: DbJob[] = [];
-  for (let from = 0; ; from += PAGE) {
-    const { data, error } = await supabase
-      .from('jobs')
-      .select(`*, company_profiles ( company_name )`)
-      .eq('vetted_status', 'verified')
-      .eq('status', 'active')
-      .gte('expiry_date', today)
-      .order('created_at', { ascending: false })
-      .range(from, from + PAGE - 1);
+    // select('*') keeps this resilient to columns added by later migrations
+    // (e.g. `duration` from add-informal-jobs.sql). Paged with .range()
+    // because PostgREST silently caps a single response at 1000 rows and the
+    // widened scraper fills the table well past that.
+    const PAGE = 1000;
+    const rows: DbJob[] = [];
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await supabase
+        .from('jobs')
+        .select(`*, company_profiles ( company_name )`)
+        .eq('vetted_status', 'verified')
+        .eq('status', 'active')
+        .gte('expiry_date', today)
+        .order('created_at', { ascending: false })
+        .range(from, from + PAGE - 1);
 
-    if (error) {
-      console.error('[publicJobs] Supabase error:', error.message, error.details ?? '')
+      if (error) throw new Error(`${error.message} ${error.details ?? ''}`.trim());
+      rows.push(...((data ?? []) as unknown as DbJob[]));
+      if (!data || data.length < PAGE) break;
+    }
+
+    if (rows.length === 0) {
+      console.warn('[publicJobs] No active+verified jobs in DB — falling back to static data')
       return STATIC_JOBS;
     }
-    rows.push(...((data ?? []) as unknown as DbJob[]));
-    if (!data || data.length < PAGE) break;
-  }
 
-  if (rows.length === 0) {
-    console.warn('[publicJobs] No active+verified jobs in DB — falling back to static data')
+    const jobs = rows.filter(isEnglishReadable).map(mapDbJob);
+
+    // South African jobs come first — testers said local jobs were buried at
+    // the end of the pages under international remote listings. Within each
+    // group the newest-first order from the query is preserved.
+    const southAfrican = jobs.filter((j) => isSouthAfricanJob(j.location));
+    const international = jobs.filter((j) => !isSouthAfricanJob(j.location));
+    return [...southAfrican, ...international];
+  },
+  ['public-jobs'],
+  { revalidate: 300, tags: ['public-jobs'] },
+);
+
+export async function fetchPublicJobs(): Promise<Job[]> {
+  try {
+    return (await loadDbJobs()) ?? STATIC_JOBS;
+  } catch (err) {
+    console.error('[publicJobs] Supabase error:', err instanceof Error ? err.message : err)
     return STATIC_JOBS;
   }
-
-  const jobs = rows.filter(isEnglishReadable).map(mapDbJob);
-
-  // South African jobs come first — testers said local jobs were buried at
-  // the end of the pages under international remote listings. Within each
-  // group the newest-first order from the query is preserved.
-  const southAfrican = jobs.filter((j) => isSouthAfricanJob(j.location));
-  const international = jobs.filter((j) => !isSouthAfricanJob(j.location));
-  return [...southAfrican, ...international];
 }
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export type PublicJobDetail = Job & {
   description?: string;
@@ -120,15 +140,20 @@ export type PublicJobDetail = Job & {
 };
 
 export async function fetchPublicJob(id: string): Promise<PublicJobDetail | null> {
-  const supabase = await createServerSupabase();
+  const supabase = createAnonSupabase();
 
-  if (supabase) {
+  // Static fallback jobs have short ids like '1', which Postgres rejects as a
+  // uuid, so only real ids go to the database.
+  if (supabase && UUID.test(id)) {
     const today = new Date().toISOString().split('T')[0];
 
     // The same three conditions the list uses. Without them an unvetted or
     // expired job stayed readable by direct URL, and public insert on `jobs`
     // is open, so anyone could post a job and then share a link to it.
-    const { data } = await supabase
+    // A failed read throws instead of returning null: these pages are cached,
+    // and null would cache a 404 for a real job. A throw keeps the last good
+    // page and retries.
+    const { data, error } = await supabase
       .from('jobs')
       .select(`*, company_profiles ( company_name )`)
       .eq('id', id)
@@ -137,6 +162,7 @@ export async function fetchPublicJob(id: string): Promise<PublicJobDetail | null
       .gte('expiry_date', today)
       .maybeSingle();
 
+    if (error) throw new Error(`[publicJobs] Supabase error: ${error.message}`);
     if (data) {
       const row = data as unknown as DbJob;
       const base = mapDbJob(row);
